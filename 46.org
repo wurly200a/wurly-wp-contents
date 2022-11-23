@@ -1,0 +1,40 @@
+#+BLOG: wurly-blog
+#+POSTID: 46
+#+ORG2BLOG:
+#+DATE: [2022-11-23 Wed 15:33]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Org2Blog, WordPress
+#+TAGS: Emacs, Lisp
+#+DESCRIPTION:
+#+TITLE: WordPress再開
+
+* きっかけ
+
+ - [[https://zenn.dev/wurly/articles/027963649c268e][Zenn CLI の導入]]
+
+上記ページより引用します。
+
+#+begin_quote
+これまで自前で構築した WordPress や Qiita 、note などを試してみてはいましたが、編集時の使い勝手や、データ形式、データ管理の面が気になり、積極的に使う状態に至っていませんでした。
+#+end_quote
+
+というわけでしばらくZennを使っていました。
+記事の作成の手間や、記事の表示(見た目)など、悪くはなかったのですが、アクセス解析ができず、読者の反応がわからず、やはりしっくり来ていませんでした。
+
+* そして今回
+
+ - [[https://applis.io/posts/tech-blog-with-wordpress][技術ブログはWordPressがいい8つの理由を解説【どこで書く？】 - applis]]
+
+上記の記事を見かけ、2017年に作成していたWordPressを再度使ってみようと思いたちました。
+
+再度、振り返ってみますと、私がやりたいことは下記の通りでした。
+
+ - Emacs で 記事を作成・編集
+ - GitHub で記事のデータを管理
+ - Emacs Org-Mode との連携
+
+上記のうち、Zennでは実際のところ、Org-modeとの連携はできておらず、Markdownで記載しておりました。
+
+一方、Wordpress では、org2blog を使うことによって、上記3つとも実現できそうなことがわかりました。
+
+最近のトレンドを取り入れつつ、WordPressの活用を進めていきます。
