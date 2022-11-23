@@ -12,6 +12,8 @@
 
  - [[https://zenn.dev/wurly/articles/027963649c268e][Zenn CLI の導入]]
 
+https://zenn.dev/wurly/articles/027963649c268e
+
 上記ページより引用します。
 
 #+begin_quote
@@ -23,6 +25,8 @@
 * そして今回
 
  - [[https://applis.io/posts/tech-blog-with-wordpress][技術ブログはWordPressがいい8つの理由を解説【どこで書く？】 - applis]]
+
+https://applis.io/posts/tech-blog-with-wordpress
 
 上記の記事を見かけ、2017年に作成していたWordPressを再度使ってみようと思いたちました。
 
