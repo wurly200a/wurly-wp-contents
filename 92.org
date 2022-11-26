@@ -24,7 +24,7 @@ https://www.mhatta.org/wp/2018/09/25/org-mode-101-7/
 
 * 設定
 
-一旦、シンプルに下記のような設定とした。
+まずは、シンプルに下記のような設定で使い始めました。
 
 #+begin_src emacs-lisp
 ;---- org2blog ----
@@ -35,6 +35,49 @@ https://www.mhatta.org/wp/2018/09/25/org-mode-101-7/
         '(("ブログ名"
            :url "http://サイトURL/xmlrpc.php"
            :username "ユーザ名")))
+  (setq org2blog/wp-image-upload t)
   (global-set-key "\M-b" 'org2blog-user-interface)
 )
 #+end_src
+
+* 使用方法
+
+** メニューの表示
+
+メニューを開きます。私は"blog"にちなんで Meta b (ESC - b) を割り当てました。
+
+[[file:./images/org2blog_menu.png]]
+
+# ./images/org2blog_menu.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/11/org2blog_menu.png
+
+** 手順
+
+最初にログインし、バッファを作成して、原稿を下書きとして投稿します。
+
+ - [4] Login
+ - [e] New Buffer
+ - [j] Save Post Draft
+
+POSTID が決定するので、"POSTID".org に保存し、Git(GitHub)で管理します。
+
+この後は、遂行した後、
+
+ - [l] Publish Post
+
+で公開できます。
+
+その後編集する場合には、
+
+ - [j] Save Post Draft
+ - [l] Publish Post
+
+とするか、または直接
+
+ - [l] Publish Post
+
+するなどで更新できます。
+
+** 画像のアップロード
+
+通常の org-mode の記法で記載すれば、自動的にアップロードされメディアライブラリで管理されます。
+htmlのリンクもこれに基づき生成され、URLについては元の orgファイルにコメントとして記載されます。便利！！
