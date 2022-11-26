@@ -4,7 +4,7 @@
 #+DATE: [2022-11-23 Wed 15:33]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
 #+CATEGORY: Org2Blog, WordPress
-#+TAGS: Emacs, Lisp
+#+TAGS: Emacs
 #+DESCRIPTION:
 #+TITLE: WordPress再開
 
