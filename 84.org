@@ -1,0 +1,45 @@
+#+BLOG: wurly-blog
+#+POSTID: 84
+#+ORG2BLOG:
+#+DATE: [2022-11-23 Wed 18:38]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS: Emacs, Lisp
+#+DESCRIPTION:
+#+TITLE: WordPressのテーマ
+
+* はじめに
+
+久しぶりにWordPressのダッシュボードを確認しました。
+
+サイトヘルスステータスの指摘に従い、未使用のプラグインやテーマを削除しました。
+
+テーマはこれまで適当に選んだ "Twenty Seventeen" を使用していましたが、もう少ししっかり選んでみることにしました。
+
+* 調査
+
+ - [[https://applis.io/posts/wordpress-themes-for-tech-blog][WordPressのテーマに最適な3つを解説します【技術ブログ】 - applis]]
+
+https://applis.io/posts/wordpress-themes-for-tech-blog
+
+上記によると、THE THOR がよいとのことだったのですが、結構な値段 (\16,280) がするようなので、まずは技術ブログで使用するにふさわしい無料のものを探してみることにします。
+
+ - [[https://webst8.com/blog/wordpress-recommend-free-themes/#st-toc-h-7][【2022年版】目的別WordPressおすすめ無料テーマ6選 - WEBST8のブログ]]
+
+https://webst8.com/blog/wordpress-recommend-free-themes/#st-toc-h-7
+
+上記によると、Cocoon（コクーン）がよさそうですのでこちらを使ってみます。
+
+* インストール
+
+ - [[https://wp-cocoon.com/downloads/][Cocoonテーマのダウンロード | Cocoon]]
+
+https://wp-cocoon.com/downloads/
+
+nifty の場合、"Cocoonテーマ" は容量制限の為アップロードできなかったので、"Cocoon 低サイズ版(要自動アップデート)" 及び"Cocoon子テーマ"を使用し、ダッシュボードの更新から最新版にアップデートしました。
+
+* 所感
+
+やはりテーマを変更すると全く違います。断然見やすくなりました。
+
+特に、ブログカード表示がいいですね。
