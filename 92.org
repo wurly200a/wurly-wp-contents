@@ -10,7 +10,7 @@
 
 * はじめに
 
-[[file:46.org]] に記載した通り、Emacs で記事を作成したいので、org2blog を使ってみます。
+[[http://cha.la.coocan.jp/wp/?p=46][WordPress再開]] に記載した通り、Emacs で記事を作成したいので、org2blog を使ってみます。
 
  - [[https://github.com/org2blog/org2blog][org2blog/org2blog: Blog from Org mode to WordPress.]]
 
