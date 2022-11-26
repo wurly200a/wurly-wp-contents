@@ -4,7 +4,7 @@
 #+DATE: [2022-11-23 Wed 18:38]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
 #+CATEGORY: WordPress
-#+TAGS: Emacs, Lisp
+#+TAGS:
 #+DESCRIPTION:
 #+TITLE: WordPressのテーマ
 
