@@ -1,0 +1,40 @@
+#+BLOG: wurly-blog
+#+POSTID: 92
+#+ORG2BLOG:
+#+DATE: [2022-11-26 Sat 16:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Org2Blog, WordPress
+#+TAGS: Emacs
+#+DESCRIPTION:
+#+TITLE: org2blog
+
+* はじめに
+
+[[file:46.org]] に記載した通り、Emacs で記事を作成したいので、org2blog を使ってみます。
+
+ - [[https://github.com/org2blog/org2blog][org2blog/org2blog: Blog from Org mode to WordPress.]]
+
+https://github.com/org2blog/org2blog
+
+* 参考
+
+ - [[https://www.mhatta.org/wp/2018/09/25/org-mode-101-7/][モーレツ! Org mode 教室 その7: org2blog で WordPress に投稿する – mhatta's mumbo jumbo]]
+
+https://www.mhatta.org/wp/2018/09/25/org-mode-101-7/
+
+* 設定
+
+一旦、シンプルに下記のような設定とした。
+
+#+begin_src emacs-lisp
+;---- org2blog ----
+(when (locate-library "org2blog")
+  (require 'org2blog)
+
+  (setq org2blog/wp-blog-alist
+        '(("ブログ名"
+           :url "http://サイトURL/xmlrpc.php"
+           :username "ユーザ名")))
+  (global-set-key "\M-b" 'org2blog-user-interface)
+)
+#+end_src
