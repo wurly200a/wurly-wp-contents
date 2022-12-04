@@ -1,0 +1,26 @@
+#+BLOG: wurly-blog
+#+POSTID: 129
+#+ORG2BLOG:
+#+DATE: [2022-12-04 Sun 15:46]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: 投稿や固定ページのURLが日本語にならないようにする
+
+* ほじめに
+
+ - [[https://open-cage.com/automatic-create-url-slug/][投稿や固定ページのURLが日本語にならないようにする方法 - OPENCAGE]]
+https://open-cage.com/automatic-create-url-slug/
+
+本格的にWordPressを使っていなかった為、これまであまり意識していなかったのですが、日本語のスラッグ(投稿や固定ページのURL)が気になりました。
+
+* 結論
+
+Cocoonの場合は下記のように設定が可能です。
+
+Cocoon設定 → その他 → 日本語スラッグ 「日本語スラッグを半角英数字にする」
+
+file:./images/wp_slug.jpg
+
+# ./images/wp_slug.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/wp_slug-1.jpg
