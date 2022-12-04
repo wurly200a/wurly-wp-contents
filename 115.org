@@ -1,0 +1,47 @@
+#+BLOG: wurly-blog
+#+POSTID: 115
+#+ORG2BLOG:
+#+DATE: [2022-12-04 Sun 14:46]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Rust
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: DASP (Digital Audio Signal Processing in Rust)
+
+
+* はじめに
+
+ - [[https://github.com/RustAudio/synth][RustAudio/synth: A polyphonic Synth type whose multiple oscillators generate sound via amplitude and frequency envelopes, implemented in Rust. DEPRECATED: This is a very old crate with very old design patterns and is no longer maintained. You might be interested in checking out `dasp` for composing your own synth instead.]]
+https://github.com/RustAudio/synth
+
+何かのきっかけで見つけた上記が気になりました。
+このプロジェクトは既に開発停止していて dasp に引き継がれているようなのでそちらをチェックします。
+
+ - [[https://github.com/RustAudio/dasp][RustAudio/dasp: The fundamentals for Digital Audio Signal Processing. Formerly `sample`.]]
+https://github.com/RustAudio/dasp
+
+* ビルド
+
+#+begin_src 
+>cargo build
+>cargo build --examples
+#+end_src
+
+* 実行
+
+\target\debug\examples の下記を実行するとサウンドが生成されました。
+
+#+begin_src 
+>synth.exe
+#+end_src
+
+* リンク
+
+ - [[http://cha.la.coocan.jp/doc/Rust.html][Rust]]
+http://cha.la.coocan.jp/doc/Rust.html
+
+ - [[https://www.rust-lang.org/tools/install][Install Rust - Rust Programming Language]]
+https://www.rust-lang.org/tools/install
+
+ - [[https://yuzu441.hateblo.jp/entry/2017/03/22/201027][rustupのアンインストール方法 - ゆずめも]]
+https://yuzu441.hateblo.jp/entry/2017/03/22/201027
