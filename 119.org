@@ -1,0 +1,32 @@
+#+BLOG: wurly-blog
+#+POSTID: 119
+#+ORG2BLOG:
+#+DATE: [2022-12-04 Sun 15:18]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: WordPressの構築場所
+
+* はじめに
+
+ - [[https://www.rworks.jp/system/system-column/sys-practice/17151/][Kubernetes で WordPress サイトを公開してみる (Azure 環境構築編) | クラウド導入・システム運用ならアールワークスへ]]
+https://www.rworks.jp/system/system-column/sys-practice/17151/
+
+ - [[https://www.rworks.jp/system/system-column/sys-practice/17147/][なぜ今 Kubernetes なのか？使い方、オブジェクトの種類を解説 | クラウド導入・システム運用ならアールワークスへ]]
+https://www.rworks.jp/system/system-column/sys-practice/17147/
+
+ - [[https://logmi.jp/tech/articles/322854][Azure Kubernetes Serviceで、超低予算＆ほぼフルマネージドなWordPress環境を構築した話 - ログミーTech]]
+https://logmi.jp/tech/articles/322854
+
+ - [[https://eng-blog.iij.ad.jp/archives/6304][自宅にKubernetesクラスター『おうちKubernetes』を作ってみた | IIJ Engineers Blog]]
+https://eng-blog.iij.ad.jp/archives/6304
+
+WordPressを再開するにあたって、構築場所としてnifty以外についても検討しました。
+
+選択肢としては、Azure kubernetes (AKS)の使用や自宅にkubernetesクラスターを作成する、などです。
+
+* 結論
+
+結論としてはAKSではかなり費用がかかりそうなのと、自宅にkubernetesクラスターを作成することについても、ラズパイを用いるなどできないことは無さそうでしたが(楽しそうだが)、安定性などに懸念がありそうです。
+現時点ではniftyで継続することとしました。
