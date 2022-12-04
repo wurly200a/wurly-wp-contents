@@ -1,0 +1,38 @@
+#+BLOG: wurly-blog
+#+POSTID: 108
+#+ORG2BLOG:
+#+DATE: [2022-12-04 Sun 14:07]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY:
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: Stable Diffusion 2.0 リリース
+
+* 概要
+
+Stable Diffusion 2.0 がリリースされたとのこと。
+
+これまでは、ローカル環境に Stable Diffusion v1.4 の環境はつくっていました。
+v2.0だといろいろ依存するパッケージがいろいろ変わっていてすぐには移行できなそうでした。
+
+引き続きチャレンジします。
+
+* リンク
+
+** 記事
+
+ - [[https://zenn.dev/o_ob/articles/stable-diffusion-v2-release][Stable Diffusion 2.0 Release日本語参考訳]]
+https://zenn.dev/o_ob/articles/stable-diffusion-v2-release
+
+ - [[https://gigazine.net/news/20221125-stable-diffusion-2-instant/][画像生成AI「Stable Diffusion 2.0」を無料でサクッと使えるウェブサイトを見つけたので生成結果を「Stable Diffusion 1.4」と比べてみたよレビュー - GIGAZINE]]
+https://gigazine.net/news/20221125-stable-diffusion-2-instant/
+
+ - [[https://gigazine.net/news/20221124-stable-diffusion-2-0-release/][画像生成AI「Stable Diffusion」のバージョン2.0が登場、出力画像の解像度が拡大＆デジタル透かしを入れられる機能も - GIGAZINE]]
+https://gigazine.net/news/20221124-stable-diffusion-2-0-release/
+
+** プロジェクト
+ - [[https://github.com/CompVis/latent-diffusion][CompVis/latent-diffusion: High-Resolution Image Synthesis with Latent Diffusion Models]]
+ - [[https://huggingface.co/stabilityai/stable-diffusion-2/tree/main][stabilityai/stable-diffusion-2 at main]]
+ - [[https://github.com/karaage0703/stable-diffusion-colab-tools/blob/main/007_stable_diffusion_gui_basic_2_0.ipynb][stable-diffusion-colab-tools/007_stable_diffusion_gui_basic_2_0.ipynb at main · karaage0703/stable-diffusion-colab-tools]]
+ - [[https://github.com/Stability-AI/stablediffusion][Stability-AI/stablediffusion: High-Resolution Image Synthesis with Latent Diffusion Models]]
+ - [[https://github.com/karaage0703/stable-diffusion-colab-tools/blob/main/007_stable_diffusion_gui_basic_2_0.ipynb][stable-diffusion-colab-tools/007_stable_diffusion_gui_basic_2_0.ipynb at main · karaage0703/stable-diffusion-colab-tools]]
