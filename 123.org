@@ -1,0 +1,30 @@
+#+BLOG: wurly-blog
+#+POSTID: 123
+#+ORG2BLOG:
+#+DATE: [2022-12-04 Sun 15:34]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Org2Blog, WordPress
+#+TAGS: Emacs, Lisp
+#+DESCRIPTION:
+#+TITLE: Org2Blog + Cocoonの内部ブログカード表示
+
+* はじめに
+
+ - [[https://wp-cocoon.com/how-to-use-internal-blogcard/][内部ブログカードを表示する方法 | Cocoon]]
+https://wp-cocoon.com/how-to-use-internal-blogcard/
+
+Cocoonを使い始めてみて、「内部ブログカード表示」が見た目もよい上、リンク先の情報が事前に見られるので非常に良いと思いました。
+
+一方、私の環境では Org2Blog を使用して記事を生成している為、記事の記述方法によっては内部ブログカード表示が行われないことがあり、対処方法について検討しました。
+
+* 結論
+
+結論としては、通常のOrgModeのリンクの記載の直後に、URLをそのまま記載するのが良さそうです。
+本ページもそのように記載しています。
+
+通常のOrgModeのリンクはカード表示になりませんので、そのまま記載したURL部分がカード表示となります。
+これにより、通常はカード表示無しで、意図的にURLをそのまま記載したところがカード表示となり、意図的に使い分けることが可能です。
+下記記事とは逆の考え方となります。
+
+ - [[https://yoshitechblog.com/cocoon-link-url-text-display-paste][リンクをURL表示のままで貼る｜Cocoonブログカード不要時]]
+https://yoshitechblog.com/cocoon-link-url-text-display-paste
