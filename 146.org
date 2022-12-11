@@ -1,0 +1,59 @@
+#+BLOG: wurly-blog
+#+POSTID: 146
+#+ORG2BLOG:
+#+DATE: [2022-12-11 Sun 23:58]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY:
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: WSL2(Linux 用 Windows サブシステム)で Linux GUI アプリを実行する
+
+* 参考
+
+ - [[https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/gui-apps][WSL で Linux GUI アプリを実行する | Microsoft Learn]]
+https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/gui-apps
+
+ - [[https://developer.nvidia.com/cuda/wsl][GPU in Windows Subsystem for Linux (WSL) | NVIDIA Developer]]
+https://developer.nvidia.com/cuda/wsl
+
+ - [[https://docs.nvidia.com/cuda/wsl-user-guide/index.html][CUDA on WSL User Guide]]
+https://docs.nvidia.com/cuda/wsl-user-guide/index.html
+
+ - [[https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html][GameReadyドライバとStudioドライバの違いとは | ゲームPCバンク]]
+https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html
+
+* 手順
+
+527.56-desktop-win10-win11-64bit-international-dch-whql.exe をインストール
+
+#+begin_src 
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
+sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
+sudo dpkg -i cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
+sudo cp /var/cuda-repo-wsl-ubuntu-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sudo apt-get update
+sudo apt-get -y install cuda
+#+end_src
+
+この状態だとStore版では無いので駄目なのだそうです。
+
+#+begin_src 
+PS C:\Windows\system32> wsl --version
+コマンド ライン オプションが無効です: --version
+#+end_src
+
+下記を実行するだけではStore版には置き換わらなかったようです。
+
+#+begin_src 
+PS C:\Windows\system32> wsl --install -d Ubuntu-20.04
+#+end_src
+
+* 結果
+
+まだ上手くいっていません。
+
+#+begin_src 
+~$ xclock
+Error: Can't open display:
+#+end_src
