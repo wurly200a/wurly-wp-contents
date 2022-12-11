@@ -1,0 +1,77 @@
+#+BLOG: wurly-blog
+#+POSTID: 140
+#+ORG2BLOG:
+#+DATE: [2022-12-11 Sun 15:13]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY:
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: SinelaboreRT
+
+* 概要
+
+[[https://www.sinelabore.de/][Generate production ready source code from UML state diagrams – and activity diagrams! [SinelaboreRT]]
+
+https://www.sinelabore.de/
+
+UMLの状態図からソースコードを生成するツールとのことです。
+
+有償です。デモ版は状態数などに制限があるとのこと。
+
+「階層型ステートマシンをベースにした、モダンで堅牢なイベントドリブン型組込みリアルタイムシステムを構築します」との触れ込みです。
+
+2022/12/10 Rust Code の生成にも対応したとのことです。
+
+
+* 試したこと
+
+[[https://www.sinelabore.de/doku.php/wiki/examples/light_controller][Automatic Light Controller [SinelaboreRT]]]
+
+https://www.sinelabore.de/doku.php/wiki/examples/light_controller
+
+Version5.5.5.5をインストールし、上記のサンプルに基づき、起動してみました。
+
+展開したディレクトリに移動し、下記のように起動します。
+
+#+begin_src 
+D:\home\wurly\project_rt\automatic_light>"C:\Program Files\Sinelabore\Sinelabore.exe"  automatic_light.xml
+#+end_src
+
+Graphviz が必要で、codegen.cfg にパスを設定したのですが、
+
+#+begin_src 
+DotPath="C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
+#+end_src
+
+#+begin_src 
+DotPathWin="C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
+#+end_src
+
+jsonファイルが見つからないというのと、設定しているにも関わらず dot.exe のパスが見つからないらしく、上手く動作しませんでした。
+
+#+begin_src 
+Can't find the License.txt file or invalid file. Codegen is running in demo mode
+Expected license file location: /C:/Program Files/Sinelabore/app/License.txt
+Starting robustness tests of state machine ...
+State names: ..............
+Machine hierarchy: ........
+Machine height = 2
+Transitions: ..............
+Default states: ...........
+Final states: .............
+Choices: ..................
+No. of children in composites: ...
+Connectivity of states: ...
+M1032: State AutoMode is not reachable -> check your design.
+Error - can't read json file C:\Users\wurly\AppData\Local\Temp\graph_14019748127469633685.png.json
+C:\Users\wurly\AppData\Local\Temp\graph_14019748127469633685.png.json (指定されたファイルが見つかりません。)
+M1: Graphviz not found -> check the DotPath in codegen config file.
+DotPath is currently set to "C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
+On Windows the path should be similar to e.g. DotPath="C:\\Program Files\\Graphviz\\bin\\dot.exe"
+Open UdpMulticastServer on port 4445 and address 224.0.0.3
+Error - can't read json file C:\Users\wurly\AppData\Local\Temp\graph_16234902773050906746.png.json
+C:\Users\wurly\AppData\Local\Temp\graph_16234902773050906746.png.json (指定されたファイルが見つかりません。)
+M1: Graphviz not found -> check the DotPath in codegen config file.
+DotPath is currently set to "C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
+On Windows the path should be similar to e.g. DotPath="C:\\Program Files\\Graphviz\\bin\\dot.exe"
+#+end_src
