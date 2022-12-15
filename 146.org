@@ -57,3 +57,10 @@ PS C:\Windows\system32> wsl --install -d Ubuntu-20.04
 ~$ xclock
 Error: Can't open display:
 #+end_src
+
+* その後
+
+下記の対応を行い、ストア版のWSLをインストールすることで使えるようになりました。
+
+ - [[https://level69.net/archives/32328][Windows バージョン 10.0.19045.2251 は、パッケージ化されたバージョンのLinux 用 Windows サブシステムをサポートしていません。 - 技術的な何か。]]
+https://level69.net/archives/32328
