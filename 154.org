@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2022-12-17 Sat 12:22]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY:
+#+CATEGORY: Rust
 #+TAGS:
 #+DESCRIPTION:
 #+TITLE: spotifyd
