@@ -1,0 +1,382 @@
+#+BLOG: wurly-blog
+#+POSTID: 154
+#+ORG2BLOG:
+#+DATE: [2022-12-17 Sat 12:22]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY:
+#+TAGS:
+#+DESCRIPTION:
+#+TITLE: spotifyd
+
+* 概要
+
+https://github.com/Spotifyd/spotifyd
+
+Rust で気になったプロジェクトがありました。
+
+軽量で様々なプラットフォームに対応するSpotify向けクライアントとのことです。
+
+* ビルド
+
+Windows で cargo build してみましたが、alsa が見つからないということでビルドが通りませんでした。
+
+#+begin_src sh
+D:\home\wurly\project_rust>cd spotifyd
+
+D:\home\wurly\project_rust\spotifyd>cargo build
+  Downloaded hex v0.4.3
+  Downloaded httparse v1.8.0
+  Downloaded http-body v0.4.5
+  Downloaded tokio-stream v0.1.10
+  Downloaded tower-service v0.3.2
+  Downloaded time v0.1.44
+  Downloaded idna v0.3.0
+  Downloaded tracing-attributes v0.1.22
+  Downloaded try-lock v0.2.3
+  Downloaded tracing-core v0.1.29
+  Downloaded unicode-normalization v0.1.22
+  Downloaded vec_map v0.8.2
+  Downloaded url v2.3.1
+  Downloaded want v0.3.0
+  Downloaded version_check v0.9.4
+  Downloaded tracing-error v0.1.2
+  Downloaded unicode-segmentation v1.10.0
+  Downloaded unicode-width v0.1.10
+  Downloaded vergen v3.2.0
+  Downloaded unicode-bidi v0.3.8
+  Downloaded indenter v0.3.3
+  Downloaded hyper v0.14.20
+  Downloaded tokio-macros v1.8.0
+  Downloaded xdg v2.4.1
+  Downloaded zerocopy v0.3.0
+  Downloaded toml v0.5.9
+  Downloaded tracing-subscriber v0.2.25
+  Downloaded libmdns v0.6.2
+  Downloaded tokio-timer v0.2.13
+  Downloaded kernel32-sys v0.2.2
+  Downloaded opaque-debug v0.3.0
+  Downloaded pin-utils v0.1.0
+  Downloaded num-integer v0.1.45
+  Downloaded proc-macro-error-attr v1.0.4
+  Downloaded proc-macro-error v1.0.4
+  Downloaded miow v0.2.2
+  Downloaded pbkdf2 v0.8.0
+  Downloaded remove_dir_all v0.5.3
+  Downloaded rustc-demangle v0.1.21
+  Downloaded rand_core v0.6.4
+  Downloaded owo-colors v1.3.0
+  Downloaded protobuf-codegen-pure v2.14.0
+  Downloaded serde_derive v1.0.145
+  Downloaded pin-project-lite v0.1.12
+  Downloaded percent-encoding v2.2.0
+  Downloaded tinyvec v1.6.0
+  Downloaded semver v1.0.14
+  Downloaded subtle v2.4.1
+  Downloaded structopt-derive v0.4.18
+  Downloaded tokio-current-thread v0.1.7
+  Downloaded tempfile v3.3.0
+  Downloaded thiserror-impl v1.0.36
+  Downloaded thiserror v1.0.36
+  Downloaded tokio-compat-02 v0.2.0
+  Downloaded tokio-io v0.1.13
+  Downloaded tokio-executor v0.1.10
+  Downloaded shell-words v1.1.0
+  Downloaded ws2_32-sys v0.2.1
+  Downloaded mio v0.8.4
+  Downloaded shannon v0.2.0
+  Downloaded zerocopy-derive v0.2.0
+  Downloaded librespot-tremor v0.2.0
+  Downloaded libc v0.2.133
+  Downloaded alsa v0.5.0
+  Downloaded windows_x86_64_msvc v0.36.1
+  Downloaded tokio v0.2.25
+  Downloaded winapi v0.2.8
+  Downloaded tokio v1.21.1
+  Downloaded color-eyre v0.5.11
+  Downloaded fern v0.6.1
+  Downloaded windows-sys v0.36.1
+  Downloaded syslog v4.0.1
+  Downloaded ogg-sys v0.0.9
+  Downloaded gcc v0.3.55
+  Downloaded log v0.4.17
+  Downloaded gimli v0.26.2
+  Downloaded tinyvec_macros v0.1.0
+  Downloaded thread_local v1.1.4
+  Downloaded strsim v0.8.0
+  Downloaded slab v0.4.7
+  Downloaded serde v1.0.145
+  Downloaded once_cell v1.15.0
+  Downloaded mio v0.6.23
+  Downloaded futures v0.3.24
+  Downloaded dirs-sys v0.3.7
+  Downloaded syn v1.0.100
+  Downloaded serde_json v1.0.85
+  Downloaded structopt v0.3.26
+  Downloaded fnv v1.0.7
+  Downloaded tokio-compat v0.1.6
+  Downloaded textwrap v0.11.0
+  Downloaded synstructure v0.12.6
+  Downloaded sha-1 v0.9.8
+  Downloaded socket2 v0.4.7
+  Downloaded sharded-slab v0.1.4
+  Downloaded ogg v0.8.0
+  Downloaded nix v0.20.0
+  Downloaded fastrand v1.8.0
+  Downloaded pkg-config v0.3.25
+  Downloaded num-traits v0.2.15
+  Downloaded error-chain v0.11.0
+  Downloaded rustc_version v0.4.0
+  Downloaded proc-macro2 v1.0.44
+  Downloaded memchr v2.5.0
+  Downloaded clap v2.34.0
+  Downloaded atty v0.2.14
+  Downloaded eyre v0.6.8
+  Downloaded num_cpus v1.13.1
+  Downloaded glob v0.3.0
+  Downloaded ryu v1.0.11
+  Downloaded rand v0.8.5
+  Downloaded protobuf-codegen v2.14.0
+  Downloaded protobuf v2.14.0
+  Downloaded futures v0.1.31
+  Downloaded daemonize v0.4.1
+  Downloaded priority-queue v1.2.3
+  Downloaded net2 v0.2.37
+  Downloaded form_urlencoded v1.1.0
+  Downloaded crypto-mac v0.11.1
+  Downloaded color-spantrace v0.1.6
+  Downloaded ctr v0.6.0
+  Downloaded cpufeatures v0.2.5
+  Downloaded ppv-lite86 v0.2.16
+  Downloaded cipher v0.2.5
+  Downloaded rand_chacha v0.3.1
+  Downloaded multimap v0.8.3
+  Downloaded dirs v4.0.0
+  Downloaded digest v0.9.0
+  Downloaded cc v1.0.73
+  Downloaded base64 v0.13.0
+  Downloaded futures-channel v0.3.24
+  Downloaded byteorder v1.4.3
+  Downloaded adler v1.0.2
+  Downloaded crossbeam-utils v0.7.2
+  Downloaded chrono v0.4.22
+  Downloaded boxfnonce v0.1.1
+  Downloaded librespot-protocol v0.2.0
+  Downloaded futures-executor v0.3.24
+  Downloaded bytes v1.2.1
+  Downloaded aes-soft v0.6.4
+  Downloaded bytes v0.5.6
+  Downloaded bytes v0.4.12
+  Downloaded async-trait v0.1.57
+  Downloaded alsa-sys v0.3.1
+  Downloaded pin-project-lite v0.2.9
+  Downloaded librespot-playback v0.2.0
+  Downloaded librespot-metadata v0.2.0
+  Downloaded cfg-if v1.0.0
+  Downloaded bitflags v1.3.2
+  Downloaded num-bigint v0.4.3
+  Downloaded miniz_oxide v0.5.4
+  Downloaded match_cfg v0.1.0
+  Downloaded gethostname v0.2.3
+  Downloaded block-buffer v0.9.0
+  Downloaded aes-ctr v0.6.0
+  Downloaded generic-array v0.14.6
+  Downloaded backtrace v0.3.66
+  Downloaded iovec v0.1.4
+  Downloaded librespot-connect v0.2.0
+  Downloaded futures-task v0.3.24
+  Downloaded librespot-audio v0.2.0
+  Downloaded iana-time-zone v0.1.50
+  Downloaded addr2line v0.17.0
+  Downloaded unicode-xid v0.2.4
+  Downloaded lewton v0.10.2
+  Downloaded winapi-build v0.1.1
+  Downloaded librespot-core v0.2.0
+  Downloaded futures-util v0.3.24
+  Downloaded itoa v1.0.3
+  Downloaded indexmap v1.9.1
+  Downloaded if-addrs v0.6.7
+  Downloaded unicode-ident v1.0.4
+  Downloaded object v0.29.0
+  Downloaded tokio-sync v0.1.8
+  Downloaded hmac v0.11.0
+  Downloaded futures-macro v0.3.24
+  Downloaded uuid v0.8.2
+  Downloaded typenum v1.15.0
+  Downloaded tokio-util v0.6.10
+  Downloaded tracing v0.1.36
+  Downloaded heck v0.3.3
+  Downloaded getrandom v0.2.7
+  Downloaded futures-sink v0.3.24
+  Downloaded aes v0.6.0
+  Downloaded futures-io v0.3.24
+  Downloaded tokio-reactor v0.1.12
+  Downloaded hostname v0.3.1
+  Downloaded httpdate v1.0.2
+  Downloaded futures-core v0.3.24
+  Downloaded http v0.2.8
+  Downloaded 190 crates (15.6 MB) in 11.92s (largest was `windows-sys` at 3.3 MB)
+   Compiling autocfg v1.1.0
+   Compiling winapi v0.3.9
+   Compiling proc-macro2 v1.0.44
+   Compiling quote v1.0.21
+   Compiling unicode-ident v1.0.4
+   Compiling cfg-if v1.0.0
+   Compiling syn v1.0.100
+   Compiling version_check v0.9.4
+   Compiling libc v0.2.133
+   Compiling log v0.4.17
+   Compiling memchr v2.5.0
+   Compiling pin-project-lite v0.2.9
+   Compiling typenum v1.15.0
+   Compiling once_cell v1.15.0
+   Compiling slab v0.4.7
+   Compiling generic-array v0.14.6
+   Compiling futures-core v0.3.24
+   Compiling futures v0.1.31
+   Compiling num-traits v0.2.15
+   Compiling windows_x86_64_msvc v0.36.1
+   Compiling num-integer v0.1.45
+   Compiling num_cpus v1.13.1
+   Compiling lazy_static v1.4.0
+   Compiling byteorder v1.4.3
+   Compiling getrandom v0.2.7
+   Compiling fnv v1.0.7
+   Compiling bytes v1.2.1
+   Compiling futures-task v0.3.24
+   Compiling futures-sink v0.3.24
+   Compiling futures-channel v0.3.24
+   Compiling pkg-config v0.3.25
+   Compiling cfg-if v0.1.10
+   Compiling time v0.1.44
+   Compiling windows-sys v0.36.1
+   Compiling tokio v1.21.1
+   Compiling winapi-build v0.1.1
+   Compiling serde_derive v1.0.145
+   Compiling protobuf v2.14.0
+   Compiling bitflags v1.3.2
+   Compiling cc v1.0.73
+   Compiling futures-util v0.3.24
+   Compiling mio v0.8.4
+   Compiling socket2 v0.4.7
+   Compiling iana-time-zone v0.1.50
+   Compiling rand_core v0.6.4
+   Compiling ppv-lite86 v0.2.16
+   Compiling pin-utils v0.1.0
+   Compiling serde v1.0.145
+   Compiling semver v1.0.14
+   Compiling futures-io v0.3.24
+   Compiling rand_chacha v0.3.1
+   Compiling chrono v0.4.22
+   Compiling semver-parser v0.7.0
+   Compiling tinyvec_macros v0.1.0
+   Compiling tinyvec v1.6.0
+   Compiling rand v0.8.5
+   Compiling semver v0.9.0
+   Compiling cipher v0.2.5
+   Compiling itoa v1.0.3
+   Compiling vergen v3.2.0
+   Compiling opaque-debug v0.3.0
+   Compiling rustc_version v0.2.3
+   Compiling rustc_version v0.4.0
+   Compiling ws2_32-sys v0.2.1
+   Compiling kernel32-sys v0.2.2
+   Compiling digest v0.9.0
+   Compiling indexmap v1.9.1
+   Compiling gcc v0.3.55
+   Compiling thiserror v1.0.36
+   Compiling httparse v1.8.0
+   Compiling winapi v0.2.8
+   Compiling glob v0.3.0
+   Compiling subtle v2.4.1
+   Compiling protobuf-codegen v2.14.0
+   Compiling crypto-mac v0.11.1
+   Compiling protobuf-codegen-pure v2.14.0
+   Compiling ogg-sys v0.0.9
+   Compiling unicode-normalization v0.1.22
+   Compiling aes-soft v0.6.4
+   Compiling http v0.2.8
+   Compiling tracing-core v0.1.29
+   Compiling crossbeam-utils v0.7.2
+   Compiling num-bigint v0.4.3
+   Compiling tokio-macros v1.8.0
+   Compiling futures-macro v0.3.24
+   Compiling thiserror-impl v1.0.36
+   Compiling priority-queue v1.2.3
+   Compiling percent-encoding v2.2.0
+   Compiling iovec v0.1.4
+   Compiling maybe-uninit v2.0.0
+   Compiling serde_json v1.0.85
+   Compiling hashbrown v0.12.3
+   Compiling unicode-bidi v0.3.8
+   Compiling idna v0.3.0
+   Compiling form_urlencoded v1.1.0
+   Compiling tracing-attributes v0.1.22
+   Compiling librespot-core v0.2.0
+   Compiling tokio-stream v0.1.10
+   Compiling hmac v0.11.0
+   Compiling net2 v0.2.37
+   Compiling librespot-protocol v0.2.0
+   Compiling block-buffer v0.9.0
+   Compiling ryu v1.0.11
+   Compiling cpufeatures v0.2.5
+   Compiling unicode-xid v0.2.4
+   Compiling sha-1 v0.9.8
+   Compiling synstructure v0.12.6
+   Compiling pbkdf2 v0.8.0
+   Compiling tokio-util v0.6.10
+   Compiling tracing v0.1.36
+   Compiling miow v0.2.2
+   Compiling url v2.3.1
+   Compiling aes v0.6.0
+   Compiling parking_lot_core v0.6.2
+   Compiling backtrace v0.3.66
+   Compiling librespot-tremor v0.2.0
+   Compiling alsa-sys v0.3.1
+   Compiling uuid v0.8.2
+   Compiling shannon v0.2.0
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling adler v1.0.2
+   Compiling gimli v0.26.2
+   Compiling async-trait v0.1.57
+   Compiling base64 v0.13.0
+   Compiling miniz_oxide v0.5.4
+error: failed to run custom build command for `alsa-sys v0.3.1`
+
+Caused by:
+  process didn't exit successfully: `D:\home\wurly\project_rust\spotifyd\target\debug\build\alsa-sys-b086dd50be1dbceb\build-script-build` (exit code: 101)
+  --- stdout
+  cargo:rerun-if-env-changed=ALSA_NO_PKG_CONFIG
+  cargo:rerun-if-env-changed=PKG_CONFIG_x86_64-pc-windows-msvc
+  cargo:rerun-if-env-changed=PKG_CONFIG_x86_64_pc_windows_msvc
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG
+  cargo:rerun-if-env-changed=PKG_CONFIG
+  cargo:rerun-if-env-changed=ALSA_STATIC
+  cargo:rerun-if-env-changed=ALSA_DYNAMIC
+  cargo:rerun-if-env-changed=PKG_CONFIG_ALL_STATIC
+  cargo:rerun-if-env-changed=PKG_CONFIG_ALL_DYNAMIC
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64-pc-windows-msvc
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64_pc_windows_msvc
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_PATH
+  cargo:rerun-if-env-changed=PKG_CONFIG_PATH
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64-pc-windows-msvc
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64_pc_windows_msvc
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_LIBDIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64-pc-windows-msvc
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64_pc_windows_msvc
+  cargo:rerun-if-env-changed=HOST_PKG_CONFIG_SYSROOT_DIR
+  cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR
+
+  --- stderr
+  thread 'main' panicked at '`"pkg-config" "--libs" "--cflags" "alsa"` did not exit successfully: exit code: 1
+  error: could not find system library 'alsa' required by the 'alsa-sys' crate
+
+  --- stderr
+  Package alsa was not found in the pkg-config search path.
+  Perhaps you should add the directory containing `alsa.pc'
+  to the PKG_CONFIG_PATH environment variable
+  No package 'alsa' found
+  ', C:\usr\cargo\registry\src\github.com-1ecc6299db9ec823\alsa-sys-0.3.1\build.rs:13:18
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+warning: build failed, waiting for other jobs to finish...
+#+end_src
