@@ -8,10 +8,24 @@
 #+DESCRIPTION:
 #+TITLE: WSL2(Linux 用 Windows サブシステム)で Linux GUI アプリを実行する
 
-* 参考
+* 概要
+
+Windows10環境のWSLでLinux GUIアプリが利用可能になったとのことです。
+
+ - [[https://forest.watch.impress.co.jp/docs/news/1458044.html][Windows 10でもLinux GUIアプリが利用可能 ～Microsoft Store版が既定の「WSL」に - 窓の杜]]
+https://forest.watch.impress.co.jp/docs/news/1458044.html
+
+ - [[https://news.infoseek.co.jp/article/asciijp_4114859/][Microsoftストア版WSLが正式版になり、Windows 10でも動作可能に - 記事詳細｜Infoseekニュース]]
+https://news.infoseek.co.jp/article/asciijp_4114859/
 
  - [[https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/gui-apps][WSL で Linux GUI アプリを実行する | Microsoft Learn]]
 https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/gui-apps
+
+これまでも WSLg を導入すれば使えることは知っていたのですが、少しハードルが高そうでしたのでチャレンジしていませんでした。
+
+* GPU関連
+
+上記の Microsoft Learn の記事では、WSL用 GPU ドライバーの導入が必要とのことで、私が使用している NVIDIA 向けのドライバーの最新を導入し、WSLで動作しているUbuntuのCUDAのドライバも更新しました。
 
  - [[https://developer.nvidia.com/cuda/wsl][GPU in Windows Subsystem for Linux (WSL) | NVIDIA Developer]]
 https://developer.nvidia.com/cuda/wsl
@@ -21,8 +35,6 @@ https://docs.nvidia.com/cuda/wsl-user-guide/index.html
 
  - [[https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html][GameReadyドライバとStudioドライバの違いとは | ゲームPCバンク]]
 https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html
-
-* 手順
 
 527.56-desktop-win10-win11-64bit-international-dch-whql.exe をインストール
 
@@ -36,31 +48,65 @@ sudo apt-get update
 sudo apt-get -y install cuda
 #+end_src
 
-この状態だとStore版では無いので駄目なのだそうです。
+* 最初に行ったこと
+
+現在の環境は Windows 10 Pro／バージョン 21H2／ビルド 19044.2364 なので前提条件は満たしています。
+
+WSLをバージョンアップします。
 
 #+begin_src 
-PS C:\Windows\system32> wsl --version
-コマンド ライン オプションが無効です: --version
+wsl --update
+wsl --shutdown
 #+end_src
 
-下記を実行するだけではStore版には置き換わらなかったようです。
+まずは xclock を実行してみます。
 
 #+begin_src 
-PS C:\Windows\system32> wsl --install -d Ubuntu-20.04
+sudo apt install x11-apps -y
 #+end_src
 
-* 結果
-
-まだ上手くいっていません。
+動作しませんでした。
 
 #+begin_src 
 ~$ xclock
 Error: Can't open display:
 #+end_src
 
-* その後
+* 調査
 
-下記の対応を行い、ストア版のWSLをインストールすることで使えるようになりました。
+WSLがバージョンアップできていないようです。
+
+確かめる方法としては、wsl --version を実行してバージョン表示されるかどうかがわかりやすいようです。
+
+#+begin_src 
+PS C:\Windows\system32> wsl --version
+コマンド ライン オプションが無効です: --version
+#+end_src
+
+下記を参考に [[https://www.catalog.update.microsoft.com/Search.aspx?q=KB5020030][Microsoft Update カタログ]] のパッチを適用しました。
 
  - [[https://level69.net/archives/32328][Windows バージョン 10.0.19045.2251 は、パッケージ化されたバージョンのLinux 用 Windows サブシステムをサポートしていません。 - 技術的な何か。]]
 https://level69.net/archives/32328
+
+wsl --version を実行してバージョン表示されるようになりました。
+
+#+begin_src 
+PS C:\Windows\system32> wsl --version
+WSL バージョン: 1.0.3.0
+カーネル バージョン: 5.15.79.1
+WSLg バージョン: 1.0.47
+MSRDC バージョン: 1.2.3575
+Direct3D バージョン: 1.606.4
+DXCore バージョン: 10.0.25131.1002-220531-1700.rs-onecore-base2-hyp
+Windowsバージョン: 10.0.19044.2364
+PS C:\Windows\system32>
+#+end_src
+
+この後、ストア版のWSLをインストールすることでxclockが立ち上がるようになりました。
+
+また、Emacs が立ち上がることが確認できました！
+
+* その他
+ - [[https://forest.watch.impress.co.jp/docs/serial/yajiuma/1368648.html][プレビュー版「WSL」のアイコンが「これでええんか？」とちょっと話題に - やじうまの杜 - 窓の杜]]
+https://forest.watch.impress.co.jp/docs/serial/yajiuma/1368648.html
+
