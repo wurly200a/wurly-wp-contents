@@ -1,0 +1,30 @@
+#+BLOG: wurly-blog
+#+POSTID: 162
+#+ORG2BLOG:
+#+DATE: [2022-12-18 Sun 11:29]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: プラグインの更新時にメンテナンスモードが解除されない
+
+* 概要
+
+プラグインの更新時にメンテナンスモードが解除されない問題に遭遇してしまいました。
+
+file:images/wp_unavailable.jpg
+
+#+begin_src 
+Briefly unavailable for scheduled maintenance. Check back in a minute.
+#+end_src
+
+* 対処方法
+
+ - [[https://anykey.bz/web-mgmt/wp-error-maintenance-mode/][WordPressでエラー “Briefly unavailable for scheduled maintenance.” が発生した時の対処方法 | anykey]]
+https://anykey.bz/web-mgmt/wp-error-maintenance-mode/
+
+上記を参考にさせていただきました。
+
+FTPで WordPressディレクトリ にアクセスし .maintenance を削除し、事無きを得ました。
+
+# images/wp_unavailable.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/wp_unavailable.jpg
