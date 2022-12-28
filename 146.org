@@ -23,31 +23,6 @@ https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/gui-apps
 
 これまでも WSLg を導入すれば使えることは知っていたのですが、少しハードルが高そうでしたのでチャレンジしていませんでした。
 
-* GPU関連
-
-上記の Microsoft Learn の記事では、WSL用 GPU ドライバーの導入が必要とのことで、私が使用している NVIDIA 向けのドライバーの最新を導入し、WSLで動作しているUbuntuのCUDAのドライバも更新しました。
-
- - [[https://developer.nvidia.com/cuda/wsl][GPU in Windows Subsystem for Linux (WSL) | NVIDIA Developer]]
-https://developer.nvidia.com/cuda/wsl
-
- - [[https://docs.nvidia.com/cuda/wsl-user-guide/index.html][CUDA on WSL User Guide]]
-https://docs.nvidia.com/cuda/wsl-user-guide/index.html
-
- - [[https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html][GameReadyドライバとStudioドライバの違いとは | ゲームPCバンク]]
-https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html
-
-527.56-desktop-win10-win11-64bit-international-dch-whql.exe をインストール
-
-#+begin_src 
-wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
-sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
-sudo dpkg -i cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
-sudo cp /var/cuda-repo-wsl-ubuntu-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
-sudo apt-get update
-sudo apt-get -y install cuda
-#+end_src
-
 * 最初に行ったこと
 
 現在の環境は Windows 10 Pro／バージョン 21H2／ビルド 19044.2364 なので前提条件は満たしています。
@@ -76,14 +51,14 @@ Error: Can't open display:
 
 WSLがバージョンアップできていないようです。
 
-確かめる方法としては、wsl --version を実行してバージョン表示されるかどうかがわかりやすいようです。
+バージョンアップされているかを確認する方法としては、wsl --version を実行してバージョン表示されるかどうかがわかりやすいようです。
 
 #+begin_src 
 PS C:\Windows\system32> wsl --version
 コマンド ライン オプションが無効です: --version
 #+end_src
 
-下記を参考に [[https://www.catalog.update.microsoft.com/Search.aspx?q=KB5020030][Microsoft Update カタログ]] のパッチを適用しました。
+下記を参考に [[https://www.catalog.update.microsoft.com/Search.aspx?q=KB5020030][Microsoft Update カタログ]] の KB5020030 のパッチを適用しました。
 
  - [[https://level69.net/archives/32328][Windows バージョン 10.0.19045.2251 は、パッケージ化されたバージョンのLinux 用 Windows サブシステムをサポートしていません。 - 技術的な何か。]]
 https://level69.net/archives/32328
@@ -102,11 +77,60 @@ Windowsバージョン: 10.0.19044.2364
 PS C:\Windows\system32>
 #+end_src
 
-この後、ストア版のWSLをインストールすることでxclockが立ち上がるようになりました。
+* ストア版WSLのインストール
+
+ストア版のWSLをインストールします。
+
+Microsoft Store を起動し、"wsl" を検索してインストールしました。微妙なデザインのペンギンが目印です(笑)。
+
+file:images/wsl_store_edition_install.jpg
+
+* ストア版WSLのインストール(Microsoft Store が実行できない環境)の場合
+
+なお、Microsoft Store が実行できない環境では、KB5020030 を適用後、一般ユーザ権限で起動した Windows PowerShell で "wsl --update" を実行することでインストールできました。
+インストールの最後の方で管理者権限を使用する情報入力が必要になります。
+私の環境では、管理者権限で起動した Windows PowerShell で実行した場合、「致命的なエラーです。」と表示され、インストールできませんでした。
+
+* 確認
+
+xclockが立ち上がるようになりました。
+
+file:images/xclock_on_win.jpg
 
 また、Emacs が立ち上がることが確認できました！
+
+file:images/emacs_on_win.jpg
+
+* GPU関連
+
+前述の Microsoft Learn の記事では、WSL用 GPU ドライバーの導入が必要とのことで、私が使用している NVIDIA 向けのドライバーの最新を導入し、WSLで動作しているUbuntuのCUDAのドライバも更新しました。
+
+ - [[https://developer.nvidia.com/cuda/wsl][GPU in Windows Subsystem for Linux (WSL) | NVIDIA Developer]]
+https://developer.nvidia.com/cuda/wsl
+
+ - [[https://docs.nvidia.com/cuda/wsl-user-guide/index.html][CUDA on WSL User Guide]]
+https://docs.nvidia.com/cuda/wsl-user-guide/index.html
+
+ - [[https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html][GameReadyドライバとStudioドライバの違いとは | ゲームPCバンク]]
+https://xn--pc-mh4aj6msdqgtc.com/column/gameready-studio-driver.html
+
+527.56-desktop-win10-win11-64bit-international-dch-whql.exe をインストール
+
+#+begin_src 
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-wsl-ubuntu.pin
+sudo mv cuda-wsl-ubuntu.pin /etc/apt/preferences.d/cuda-repository-pin-600
+wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
+sudo dpkg -i cuda-repo-wsl-ubuntu-12-0-local_12.0.0-1_amd64.deb
+sudo cp /var/cuda-repo-wsl-ubuntu-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sudo apt-get update
+sudo apt-get -y install cuda
+#+end_src
 
 * その他
  - [[https://forest.watch.impress.co.jp/docs/serial/yajiuma/1368648.html][プレビュー版「WSL」のアイコンが「これでええんか？」とちょっと話題に - やじうまの杜 - 窓の杜]]
 https://forest.watch.impress.co.jp/docs/serial/yajiuma/1368648.html
 
+
+# images/wsl_store_edition_install.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/wsl_store_edition_install.jpg
+# images/xclock_on_win.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/xclock_on_win.jpg
+# images/emacs_on_win.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/emacs_on_win.jpg
