@@ -1,0 +1,137 @@
+#+BLOG: wurly-blog
+#+POSTID: 182
+#+ORG2BLOG:
+#+DATE: [2022-12-28 Wed 22:24]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL2 systemd対応
+
+* 概要
+
+ - [[https://qiita.com/ko-zi/items/949d358163bbbad5a91e][wsl2でDocker自動起動設定 - Qiita]]
+https://qiita.com/ko-zi/items/949d358163bbbad5a91e
+
+これまで、WSL(WSL2)ではsystemd未対応の為、dockerのサービスが自動起動されず上記のような設定を行っていたのですが、下記の通りsystemdに対応したとのことです。
+
+ - [[https://forest.watch.impress.co.jp/docs/news/1441775.html][「Windows Subsystem for Linux」が「systemd」に対応へ - 窓の杜]]
+https://forest.watch.impress.co.jp/docs/news/1441775.html
+
+私の環境のWSLは下記でバージョンアップを行っており、systemd対応が行われていることになります。
+
+ - [[http://cha.la.coocan.jp/wp/?p=146][WSL2(Linux 用 Windows サブシステム)で Linux GUI アプリを実行する]]
+http://cha.la.coocan.jp/wp/?p=146
+
+* systemdの有効化
+
+/etc/wsl.conf ファイルを新規に作成し、下記の記載を行いました。
+
+#+begin_src 
+[boot]
+systemd=true
+#+end_src
+
+* dockerサービスの起動確認
+
+Linux(Ubuntu)のシェルから下記を実行して確認しました。
+
+#+begin_src 
+sudo service docker status
+#+end_src
+
+#+begin_src 
+sudo systemctl status docker
+#+end_src
+
+なお、設定を変更した後は、PowerShell から下記のようにWSLをシャットダウンしました。
+
+#+begin_src 
+wsl --shutdown
+#+end_src
+
+** systemd有効化前
+
+ここでは以前の自動起動設定は無効にして試しました。
+dockerサービスは自動起動されません。また、systemdが無効となっていることがわかります。
+
+#+begin_src
+~$ sudo service docker status
+ * Docker is not running
+#+end_src
+
+#+begin_src
+~$ sudo systemctl status docker
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+#+end_src
+
+** systemd有効化後
+
+どちらも同じ結果になりました。(serviceコマンドを実行するとsystemctl相当の処理が実行されるようになっているようです)
+systemdが有効化されており、dockerサービスが自動起動されています。
+
+#+begin_src
+~$ sudo service docker status
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2022-12-28 22:43:38 JST; 1min 53s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 391 (dockerd)
+      Tasks: 13
+     Memory: 96.0M
+     CGroup: /system.slice/docker.service
+             └─391 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224143400+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.write_bps_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224148100+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.read_iops_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224152400+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.write_iops_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224630200+09:00" level=info msg="Loading containers: start."
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.358807600+09:00" level=info msg="Default bridge (docker0) is assigned with an IP address 172.17.0.0/16. Daemon op>
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.408680800+09:00" level=info msg="Loading containers: done."
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.486661300+09:00" level=info msg="Docker daemon" commit=3056208 graphdriver(s)=overlay2 version=20.10.21
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.487047100+09:00" level=info msg="Daemon has completed initialization"
+Dec 28 22:43:38 rockers systemd[1]: Started Docker Application Container Engine.
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.519619500+09:00" level=info msg="API listen on /run/docker.sock"
+#+end_src
+
+#+begin_src
+~$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2022-12-28 22:43:38 JST; 1min 28s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 391 (dockerd)
+      Tasks: 13
+     Memory: 96.0M
+     CGroup: /system.slice/docker.service
+             └─391 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224143400+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.write_bps_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224148100+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.read_iops_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224152400+09:00" level=warning msg="Your kernel does not support cgroup blkio throttle.write_iops_device"
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.224630200+09:00" level=info msg="Loading containers: start."
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.358807600+09:00" level=info msg="Default bridge (docker0) is assigned with an IP address 172.17.0.0/16. Daemon op>
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.408680800+09:00" level=info msg="Loading containers: done."
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.486661300+09:00" level=info msg="Docker daemon" commit=3056208 graphdriver(s)=overlay2 version=20.10.21
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.487047100+09:00" level=info msg="Daemon has completed initialization"
+Dec 28 22:43:38 rockers systemd[1]: Started Docker Application Container Engine.
+Dec 28 22:43:38 rockers dockerd[391]: time="2022-12-28T22:43:38.519619500+09:00" level=info msg="API listen on /run/docker.sock"
+#+end_src
+
+* まとめ
+
+WSL2でsystemd対応が行われており、設定によりsystemdが有効化することができます。
+これによりdockerサービスが自動起動されることが確認できました。
+
+WSLg の対応も合わせ、WSL2は、よりネイティブのLinux環境に近づきました。さらに活用が進みそうです。
+
+* 参考
+
+ - [[https://www.honai.me/blog/post/wsl-systemd-docker/][WSLのsystemdサポートでDocker Engineをサービスとして利用する]]
+
+https://www.honai.me/blog/post/wsl-systemd-docker/
+ - [[https://devblogs.microsoft.com/commandline/systemd-support-is-now-available-in-wsl/][Systemd support is now available in WSL! - Windows Command Line]]
+https://devblogs.microsoft.com/commandline/systemd-support-is-now-available-in-wsl/
