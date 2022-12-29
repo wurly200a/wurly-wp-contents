@@ -1,0 +1,146 @@
+#+BLOG: wurly-blog
+#+POSTID: 206
+#+ORG2BLOG:
+#+DATE: [2022-12-29 Thu 12:11]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: xFormersのインストール
+
+* 概要
+
+ - [[https://michyo.net/sempetit/install-xformers-windows/][WindowsでのxFormersのインストール – みっちょゼミナールぷち]]
+https://michyo.net/sempetit/install-xformers-windows/
+
+上記を参考にWindowsでのxFormersのインストールを行いました。
+
+* 前提
+
+事前に下記のインストールを行っています。
+
+ - [[http://cha.la.coocan.jp/wp/?p=189][Python インストール(3.10.8、複数のバージョン共存前提)]]
+ - [[http://cha.la.coocan.jp/wp/?p=197][Visual Studio Community 2022 のインストール]]
+ - [[http://cha.la.coocan.jp/wp/?p=202][CUDA Toolkitのインストール]]
+
+* 履歴
+
+#+begin_src 
+>python --version
+Python 3.10.8
+
+nvcc -V
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2022 NVIDIA Corporation
+Built on Wed_Sep_21_10:41:10_Pacific_Daylight_Time_2022
+Cuda compilation tools, release 11.8, V11.8.89
+Build cuda_11.8.r11.8/compiler.31833905_0
+#+end_src
+
+#+begin_src 
+python -m pip install --upgrade pip setuptools
+#+end_src
+
+#+begin_src 
+python -m pip install ninja
+#+end_src
+
+#+begin_src
+python -m pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu116
+#+end_src
+
+c:/usr/Python310/Lib/site-packages/torch/include/ATen/Parallel.h の下記をコメントアウト
+
+#+begin_src C
+// Initialise num_threads lazily at first parallel call
+inline TORCH_API void lazy_init_num_threads() {
+  thread_local bool init = false;
+  if (C10_UNLIKELY(!init)) {
+    at::init_num_threads();
+    init = true;
+  }
+}
+#+end_src
+
+#+begin_src C
+// Initialise num_threads lazily at first parallel call
+//inline TORCH_API void lazy_init_num_threads() {
+//  thread_local bool init = false;
+//  if (C10_UNLIKELY(!init)) {
+//    at::init_num_threads();
+//    init = true;
+//  }
+//}
+#+end_src
+
+C:\usr 以下で実行しました。
+
+#+begin_src 
+>git clone https://github.com/facebookresearch/xformers.git
+Cloning into 'xformers'...
+remote: Enumerating objects: 9366, done.
+remote: Counting objects: 100% (345/345), done.
+remote: Compressing objects: 100% (175/175), done.
+remote: Total 9366 (delta 212), reused 277 (delta 163), pack-reused 9021
+Receiving objects: 100% (9366/9366), 36.03 MiB | 12.01 MiB/s, done.
+Resolving deltas: 100% (6299/6299), done.
+#+end_src
+
+#+begin_src 
+>cd xformers
+#+end_src
+
+#+begin_src 
+git submodule update --init --recursive
+#+end_src
+
+#+begin_src 
+python -m pip install -r requirements.txt
+#+end_src
+
+#+begin_src 
+python -m pip install -e .
+#+end_src
+
+#+begin_src 
+C:\usr\xformers>python -m pip install -e .
+Obtaining file:///C:/usr/xformers
+  Preparing metadata (setup.py) ... done
+Requirement already satisfied: torch>=1.12 in c:\usr\python310\lib\site-packages (from xformers==0.0.15+e163309.d20221229) (1.12.1+cu116)
+Requirement already satisfied: numpy in c:\usr\python310\lib\site-packages (from xformers==0.0.15+e163309.d20221229) (1.24.1)
+Requirement already satisfied: pyre-extensions==0.0.23 in c:\usr\python310\lib\site-packages (from xformers==0.0.15+e163309.d20221229) (0.0.23)
+Requirement already satisfied: einops in c:\usr\python310\lib\site-packages (from xformers==0.0.15+e163309.d20221229) (0.6.0)
+Requirement already satisfied: typing-extensions in c:\usr\python310\lib\site-packages (from pyre-extensions==0.0.23->xformers==0.0.15+e163309.d20221229) (4.4.0)
+Requirement already satisfied: typing-inspect in c:\usr\python310\lib\site-packages (from pyre-extensions==0.0.23->xformers==0.0.15+e163309.d20221229) (0.8.0)
+Requirement already satisfied: mypy-extensions>=0.3.0 in c:\usr\python310\lib\site-packages (from typing-inspect->pyre-extensions==0.0.23->xformers==0.0.15+e163309.d20221229) (0.4.3)
+Installing collected packages: xformers
+  Running setup.py develop for xformers
+Successfully installed xformers-0.0.15+e163309.d20221229
+#+end_src
+
+* 結果
+
+#+begin_src 
+C:\usr\xformers>pip list
+Package            Version                  Editable project location
+------------------ ------------------------ -------------------------
+certifi            2022.12.7
+charset-normalizer 2.1.1
+einops             0.6.0
+idna               3.4
+mypy-extensions    0.4.3
+ninja              1.11.1
+numpy              1.24.1
+Pillow             9.3.0
+pip                22.3.1
+pyre-extensions    0.0.23
+requests           2.28.1
+setuptools         65.6.3
+torch              1.12.1+cu116
+torchaudio         0.12.1+cu116
+torchvision        0.13.1+cu116
+typing_extensions  4.4.0
+typing-inspect     0.8.0
+urllib3            1.26.13
+xformers           0.0.15+e163309.d20221229 c:\usr\xformers
+#+end_src
