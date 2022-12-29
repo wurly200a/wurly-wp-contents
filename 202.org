@@ -1,0 +1,24 @@
+#+BLOG: wurly-blog
+#+POSTID: 202
+#+ORG2BLOG:
+#+DATE: [2022-12-29 Thu 12:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: CUDA Toolkitのインストール
+
+* 概要
+
+下記を参考にさせていただきました。
+
+ - [[https://michyo.net/sempetit/cuda-toolkit-install/][CUDA Toolkitのインストール – みっちょゼミナールぷち]]
+https://michyo.net/sempetit/cuda-toolkit-install/
+
+* 実際の作業
+
+ - https://developer.nvidia.com/cuda-downloads
+
+2022.12.9現在で、上記は既にCUDA Toolkit 12.0 Downloads となっていたため、Archive of Previous CUDA Releases のところから 11.8 をダウンロードしました。
+
+インストーラのファイル名は cuda_11.8.0_522.06_windows.exe でした。
