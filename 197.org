@@ -1,0 +1,26 @@
+#+BLOG: wurly-blog
+#+POSTID: 197
+#+ORG2BLOG:
+#+DATE: [2022-12-29 Thu 11:44]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Visual Studio Community 2022 のインストール
+
+* 概要
+
+下記を参考にさせていただきました。
+
+ - [[https://michyo.net/sempetit/visual-studio-community-install/][Visual Studio Communityのインストール – みっちょゼミナールぷち]]
+https://michyo.net/sempetit/visual-studio-community-install/
+
+* 実際の作業
+
+https://visualstudio.microsoft.com/ja/vs/community/
+
+上記からダウンロードした VisualStudioSetup.exe を実行しました。
+
+file:images/vs2022install01.png
+
+# images/vs2022install01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/vs2022install01.png
