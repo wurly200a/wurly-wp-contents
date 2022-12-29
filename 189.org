@@ -1,0 +1,48 @@
+#+BLOG: wurly-blog
+#+POSTID: 189
+#+ORG2BLOG:
+#+DATE: [2022-12-29 Thu 11:19]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Python
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Python インストール(3.10.8、複数のバージョン共存前提)
+
+* 概要
+
+AI関連でPythonを使いますが、私の使用ケースに、使いたいアプリケーション毎にバージョン依存がある場合が増えてきました。
+
+これまでは、単一バージョンを使っていましたが、複数バージョン共存できるような形にしてみます。
+
+下記を参考にさせていただきました。
+
+ - [[https://michyo.net/sempetit/python-install/][Pythonのインストール – みっちょゼミナールぷち]]
+https://michyo.net/sempetit/python-install/
+
+* 実際の作業
+
+今回は3.10.8をインストールします。
+私の環境では Cドライブに usr というディレクトリを作成しているので、その下に Python310 ディレクトリを作成します。
+
+file:images/pyhon3108_01.png
+
+file:images/pyhon3108_02.png
+
+file:images/pyhon3108_03.png
+
+file:images/pyhon3108_04.png
+
+cmd.exe へのショートカットのリンク先は下記のようになりました。
+
+#+begin_src 
+C:\Windows\System32\cmd.exe /k set path=C:\usr\Python310\;C:\usr\Python310\Scripts\;%PATH%
+#+end_src
+
+実際には、私の環境では MSYS2 もインストールしており、こちらのバイナリにパスを通している為、パスを指定しない場合には MSYS2 のpython が実行されます。
+上記記述では、Python310 のパスを最初に指定するようにしている為、Python310の方が優先されて実行されるようになります。
+良いテクニックだと思います。
+
+# images/pyhon3108_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/pyhon3108_01.png
+# images/pyhon3108_02.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/pyhon3108_02.png
+# images/pyhon3108_03.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/pyhon3108_03.png
+# images/pyhon3108_04.png http://cha.la.coocan.jp/wp/wp-content/uploads/2022/12/pyhon3108_04.png
