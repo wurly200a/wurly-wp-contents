@@ -1,0 +1,61 @@
+#+BLOG: wurly-blog
+#+POSTID: 212
+#+ORG2BLOG:
+#+DATE: [2022-12-29 Thu 13:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: StableDiffusion
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Stable Diffusion 2.0 のインストール (Windowsローカル環境)
+
+* 概要
+
+ - [[https://github.com/Stability-AI/stablediffusion][Stability-AI/stablediffusion: High-Resolution Image Synthesis with Latent Diffusion Models]]
+https://github.com/Stability-AI/stablediffusion
+
+ - [[https://michyo.net/sempetit/stable-diffusion20-windows/][WindowsでStable Diffusion 2.0を動かす – みっちょゼミナールぷち]]
+https://michyo.net/sempetit/stable-diffusion20-windows/
+
+上記を参考に、WindowsでStable Diffusion 2.0を動かしてみます。
+
+* 前提
+
+ - [[http://cha.la.coocan.jp/wp/?p=206][xFormersのインストール]]
+http://cha.la.coocan.jp/wp/?p=206
+
+上記の通り、xFormers のインストールを前提とします。
+
+* インストール
+ - [[https://github.com/Stability-AI/stablediffusion][Stability-AI/stablediffusion: High-Resolution Image Synthesis with Latent Diffusion Models]]
+https://github.com/Stability-AI/stablediffusion
+
+上記を git clone します。
+
+stablediffusion ディレクトリ以下に移動します。
+
+#+begin_src 
+python -m pip install --upgrade pip setuptools
+Requirement already satisfied: pip in c:\usr\python310\lib\site-packages (22.3.1)
+Requirement already satisfied: setuptools in c:\usr\python310\lib\site-packages (65.6.3)
+#+end_src
+
+#+begin_src 
+python -m pip install transformers==4.19.2 diffusers invisible-watermark
+#+end_src
+
+#+begin_src 
+python -m pip install -r requirements.txt
+#+end_src
+
+#+begin_src 
+python -m pip install -e .
+#+end_src
+
+これでインストールは完了です。
+
+* 実行
+
+画像生成方法については下記に続きます。
+
+ - [[http://cha.la.coocan.jp/wp/?p=220][Stable Diffusion 2.0 の実行 (Windowsローカル環境)]]
+http://cha.la.coocan.jp/wp/?p=220
