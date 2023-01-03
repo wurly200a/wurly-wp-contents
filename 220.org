@@ -17,6 +17,9 @@ WindowsでStable Diffusion 2.0を実行して画像生成を行います。
  - [[http://cha.la.coocan.jp/wp/?p=212][Stable Diffusion 2.0 のインストール (Windows)]]
 http://cha.la.coocan.jp/wp/?p=212
 
+
+グラフィックボードは  ZOTAC GAMING GeForce RTX 2060 Twin Fan (Memory 6GB) を使用して試しました。(※現時点ではこのボードでStable Diffusion 2.0を画像を生成することはできていません。)
+
 * Stable Diffusion 2.0
 
 #+begin_src 
@@ -128,6 +131,17 @@ python scripts/txt2img.py --prompt "a girl eating curry with rice" --n_iter 1 --
 
 * Stable Diffusion 2.1
 
+再度、[[https://github.com/Stability-AI/stablediffusion][Stability-AI/stablediffusion: High-Resolution Image Synthesis with Latent Diffusion Models]] を見直していたところ、
+
+News の December 7, 2022 の Version 2.1 のところに、
+#+begin_src 
+To enable fp16 (which can cause numerical instabilities with the vanilla attention module on the v2.1 model) , run your script with ATTN_PRECISION=fp16 python <thescript.py>
+#+end_src
+との記載がありました。
+
+実績として、Stable Diffusion 1.4では、fp16 を有効にすることで Graphic Memory 6GB でも画像生成できていました。
+Stable Diffusion 2.1 を使用し、fp16 を有効することで CUDA Out of memory を回避できないかを探ります。
+
 #+begin_src 
 git clone https://huggingface.co/stabilityai/stable-diffusion-2-1
 #+end_src
@@ -140,6 +154,9 @@ set ATTN_PRECISION=fp16
 python scripts/txt2img.py --prompt "a girl eating curry with rice" --n_iter 1 --n_samples 1 --ckpt ./stable-diffusion-2-1/768-v-ema.ckpt --config configs/stable-diffusion/v2-inference-v.yaml --H 384 --W 384
 #+end_src
 
+上記の通り試してみましたが、結果的には、画像生成はできていません。
+
+Graphic Memory がもっと大きい別のグラフィックボードを導入して試したいと思います。
 
 * 参考
 
