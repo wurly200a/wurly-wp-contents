@@ -1,0 +1,184 @@
+#+BLOG: wurly-blog
+#+POSTID: 231
+#+ORG2BLOG:
+#+DATE: [2023-01-04 Wed 11:13]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL の Ubuntu 20.04 に Emacs 28 をインストール
+
+* 概要
+
+Ubuntu 20.04 では通常のリポジトリからaptでインストールできる Emacs はバージョン 26.3 となっています。
+インストールしたいEmacs Lispのパッケージが既に バージョン28 の使用を要求するものがあり、これをインストールしたいと思います。
+
+
+いずれは自分でコンパイルしたいと考えていますが、まずは kelleyk さんが提供されているリポジトリからインストールしてみました。
+インストール中にエラーが発生しましたが、インストール済のEmacsをアンインストール(purge)することで上手くいきました。
+
+* 作業
+
+** 準備
+
+#+begin_src 
+sudo add-apt-repository ppa:kelleyk/emacs
+sudo apt update
+#+end_src
+
+#+begin_src 
+~$ sudo apt list | grep emacs28
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+emacs28-common/focal 28.1~1.git5a223c7f2e-kk3+20.04 all
+emacs28-el/focal 28.1~1.git5a223c7f2e-kk3+20.04 all
+emacs28-nativecomp/focal 28.1~1.git5a223c7f2e-kk3+20.04 amd64
+emacs28-nox/focal 28.1~1.git5a223c7f2e-kk3+20.04 amd64
+emacs28/focal 28.1~1.git5a223c7f2e-kk3+20.04 amd64
+#+end_src
+
+** emacs28-nativecomp のインストール
+
+#+begin_src 
+~$ sudo apt install emacs28-nativecomp
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following NEW packages will be installed:
+  emacs28-nativecomp
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+6 not fully installed or removed.
+Need to get 0 B/22.7 MB of archives.
+After this operation, 101 MB of additional disk space will be used.
+(Reading database ... 83104 files and directories currently installed.)
+Preparing to unpack .../emacs28-nativecomp_28.1~1.git5a223c7f2e-kk3+20.04_amd64.deb ...
+Unpacking emacs28-nativecomp (28.1~1.git5a223c7f2e-kk3+20.04) ...
+dpkg: error processing archive /var/cache/apt/archives/emacs28-nativecomp_28.1~1.git5a223c7f2e-kk3+20.04_amd64.deb (--unpack):
+ trying to overwrite '/usr/include/emacs-module.h', which is also in package emacs-common 1:26.3+1-1ubuntu2
+dpkg-deb: error: paste subprocess was killed by signal (Broken pipe)
+Errors were encountered while processing:
+ /var/cache/apt/archives/emacs28-nativecomp_28.1~1.git5a223c7f2e-kk3+20.04_amd64.deb
+E: Sub-process /usr/bin/dpkg returned an error code (1)
+#+end_src
+
+エラーが発生。
+
+** インストール済Emacsの確認
+
+#+begin_src 
+~$ sudo apt list --installed | grep emacs-common
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+emacs-common/focal,now 1:26.3+1-1ubuntu2 all [installed,automatic]
+#+end_src
+
+#+begin_src 
+~$ sudo apt list --installed | grep emacs
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+emacs-bin-common/focal,now 1:26.3+1-1ubuntu2 amd64 [installed,automatic]
+emacs-common/focal,now 1:26.3+1-1ubuntu2 all [installed,automatic]
+emacs-el/focal,now 1:26.3+1-1ubuntu2 all [installed,automatic]
+emacs-gtk/focal,now 1:26.3+1-1ubuntu2 amd64 [installed,automatic]
+emacs28-common/focal,now 28.1~1.git5a223c7f2e-kk3+20.04 all [installed,automatic]
+emacs28-el/focal,now 28.1~1.git5a223c7f2e-kk3+20.04 all [installed,automatic]
+emacs/focal,now 1:26.3+1-1ubuntu2 all [installed]
+emacsen-common/focal,now 3.0.4 all [installed,automatic]
+#+end_src
+
+** インストール済Emacsのアンインストール
+
+#+begin_src 
+~$ sudo apt purge emacs
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  adwaita-icon-theme emacs-bin-common emacs-common emacs-el emacs-gtk emacs28-common emacs28-el fontconfig fonts-droid-fallback fonts-noto-mono
+  fonts-urw-base35 ghostscript gsfonts gtk-update-icon-cache hicolor-icon-theme humanity-icon-theme imagemagick-6-common libasan6 libcairo-gobject2
+  libcolord2 libdatrie1 libepoxy0 libfftw3-double3 libgcc-10-dev libgccjit0 libgd3 libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-bin libgdk-pixbuf2.0-common
+  libgs9 libgs9-common libgtk-3-0 libgtk-3-bin libgtk-3-common libidn11 libijs-0.35 libjansson4 libjbig0 libjbig2dec0 liblqr-1-0 libm17n-0
+Setting up emacs28-el (28.1~1.git5a223c7f2e-kk3+20.04) ...
+Setting up libgccjit0:amd64 (10.3.0-1ubuntu1~20.04) ...
+Processing triggers for libc-bin (2.31-0ubuntu9.9) ...
+/sbin/ldconfig.real: /usr/lib/wsl/lib/libcuda.so.1 is not a symbolic link
+
+#+end_src
+
+#+begin_src 
+~$ sudo apt list --installed | grep emacs
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+emacs-bin-common/focal,now 1:26.3+1-1ubuntu2 amd64 [installed,auto-removable]
+emacs-common/focal,now 1:26.3+1-1ubuntu2 all [installed,auto-removable]
+emacs-el/focal,now 1:26.3+1-1ubuntu2 all [installed,auto-removable]
+  poppler-data ubuntu-mono
+Use 'sudo apt autoremove' to remove them.
+The following packages will be REMOVED:
+  emacs-bin-common* emacs-common* emacs-el* emacs-gtk*
+0 upgraded, 0 newly installed, 4 to remove and 0 not upgraded.
+After this operation, 128 MB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 83101 files and directories currently installed.)
+Removing emacs-gtk (1:26.3+1-1ubuntu2) ...
+Remove global for emacs
+remove/global: Handling removal of emacsen flavor emacs
+Remove emacsen-common for emacs
+emacsen-common: Handling removal of emacsen flavor emacs
+Removing emacs-bin-common (1:26.3+1-1ubuntu2) ...
+Removing emacs-el (1:26.3+1-1ubuntu2) ...
+Removing emacs-common (1:26.3+1-1ubuntu2) ...
+Processing triggers for hicolor-icon-theme (0.17-2) ...
+Processing triggers for man-db (2.9.1-1) ...
+Processing triggers for install-info (6.7.0.dfsg.2-5) ...
+Processing triggers for mime-support (3.64ubuntu1) ...
+(Reading database ... 79114 files and directories currently installed.)
+Purging configuration files for emacs-common (1:26.3+1-1ubuntu2) ...
+#+end_src
+
+** 再度 emacs28-nativecompのインストール
+
+#+begin_src 
+~$ sudo apt install emacs28-nativecomp
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  fonts-droid-fallback fonts-noto-mono fonts-urw-base35 ghostscript gsfonts imagemagick-6-common libfftw3-double3 libgs9 libgs9-common libidn11
+  libijs-0.35 libjbig2dec0 liblqr-1-0 libmagickcore-6.q16-6 libmagickwand-6.q16-6 libopenjp2-7 libpaper-utils libpaper1 libwebpmux3 poppler-data
+Use 'sudo apt autoremove' to remove them.
+The following NEW packages will be installed:
+  emacs28-nativecomp
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/22.7 MB of archives.
+After this operation, 101 MB of additional disk space will be used.
+(Reading database ... 79113 files and directories currently installed.)
+Preparing to unpack .../emacs28-nativecomp_28.1~1.git5a223c7f2e-kk3+20.04_amd64.deb ...
+Unpacking emacs28-nativecomp (28.1~1.git5a223c7f2e-kk3+20.04) ...
+Setting up emacs28-nativecomp (28.1~1.git5a223c7f2e-kk3+20.04) ...
+update-alternatives: using /usr/bin/ctags28 to provide /usr/bin/ctags (ctags) in auto mode
+update-alternatives: using /usr/bin/ebrowse28 to provide /usr/bin/ebrowse (ebrowse) in auto mode
+update-alternatives: using /usr/bin/emacs-28.128 to provide /usr/bin/emacs-28.1 (emacs-28.1) in auto mode
+update-alternatives: using /usr/bin/emacs28 to provide /usr/bin/emacs (emacs) in auto mode
+update-alternatives: using /usr/bin/emacsclient28 to provide /usr/bin/emacsclient (emacsclient) in auto mode
+update-alternatives: using /usr/bin/etags28 to provide /usr/bin/etags (etags) in auto mode
+Processing triggers for mime-support (3.64ubuntu1) ...
+Processing triggers for hicolor-icon-theme (0.17-2) ...
+Processing triggers for man-db (2.9.1-1) ...
+Processing triggers for install-info (6.7.0.dfsg.2-5) ...
+#+end_src
+
+* 参考
+
+ - [[https://launchpad.net/~kelleyk/+archive/ubuntu/emacs][Emacs stable releases : Kevin Kelley]]
+https://launchpad.net/~kelleyk/+archive/ubuntu/emacs
+
+ - [[https://www.how2shout.com/linux/how-to-install-emacs-28-on-ubuntu-20-04-lts-focal-fossa/][How to install Emacs 28 on Ubuntu 20.04 LTS Focal Fossa]]
+https://www.how2shout.com/linux/how-to-install-emacs-28-on-ubuntu-20-04-lts-focal-fossa/
+
+
+
