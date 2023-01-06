@@ -1,0 +1,125 @@
+#+BLOG: wurly-blog
+#+POSTID: 237
+#+ORG2BLOG:
+#+DATE: [2023-01-06 Fri 11:41]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32-DevKitC-32Dボード
+
+* 概要
+
+2022年に購入したものです。
+
+これを使ってRTOSを用いた開発等を試しています。
+
+# Lチカから始まりRTOSを使いながらWi-Fi、Bluetoothなど
+
+まずは、製品の仕様を確認します。
+
+* 購入したもの
+
+ - [[https://www.amazon.co.jp/gp/product/B08926W9NM][Amazon.co.jp: Espressif純正 ESP-WROOM-32E開発ボード ESP32-DevKitC-32E すぐに試せるLED付き : パソコン・周辺機器]]
+https://www.amazon.co.jp/gp/product/B08926W9NM/
+
+2023.1.6時点では モデルチェンジにより ESP-WROOM-32E となっていますが私が購入した時点では ESP-WROOM-32D でした。
+
+ - [[https://www.amazon.co.jp/gp/product/B00DSKCS68][Amazon | サンハヤト SAD-101 ニューブレッドボード | 産業・研究開発用品 | 産業・研究開発用品 通販]]
+https://www.amazon.co.jp/gp/product/B00DSKCS68
+
+ブレッドボードも購入しました。
+
+ - [[https://www.amazon.co.jp/gp/product/B07MR1SVVR][Amazon | DiyStudio 10CM ジャンパー線多色デュポンワイヤー120pcs、用28AWGケーブル ブレッドボード・ジャンパーワイヤー、オス-メス・オス-オス・メス-メスピッチ2.54mm * 40Pin【2021人気限定】 | ジャンプワイヤ | 産業・研究開発用品 通販]]
+https://www.amazon.co.jp/gp/product/B07MR1SVVR
+
+ジャンパーワイヤーは手持ちのオス-メスだったものを加工してオスオスにしました。
+
+* 型番及び仕様
+
+** ESP-WROOM-32D
+ESP-WROOM-32D のデータシートは下記にありました。
+
+ - [[https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf][esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf]]
+https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf
+
+2023.1.6現在、上記は表紙に "NOT RECOMMENDED FOR NEW DESIGNS(NRND)" と記載されています。
+なお、最新のESP-WROOM-32E のデータシートは下記にありました。
+
+ - [[https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf][esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf]]
+
+ESP-WROOM-32D のデータシートにはOverviewとして下記が記載されています。
+
+| Module | ESP32-WROOM-32D
+|-+-
+| Core | ESP32-D0WD
+| SPI flash | 32 Mbits
+| Crystal | 40 MHz
+| Antenna | on-board PCB antenna
+| Dimensions(Unit: mm) | 18 × 25.5 × 3.1
+
+搭載している SPI flash は 32 Mbits とのことなので 4Mbyte ということになります。
+
+** ESP32-D0WD
+
+次は ESP32-D0WD のデータシートを見てみます。
+
+ - [[https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf][esp32_datasheet_en.pdf]]
+
+1.4.1 CPU and Memory より引用します。
+
+ - Xtensa single-/dual-core 32-bit LX6 microprocessor(s)
+ - 448 KB ROM
+ - 520 KB SRAM
+ - 16 KB SRAM in RTC
+ - QSPI supports multiple flash/SRAM chips
+
+外部/内部を合わせた ROM/RAM という見方では ROM 448KB + 4MB、RAM 520KB となります。
+
+また、表25により ESP32-S が Single core、ESP32-D が Dual core を示していることを理解しました。ESP32-D0WD は Dual core ということになります。
+
+# ESP32-S0WD (NRND), ESP32-D0WD (NRND), and ESP32-D0WDQ6 (NRND) are based on chip revision v1 or chip revision v1.1.
+
+| Ordering | Core | Chip Revision | Embedded flash/PSRAM ｜Package | VDD_SDIO voltage
+|----------+------+---------------+----------------------+---------+-----------------
+| ESP32-D0WD-V3   | Dual core   | v3.0/v3.1  | —                   | QFN 5*5  | 1.8 V/3.3 V
+| ESP32-D0WDR2-V3 | Dual core   | v3.0/v3.1  | 2 MB PSRAM          | QFN 5*5  | 3.3 V
+| ESP32-U4WDH     | Dual core   | v3.0/v3.1  | 4 MB flash (80 MHz) | QFN 5*5  | 3.3 V
+| ESP32-D0WDQ6-V3 | Dual core   | v3.0/v3.1  | —                   | QFN 6*6  | 1.8 V/3.3 V
+| ESP32-D0WD      | Dual core   | v1.0/v1.1  | —                   | QFN 5*5  | 1.8 V/3.3 V
+| ESP32-D0WDQ6    | Dual core   | v1.0/v1.1  | —                   | QFN 6*6  | 1.8 V/3.3 V
+| ESP32-S0WD      | Single core | v1.0/v1.1  | —                   | QFN 5*5  | 1.8 V/3.3 V
+
+アドレスマップ構造を示す図と、メモリマップのうち内蔵/外部メモリに関する部分を下記に引用します。
+
+file:images/esp32_memory_map_structure.jpg
+
+file:images/esp32_memory_map.jpg
+
+これで、製品の仕様を大まかに理解できました。
+
+* ESP32-DevKitC 付属マニュアル
+
+ESP32-DevKitC には、マニュアルへのリンクが記載された紙が入っていました。
+
+ - [[http://microtechnica.xyz/?p=271][ESP32-DevKitC-32Dボードの基本的な使い方 ～Arduino IDE編～ – マイクロテクニカ製品情報Wiki]]
+http://microtechnica.xyz/?p=271
+
+まずは、これに従い LEDを接続し、Arduino IDE を用いてプログラムを書き込みました。
+LEDが光ることが確認できました。
+
+file:images/ESP32-DevKitC-32D_1.jpg
+
+file:images/ESP32-DevKitC-32D_2.jpg
+
+* LEDが光っている様子
+
+file:images/ESP32-DevKitC-32D_3.jpg
+
+
+# images/ESP32-DevKitC-32D_1.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/01/ESP32-DevKitC-32D_1.jpg
+# images/ESP32-DevKitC-32D_2.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/01/ESP32-DevKitC-32D_2.jpg
+# images/ESP32-DevKitC-32D_3.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/01/ESP32-DevKitC-32D_3.jpg
+
+# images/esp32_memory_map_structure.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/01/esp32_memory_map_structure.jpg
+# images/esp32_memory_map.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/01/esp32_memory_map.jpg
