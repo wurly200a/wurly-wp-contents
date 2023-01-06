@@ -1,0 +1,34 @@
+#+BLOG: wurly-blog
+#+POSTID: 257
+#+ORG2BLOG:
+#+DATE: [2023-01-06 Fri 16:17]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32 FlashROM 書き込み
+
+* 概要
+
+Windows環境にて、NuttX をビルドしたバイナリを書き込む方法についてです。。
+
+WSLから実行することも可能ですが、仮想マシンから実デバイスへの接続を行うなどの手順が煩雑なことや、PC環境によってはこれが制限されている場合があります。
+
+Windows の Python から pip で esptool をインストールし、ポート"COM5"などを指定して esptool.py を実行するのがリーズナブルと思われます。
+
+* 手順
+
+ESP32-DevKitC-32Dボード(ESP-WROOM-32D) では下記コマンドで書き込みできました。
+
+#+begin_src 
+> esptool.py --chip esp32 --port COM5 --baud 921600 write_flash 0x1000 bootloader-esp32.bin 0x8000 partition-table-esp32.bin 0x10000 nuttx.bin
+#+end_src
+
+bootloader、partition-table は下記より入手できます。
+
+ - [[https://github.com/espressif/esp-nuttx-bootloader][espressif/esp-nuttx-bootloader: This repository provides 2nd stage bootloader and partition table binaries for NuttX users of ESP chips.]]
+https://github.com/espressif/esp-nuttx-bootloader
+
+* 参考
+ - [[http://cha.la.coocan.jp/doc/ESP32writeFlashROM.html][ESP32 FlashROM 書き込み]]
+ - [[https://lang-ship.com/blog/work/esp32-2022-01/][ESP32シリーズ(無印, S2, S3, C3, …)比較 2022年1月 | Lang-ship]]
