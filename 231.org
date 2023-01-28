@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2023-01-04 Wed 11:13]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: Emacs
+#+CATEGORY: Emacs, WSL
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: WSL の Ubuntu 20.04 に Emacs 28 をインストール
