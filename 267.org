@@ -1,0 +1,78 @@
+#+BLOG: wurly-blog
+#+POSTID: 267
+#+ORG2BLOG:
+#+DATE: [2023-02-04 Sat 15:12]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL,Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu on WSL2 に Dockerをインストール
+
+* 概要
+
+docker-ce のインストール方法です。
+
+* 手順
+
+** インストール
+
+#+begin_src 
+$ sudo apt -y install apt-transport-https ca-certificates curl software-properties-common
+
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -a
+
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+$ sudo apt update
+$ sudo apt -y install docker-ce
+$ sudo usermod -a -G docker ${USER}
+#+end_src
+
+** サービス状態の確認
+
+サービスは起動している
+
+#+begin_src 
+$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sat 2023-02-04 15:16:59 JST; 50s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 2825 (dockerd)
+      Tasks: 16
+     Memory: 32.8M
+     CGroup: /system.slice/docker.service
+             └─2825 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+#+end_src
+
+** docker image ls
+
+直後は docker image ls が実行できない
+
+#+begin_src 
+$ docker image ls
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.24/images/json": dial unix /var/run/docker.sock: connect: permission denied
+#+end_src
+
+** root で試す
+
+rootだとOK
+
+#+begin_src 
+$ sudo docker image ls
+REPOSITORY   TAG       IMAGE ID   CREATED   SIZE
+#+end_src
+
+** 再度ログイン
+
+shell を再起動してから行ったらOKでした。
+
+#+begin_src 
+$ docker image ls
+REPOSITORY   TAG       IMAGE ID   CREATED   SIZE
+#+end_src
+
+* 参考
+ - [[http://cha.la.coocan.jp/doc/DockerUsage.html][Docker使い方]]
+http://cha.la.coocan.jp/doc/DockerUsage.html
