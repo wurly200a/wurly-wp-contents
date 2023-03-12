@@ -18,6 +18,8 @@ WSL2(WSLg)でX Window版のEmacsを使い始め、便利なのですが日本語
 
 * キーボード設定
 
+** 導入
+
  - [[https://qiita.com/boonrew/items/c502faca401930947206][WSLのキーボードが英語配列になってしまふ - Qiita]]
 https://qiita.com/boonrew/items/c502faca401930947206
 
@@ -31,7 +33,7 @@ https://qiita.com/boonrew/items/c502faca401930947206
 
  - [[https://www.server-world.info/query?os=Ubuntu_20.04&p=keymap][Ubuntu 20.04 LTS : キーボードの割り当てを設定する : Server World]]
 
-変更前
+** 変更前
 
 #+begin_src 
 $ localectl
@@ -41,13 +43,13 @@ $ localectl
        X11 Model: jp106
 #+end_src
 
-設定変更実施
+** 設定変更実施
 
 #+begin_src 
 $ sudo localectl set-keymap jp106
 #+end_src
 
-変更後
+** 変更後
 
 #+begin_src 
 $ localectl
@@ -56,6 +58,16 @@ $ localectl
       X11 Layout: jp
        X11 Model: jp106
      X11 Options: terminate:ctrl_alt_bksp
+#+end_src
+
+** やはり右SHIFT + 2 だと "2" になってしまう
+
+ただし、Emacsを起動すると、右SHIFT + 2 だと "2" になってしまう状態に戻ってしまいます。
+
+Emacsが起動した状態で下記を実行するとダブルクォートが入力できるようになるので、面倒ですがとりあえずそれで対応することとします。
+
+#+begin_src 
+$ sudo localectl set-keymap jp106
 #+end_src
 
 * WSL2 (WSLg)を日本語化 & Mozcで日本語入力
@@ -108,3 +120,31 @@ LANG=ja_JP.UTF-8
 # ./images/mozc_setting_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_01.jpg
 # ./images/mozc_setting_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_02.jpg
 # ./images/mozc_setting_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_03.jpg
+
+** setxkbmap
+
+#+begin_src 
+$ setxkbmap -print -verbose 10
+Setting verbose level to 10
+locale is C
+Trying to load rules file ./rules/evdev...
+Trying to load rules file /usr/share/X11/xkb/rules/evdev...
+Success.
+Applied rules from evdev:
+rules:      evdev
+model:      pc105
+layout:     us
+Trying to build keymap using the following components:
+keycodes:   evdev+aliases(qwerty)
+types:      complete
+compat:     complete
+symbols:    pc+us+inet(evdev)
+geometry:   pc(pc105)
+xkb_keymap {
+        xkb_keycodes  { include "evdev+aliases(qwerty)" };
+        xkb_types     { include "complete"      };
+        xkb_compat    { include "complete"      };
+        xkb_symbols   { include "pc+us+inet(evdev)"     };
+        xkb_geometry  { include "pc(pc105)"     };
+};
+#+end_src
