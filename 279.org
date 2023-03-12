@@ -1,0 +1,68 @@
+#+BLOG: wurly-blog
+#+POSTID: 279
+#+ORG2BLOG:
+#+DATE: [2023-03-11 Sat 16:15]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL2(WSLg) 日本語環境
+
+* 概要
+
+WSL2(WSLg)でX Window版のEmacsを使い始め、便利なのですが日本語環境が不十分で下記の問題がありました。
+
+ - 記号が入力できない。例えばダブルクォート(SHIFT + 2)を入力したいのですが"2"が入力されてしまう
+ - 日本語の文字が文字化けする
+ - 日本語の入力ができない
+
+* WSL2 (WSLg)を日本語化 & Mozcで日本語入力
+
+ - [[https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/#][Win11のWSL2 (WSLg)を日本語化 & Mozcで日本語入力 | AsTechLog]]
+https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/
+
+上記スクリプトを使わせていただきました。
+
+
+* キーボード設定
+
+ - [[https://qiita.com/boonrew/items/c502faca401930947206][WSLのキーボードが英語配列になってしまふ - Qiita]]
+https://qiita.com/boonrew/items/c502faca401930947206
+
+#+begin_src 
+sudo apt install language-pack-ja
+sudo update-locale LANG=ja_JP.UTF-8
+#+end_src
+
+#+begin_src 
+sudo vi /etc/default/keyboard
+#+end_src
+
+変更前
+
+#+begin_src 
+/etc/default/keyboard
+XKBMODEL="pc105"
+XKBLAYOUT="us"
+#+end_src
+
+変更後
+
+#+begin_src 
+/etc/default/keyboard
+XKBMODEL="jp106"
+XKBLAYOUT="jp"
+#+end_src
+
+* 確認
+
+ - [[https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html][トラブルシューティング（Ubuntu 20.04LTS on WSL2）]]
+https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html
+
+#+begin_src 
+$ dpkg -l | grep language-pack-ja
+ii  language-pack-ja                       1:20.04+20220818                  all          translation updates for language Japanese
+ii  language-pack-ja-base                  1:20.04+20220818                  all          translations for language Japanese
+$ env | grep LANG
+LANG=ja_JP.UTF-8
+#+end_src
