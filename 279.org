@@ -16,45 +16,83 @@ WSL2(WSLg)でX Window版のEmacsを使い始め、便利なのですが日本語
  - 日本語の文字が文字化けする
  - 日本語の入力ができない
 
+* キーボード設定
+
+ - [[https://qiita.com/boonrew/items/c502faca401930947206][WSLのキーボードが英語配列になってしまふ - Qiita]]
+https://qiita.com/boonrew/items/c502faca401930947206
+
+
+当初、上記を試しましたが、これだけですと下記の現象になりました。
+
+ - xterm ではダブルクォートが入力できる
+ - Emacs では 左SHIFT + 2 だとダブルクォートが入力できる。右SHIFT + 2 だと "2" になってしまう
+
+下記のやり方で行うことで所望の入力ができるようになりました。
+
+ - [[https://www.server-world.info/query?os=Ubuntu_20.04&p=keymap][Ubuntu 20.04 LTS : キーボードの割り当てを設定する : Server World]]
+
+変更前
+
+#+begin_src 
+$ localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: n/a
+      X11 Layout: jp
+       X11 Model: jp106
+#+end_src
+
+設定変更実施
+
+#+begin_src 
+$ sudo localectl set-keymap jp106
+#+end_src
+
+変更後
+
+#+begin_src 
+$ localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: jp106
+      X11 Layout: jp
+       X11 Model: jp106
+     X11 Options: terminate:ctrl_alt_bksp
+#+end_src
+
 * WSL2 (WSLg)を日本語化 & Mozcで日本語入力
 
  - [[https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/#][Win11のWSL2 (WSLg)を日本語化 & Mozcで日本語入力 | AsTechLog]]
 https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/
 
 上記スクリプトを使わせていただきました。
+これにより日本語文字が表示され、入力できるようになりました。
 
+ただし、一点、Emacsを使う上で下記が気になりました。私は別の機能として使っているためです。
 
-* キーボード設定
+ - Ctrl + ; のショートカット で 先頭に"Select to paste"とあるウィンドウが表示される
 
- - [[https://qiita.com/boonrew/items/c502faca401930947206][WSLのキーボードが英語配列になってしまふ - Qiita]]
-https://qiita.com/boonrew/items/c502faca401930947206
+解決策
 
-#+begin_src 
-sudo apt install language-pack-ja
-sudo update-locale LANG=ja_JP.UTF-8
-#+end_src
+下記のコマンドで入力メソッドの設定を表示させます。
 
 #+begin_src 
-sudo vi /etc/default/keyboard
+$ fcitx-config-gtk3
 #+end_src
 
-変更前
 
-#+begin_src 
-/etc/default/keyboard
-XKBMODEL="pc105"
-XKBLAYOUT="us"
-#+end_src
+「アドオン」タブを開きます。
 
-変更後
+file:./images/mozc_setting_01.jpg
 
-#+begin_src 
-/etc/default/keyboard
-XKBMODEL="jp106"
-XKBLAYOUT="jp"
-#+end_src
+Trigger Key for Clipboard History List が 「Ctrl+:」 になっています。
 
-* 確認
+file:./images/mozc_setting_02.jpg
+
+「空」に設定します。
+
+file:./images/mozc_setting_03.jpg
+
+
+* その他
 
  - [[https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html][トラブルシューティング（Ubuntu 20.04LTS on WSL2）]]
 https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html
@@ -66,3 +104,7 @@ ii  language-pack-ja-base                  1:20.04+20220818                  all
 $ env | grep LANG
 LANG=ja_JP.UTF-8
 #+end_src
+
+# ./images/mozc_setting_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_01.jpg
+# ./images/mozc_setting_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_02.jpg
+# ./images/mozc_setting_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_03.jpg
