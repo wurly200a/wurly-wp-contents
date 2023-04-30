@@ -3,14 +3,18 @@
 #+ORG2BLOG:
 #+DATE: [2023-04-30 Sun 18:22]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: Docker
+#+CATEGORY: Docker, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 (WSL) に Dockerをインストール
 
+* はじめに
+
+[[./?p=267][Ubuntu 20.04 (WSL) に Dockerをインストール]] をベースに、Ubuntu 22.04 版としてまとめ直しました。
+
 * 事前準備
 
-** systemdの有効化
+** systemdの有効化(WSLの場合)
 
 systemdが有効化されていないとsystemctlを実行しても下記のようなメッセージが表示されます。
 
