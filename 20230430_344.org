@@ -24,6 +24,8 @@ https://github.com/jdeng/goheif.git
 
 * 実行方法
 
+下記の通り実行すれば変換ができると思われます。
+
 #+begin_src 
 git clone https://github.com/jdeng/goheif.git
 #+end_src
