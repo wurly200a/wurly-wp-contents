@@ -1,0 +1,43 @@
+#+BLOG: wurly-blog
+#+POSTID: 344
+#+ORG2BLOG:
+#+DATE: [2023-04-30 Sun 11:27]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: golang
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: HEIC(HEIF) から JPG への変換
+
+* 概要
+
+最近 iPhone を買い換えたため、写真が *.HEIC (HEIF) で保存されるようになりました。
+
+github で探したところこれを実現できるものがありました。
+
+* goheif
+
+https://github.com/jdeng/goheif.git
+
+* 実行環境
+ - WSL Ubuntu-22.04
+ - go version go1.18.1 linux/amd64
+
+* 実行方法
+
+#+begin_src 
+git clone https://github.com/jdeng/goheif.git
+#+end_src
+
+#+begin_src 
+cd goheif
+cd heic2jpg
+go mod init hei2cjpg
+#+end_src
+
+#+begin_src 
+go get github.com/jdeng/goheif
+#+end_src
+
+#+begin_src 
+go run main.go 入力ファイル.HEIC 出力ファイル.JPG
+#+end_src
