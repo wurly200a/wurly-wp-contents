@@ -1,0 +1,111 @@
+#+BLOG: wurly-blog
+#+POSTID: 354
+#+ORG2BLOG:
+#+DATE: [2023-04-30 Sun 15:59]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: apt-key is deprecated
+
+* 概要
+
+これまで Docker のインストール時に apt-key を使っていましたが、Ubuntu 22.04 では非推奨の旨が表示されます。
+これについての対処方法です。
+
+* 事象
+
+OK とはなりますが、"Warning: apt-key is deprecated." という警告が出ます。
+
+#+begin_src 
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -a
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+OK
+#+end_src
+
+* 対処方法
+
+** 信頼された鍵の表示
+
+trusted keys を表示します。
+Docker の key が登録されています。
+
+#+begin_src 
+$ sudo apt-key list
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+/etc/apt/trusted.gpg
+--------------------
+pub   rsa4096 2017-02-22 [SCEA]
+      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
+uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
+sub   rsa4096 2017-02-22 [S]
+
+/etc/apt/trusted.gpg.d/ubuntu-keyring-2012-cdimage.gpg
+------------------------------------------------------
+pub   rsa4096 2012-05-11 [SC]
+      8439 38DF 228D 22F7 B374  2BC0 D94A A3F0 EFE2 1092
+uid           [ unknown] Ubuntu CD Image Automatic Signing Key (2012) <cdimage@ubuntu.com>
+
+/etc/apt/trusted.gpg.d/ubuntu-keyring-2018-archive.gpg
+------------------------------------------------------
+pub   rsa4096 2018-09-17 [SC]
+      F6EC B376 2474 EDA9 D21B  7022 8719 20D1 991B C93C
+uid           [ unknown] Ubuntu Archive Automatic Signing Key (2018) <ftpmaster@ubuntu.com>
+#+end_src
+
+** 信頼された鍵から削除
+
+#+begin_src 
+$ sudo apt-key del 0EBFCD88
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+OK
+#+end_src
+
+** 削除されたことを確認
+
+#+begin_src 
+$ sudo apt-key list
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+/etc/apt/trusted.gpg.d/ubuntu-keyring-2012-cdimage.gpg
+------------------------------------------------------
+pub   rsa4096 2012-05-11 [SC]
+      8439 38DF 228D 22F7 B374  2BC0 D94A A3F0 EFE2 1092
+uid           [ unknown] Ubuntu CD Image Automatic Signing Key (2012) <cdimage@ubuntu.com>
+
+/etc/apt/trusted.gpg.d/ubuntu-keyring-2018-archive.gpg
+------------------------------------------------------
+pub   rsa4096 2018-09-17 [SC]
+      F6EC B376 2474 EDA9 D21B  7022 8719 20D1 991B C93C
+uid           [ unknown] Ubuntu Archive Automatic Signing Key (2018) <ftpmaster@ubuntu.com>
+#+end_src
+
+** /etc/apt/keyrings/ が存在することを確認
+
+#+begin_src 
+$ ls -la /etc/apt/keyrings/
+total 8
+drwxr-xr-x 2 root root 4096 Apr  8  2022 .
+drwxr-xr-x 8 root root 4096 Apr 30 16:07 ..
+#+end_src
+
+** gpg コマンドで登録
+
+#+begin_src 
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+#+end_src
+
+** パーミッションの変更
+
+(実行しても変わらなかったので実行しなくてもよいかもしれない)
+
+#+begin_src 
+$ sudo chmod a+r /etc/apt/keyrings/docker.gpg
+#+end_src
+
+* 参考
+
+ - [[https://qiita.com/hnw/items/daaf11412295366436b8][apt-key del するときのIDは最後8文字 - Qiita]]
+https://qiita.com/hnw/items/daaf11412295366436b8
+
+ - [[https://kinsta.com/jp/blog/install-docker-ubuntu/][【簡単な4つの方法】UbuntuにDockerをインストールするには ｜Kinsta®]]
+https://kinsta.com/jp/blog/install-docker-ubuntu/
