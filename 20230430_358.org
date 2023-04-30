@@ -1,0 +1,98 @@
+#+BLOG: wurly-blog
+#+POSTID: 358
+#+ORG2BLOG:
+#+DATE: [2023-04-30 Sun 18:22]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 (WSL) に Dockerをインストール
+
+* 事前準備
+
+** systemdの有効化
+
+systemdが有効化されていないとsystemctlを実行しても下記のようなメッセージが表示されます。
+
+#+begin_src 
+$ sudo systemctl
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+#+end_src
+
+/etc/wsl.conf ファイルを新規に作成し、下記の記載を行います。
+
+#+begin_src 
+[boot]
+systemd=true
+#+end_src
+
+設定を変更した後は、PowerShell から下記のようにWSLをシャットダウンします。
+
+#+begin_src 
+wsl --shutdown
+#+end_src
+
+下記が実行できることを確認します。
+
+#+begin_src 
+$ sudo systemctl
+#+end_src
+
+* 手順
+
+#+begin_src 
+$ sudo apt update
+$ sudo apt install ca-certificates curl gnupg lsb-release
+#+end_src
+
+鍵を登録します。
+
+#+begin_src 
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+#+end_src
+
+リポジトリを登録します。
+
+#+begin_src 
+$ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+$ sudo apt update
+#+end_src
+
+インストールします。
+
+#+begin_src 
+$ sudo apt install docker-ce
+$ sudo usermod -a -G docker ${USER}
+#+end_src
+
+サービスが立ち上がっていることを確認します。
+
+#+begin_src 
+$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sun 2023-04-30 18:37:44 JST; 1min 2s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 792 (dockerd)
+      Tasks: 17
+     Memory: 32.7M
+     CGroup: /system.slice/docker.service
+             └─792 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Apr 30 18:37:43 LT1 dockerd[792]: time="2023-04-30T18:37:43.907391572+09:00" level=info msg="Loading containers: start."
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.057267860+09:00" level=info msg="Loading containers: done."
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067316328+09:00" level=warning msg="WARNING: No blkio throttle.read_bps_device support"
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067348063+09:00" level=warning msg="WARNING: No blkio throttle.write_bps_device support"
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067351293+09:00" level=warning msg="WARNING: No blkio throttle.read_iops_device support"
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067353633+09:00" level=warning msg="WARNING: No blkio throttle.write_iops_device support"
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067374922+09:00" level=info msg="Docker daemon" commit=94d3ad6 graphdriver=overlay2 version=23.0.5
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067496800+09:00" level=info msg="Daemon has completed initialization"
+Apr 30 18:37:44 LT1 systemd[1]: Started Docker Application Container Engine.
+Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.082524031+09:00" level=info msg="API listen on /run/docker.sock"
+#+end_src
+
+* 参考
+ - [[https://kinsta.com/jp/blog/install-docker-ubuntu/][【簡単な4つの方法】UbuntuにDockerをインストールするには ｜Kinsta®]]
+https://kinsta.com/jp/blog/install-docker-ubuntu/
