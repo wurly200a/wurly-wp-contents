@@ -28,15 +28,28 @@ file:images/pyhon3108_01.png
 
 file:images/pyhon3108_02.png
 
+ここで、"Add Python to environment variables" については未チェックのままにしておきます。
+
 file:images/pyhon3108_03.png
 
 file:images/pyhon3108_04.png
+
+最後の手順です。
+
+cmd.exe のショートカットを作成します。
+スタートメニューから cmd.exe の実体をたどり、右クリックで「ショートカットの作成」を行います。
+(デスクトップに作成することになる)
+
+ショートカットのプロパティを開きます。
+「ショートカット」タブの「リンク先」の cmd.exe に続けてパスを指定するようにします。
 
 cmd.exe へのショートカットのリンク先は下記のようになりました。
 
 #+begin_src 
 C:\Windows\System32\cmd.exe /k set path=C:\usr\Python310\;C:\usr\Python310\Scripts\;%PATH%
 #+end_src
+
+「作業フォルダー」も適切な場所を指定しておくとよいと思います。
 
 実際には、私の環境では MSYS2 もインストールしており、こちらのバイナリにパスを通している為、パスを指定しない場合には MSYS2 のpython が実行されます。
 上記記述では、Python310 のパスを最初に指定するようにしている為、Python310の方が優先されて実行されるようになります。
