@@ -1,0 +1,123 @@
+#+BLOG: wurly-blog
+#+POSTID: 376
+#+ORG2BLOG:
+#+DATE: [2023-05-01 Mon 17:46]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: ESP32, NuttX
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32 NuttX で Lチカ
+
+* 概要
+
+ESP32 DevKitCボードをNuttXベースのファームウェアでLチカしてみます。
+ハードウェアとしては下記と同じものを使います。
+(32ピンにLEDを接続します)
+
+ - [[http://microtechnica.xyz/?p=271][ESP32-DevKitC-32Dボードの基本的な使い方 ～Arduino IDE編～ – マイクロテクニカ製品情報Wiki]]
+http://microtechnica.xyz/?p=271
+
+* 変更内容
+
+NuttXのソースコードは nuttx-12.0.0 のtagベースです。
+
+ここでは、よりシンプルに実装する為に、nx_start.c から直接スレッドを生成します。
+
+ESP32のGPIOの駆動は esp32_gpio.h を直接インクルードしました。
+(ハードウェアアーキを吸収するモジュールがありそうでしたが、一旦読解をあきらめてこのような実装にしました)
+
+1秒間隔で点滅する制御としています。
+
+* ソースコード
+
+** diff
+
+file:images/376_01.png
+
+file:images/376_02.png
+
+file:images/376_03.png
+
+file:images/376_04.png
+
+** patch
+
+#+begin_src c
+diff --git a/sched/init/nx_start.c b/sched/init/nx_start.c
+index 8262eb6c43..8296078586 100644
+--- a/sched/init/nx_start.c
++++ b/sched/init/nx_start.c
+@@ -56,6 +56,11 @@
+ #include "init/init.h"
+ #include "tls/tls.h"
+ 
++#include "../../arch/xtensa/src/esp32/esp32_gpio.h"
++#include <nuttx/kthread.h>
++
++static int test_thread(int argc, char *argv[]);
++
+ /****************************************************************************
+  * Pre-processor Definitions
+  ****************************************************************************/
+@@ -313,6 +318,7 @@ static FAR char *g_idleargv[CONFIG_SMP_NCPUS][2];
+ void nx_start(void)
+ {
+   int i;
++  static int pid;
+ 
+   sinfo("Entry\n");
+ 
+@@ -685,6 +691,16 @@ void nx_start(void)
+ 
+   sched_unlock();
+ 
++  pid = kthread_create("test",
++                       128,
++                       2048,
++                       test_thread,
++                       NULL);
++  if (pid < 0)
++    {
++      _err("ERROR: Failed to create test task error=%d\n", pid);
++      return pid;
++    }
+   /* The IDLE Loop **********************************************************/
+ 
+   /* When control is return to this point, the system is idle. */
+@@ -697,3 +713,26 @@ void nx_start(void)
+       up_idle();
+     }
+ }
++
++static int test_thread(int argc, char *argv[])
++{
++    static int flag;
++
++    esp32_configgpio(32, OUTPUT);
++
++    while (1)
++    {
++        if( flag )
++        {
++            esp32_gpiowrite(32, 0);
++        }
++        else
++        {
++            esp32_gpiowrite(32, 1);
++        }
++        flag ^= 1;
++        sleep(1);
++    }
++
++    return 0;
++}
+#+end_src
+
+* まとめ
+
+ESP32 DevKitCボードをNuttXベースのファームウェアでLチカできました。
+
+# images/376_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/376_01.png
+# images/376_02.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/376_02.png
+# images/376_03.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/376_03.png
+# images/376_04.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/376_04.png
