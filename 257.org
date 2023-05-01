@@ -10,7 +10,7 @@
 
 * 概要
 
-Windows環境にて、NuttX をビルドしたバイナリを書き込む方法についてです。
+Windows環境にて、NuttX をビルドしたバイナリを ESP32-DevKitC-32D,E ボードに書き込む方法についてです。
 
 WSLから実行することも可能ですが、仮想マシンから実デバイスへの接続を行うなどの手順が煩雑ですし、PC環境によってはこれが制限されている場合があります。
 
@@ -98,6 +98,9 @@ https://github.com/espressif/esp-nuttx-bootloader
 #+end_src
 
 ** コマンド
+
+基板上の "EN" スイッチを押下しなからコマンドを実行し、実行後スイッチから手を離します。
+
 ESP32-DevKitC-32Dボード(ESP-WROOM-32D)や、ESP32-DevKitC-32Eボード(ESP-WROOM-32E) では下記コマンドで書き込みできました。
 
 #+begin_src 
@@ -107,3 +110,5 @@ ESP32-DevKitC-32Dボード(ESP-WROOM-32D)や、ESP32-DevKitC-32Eボード(ESP-WR
 * 参考
  - [[http://cha.la.coocan.jp/doc/ESP32writeFlashROM.html][ESP32 FlashROM 書き込み]]
  - [[https://lang-ship.com/blog/work/esp32-2022-01/][ESP32シリーズ(無印, S2, S3, C3, …)比較 2022年1月 | Lang-ship]]
+
+# images/CP210x.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/CP210x.jpg
