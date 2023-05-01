@@ -14,20 +14,95 @@ Windows環境にて、NuttX をビルドしたバイナリを書き込む方法�
 
 WSLから実行することも可能ですが、仮想マシンから実デバイスへの接続を行うなどの手順が煩雑ですし、PC環境によってはこれが制限されている場合があります。
 
-Windows の Python から pip で esptool をインストールし、ポート"COM5"などを指定して esptool.py を実行するのがリーズナブルと思われます。
+Windows の Python から pip で esptool をインストールし、ポート"COM3"などを指定して esptool.py を実行するのがリーズナブルと思われます。
+
+* Python のインストール
+
+[[./?p=189][Python インストール(3.10.8、複数のバージョン共存前提)]] に従い、Python をインストールします。
+
+* esptool のインストール
+
+#+begin_src 
+>pip install esptool
+Collecting esptool
+  Downloading esptool-4.5.1.tar.gz (252 kB)
+     ---------------------------------------- 252.2/252.2 kB 7.6 MB/s eta 0:00:00
+  Preparing metadata (setup.py) ... done
+Collecting bitstring>=3.1.6
+  Downloading bitstring-4.0.2-py3-none-any.whl (46 kB)
+     ---------------------------------------- 46.0/46.0 kB ? eta 0:00:00
+Collecting cryptography>=2.1.4
+  Downloading cryptography-40.0.2-cp36-abi3-win_amd64.whl (2.6 MB)
+     ---------------------------------------- 2.6/2.6 MB 11.9 MB/s eta 0:00:00
+Collecting ecdsa>=0.16.0
+  Downloading ecdsa-0.18.0-py2.py3-none-any.whl (142 kB)
+     ---------------------------------------- 142.9/142.9 kB ? eta 0:00:00
+Collecting pyserial>=3.0
+  Downloading pyserial-3.5-py2.py3-none-any.whl (90 kB)
+     ---------------------------------------- 90.6/90.6 kB ? eta 0:00:00
+Collecting reedsolo<=1.6.0,>=1.5.3
+  Downloading reedsolo-1.6.0-cp310-cp310-win_amd64.whl (174 kB)
+     ---------------------------------------- 174.2/174.2 kB 10.3 MB/s eta 0:00:00
+Collecting cffi>=1.12
+  Downloading cffi-1.15.1-cp310-cp310-win_amd64.whl (179 kB)
+     ---------------------------------------- 179.1/179.1 kB 11.3 MB/s eta 0:00:00
+Collecting six>=1.9.0
+  Downloading six-1.16.0-py2.py3-none-any.whl (11 kB)
+Collecting pycparser
+  Downloading pycparser-2.21-py2.py3-none-any.whl (118 kB)
+     ---------------------------------------- 118.7/118.7 kB ? eta 0:00:00
+Installing collected packages: reedsolo, pyserial, six, pycparser, bitstring, ecdsa, cffi, cryptography, esptool
+  DEPRECATION: esptool is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559
+  Running setup.py install for esptool ... done
+Successfully installed bitstring-4.0.2 cffi-1.15.1 cryptography-40.0.2 ecdsa-0.18.0 esptool-4.5.1 pycparser-2.21 pyserial-3.5 reedsolo-1.6.0 six-1.16.0
+
+[notice] A new release of pip is available: 23.0.1 -> 23.1.2
+[notice] To update, run: python.exe -m pip install --upgrade pip
+#+end_src
 
 * 手順
 
-ESP32-DevKitC-32Dボード(ESP-WROOM-32D) では下記コマンドで書き込みできました。
+** UARTドライバのインストール
+ - [[https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers][CP210x USB to UART Bridge VCP Drivers - Silicon Labs]]
 
-#+begin_src 
-> esptool.py --chip esp32 --port COM5 --baud 921600 write_flash 0x1000 bootloader-esp32.bin 0x8000 partition-table-esp32.bin 0x10000 nuttx.bin
-#+end_src
+CP210x Universal Windows Driver v11.2.0 10/21/2022 をダウンロードしました。
 
+USBポートに繋いだだけでは、デバイスマネージャのアイコンに警告の表示が付きました。
+
+「ドライバーの更新」→「コンピューターを参照してドライバーを検索」にて上記からダウンロード及び展開したファイル群を指定し正しくドライバがインストールされました。
+
+file:images/CP210x.jpg
+
+** bootloader、partition-table の入手
 bootloader、partition-table は下記より入手できます。
 
  - [[https://github.com/espressif/esp-nuttx-bootloader][espressif/esp-nuttx-bootloader: This repository provides 2nd stage bootloader and partition table binaries for NuttX users of ESP chips.]]
 https://github.com/espressif/esp-nuttx-bootloader
+
+#+begin_src 
+>curl https://github.com/espressif/esp-nuttx-bootloader/releases/download/latest/partition-table-esp32.bin > partition-table-esp32.bin
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+
+>curl https://github.com/espressif/esp-nuttx-bootloader/releases/download/latest/bootloader-esp32.bin > bootloader-esp32.bin
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+#+end_src
+
+** ビルドしたバイナリのコピー
+
+#+begin_src 
+>copy \\wsl.localhost\Ubuntu-22.04\home\wurly\work\nuttx\nuttx.bin .\
+#+end_src
+
+** コマンド
+ESP32-DevKitC-32Dボード(ESP-WROOM-32D)や、ESP32-DevKitC-32Eボード(ESP-WROOM-32E) では下記コマンドで書き込みできました。
+
+#+begin_src 
+> esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x1000 bootloader-esp32.bin 0x8000 partition-table-esp32.bin 0x10000 nuttx.bin
+#+end_src
 
 * 参考
  - [[http://cha.la.coocan.jp/doc/ESP32writeFlashROM.html][ESP32 FlashROM 書き込み]]
