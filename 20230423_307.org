@@ -1,0 +1,37 @@
+#+BLOG: wurly-blog
+#+POSTID: 307
+#+ORG2BLOG:
+#+DATE: [2023-04-23 Sun 12:09]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSLのUbuntu間でscpを行う
+
+* 概要
+
+WSLの新旧バージョンのUbuntu間でファイルをコピーしたいです。
+(20.04 から 22.04 へ環境を移行するため)
+
+scpを行うには設定が必要でした。
+
+新ホスト(Ubuntu22.04)でscpを実行し、旧ホスト(Ubuntu20.04)からデータをコピーします。
+
+* 参考
+ - [[https://blog.serverworks.co.jp/2022/10/26/105628][WSL2上のUbuntuにTeraTermでSSH接続する - サーバーワークスエンジニアブログ]]
+https://blog.serverworks.co.jp/2022/10/26/105628
+
+* アクセスされる側のホストの設定
+
+#+begin_src 
+$ sudo vi /etc/ssh/sshd_config
+#+end_src
+
+#+begin_src 
+PasswordAuthentication yes
+#+end_src
+
+#+begin_src 
+$ sudo ssh-keygen -A
+$ sudo service ssh restart
+#+end_src
