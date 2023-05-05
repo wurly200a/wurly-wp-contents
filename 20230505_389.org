@@ -6,11 +6,11 @@
 #+CATEGORY: NuttX, ESP32
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: NuttX ビルドインアプリケーションの作成
+#+TITLE: NuttX ビルトインアプリケーションの作成
 
 * 概要
 
-NuttXのビルドインアプリケーションを作成してみます。
+NuttXのビルトインアプリケーションを作成してみます。
 
 * 参考
 
