@@ -1,0 +1,142 @@
+#+BLOG: wurly-blog
+#+POSTID: 389
+#+ORG2BLOG:
+#+DATE: [2023-05-05 Fri 14:41]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: NuttX, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: NuttX ビルドインアプリケーションの作成
+
+* 概要
+
+NuttXのビルドインアプリケーションを作成してみます。
+
+* 参考
+
+ - [[https://ma-tech.centurysys.jp/doku.php?id=xg_series_devel:add_builtin_command:start][ビルトインアプリケーションの追加 [MA-X/MA-S/MA-E/IP-K Developers' WiKi]]]
+https://ma-tech.centurysys.jp/doku.php?id=xg_series_devel:add_builtin_command:start
+
+今回の作業はソースコードとビルド設定ファイルについて、上記ページの内容を参考にさせていただき、私なりのコメントなどを追記しています。
+
+* 作業
+
+** ファイルリスト
+
+apps/ 以下に下記のディレクトリ、ファイルを作成します。
+
+ - test
+  - Kconfig
+  - Make.defs
+  - Makefile
+  - hello_main.c
+
+** Kconfig
+
+#+begin_src
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+ 
+config APP_HELLO
+	bool "\"Hello, World!\" example"
+	default n
+	---help---
+		Enable the \"Hello, World!\" example
+ 
+if APP_HELLO
+ 
+config APP_HELLO_PROGNAME
+	string "Program name"
+	default "hello"
+	depends on BUILD_KERNEL
+	---help---
+		This is the name of the program that will be use when the NSH ELF
+		program is installed.
+ 
+config APP_HELLO_PRIORITY
+	int "Hello task priority"
+	default 100
+ 
+config APP_HELLO_STACKSIZE
+	int "Hello stack size"
+	default 2048
+ 
+endif
+#+end_src
+
+** Make.defs
+
+#+begin_src
+ifeq ($(CONFIG_APP_HELLO),y)
+CONFIGURED_APPS += test
+endif
+#+end_src
+
+** Makefile
+
+#+begin_src
+include $(APPDIR)/Make.defs
+
+# Hello, World! built-in application info
+
+CONFIG_APP_HELLO_PRIORITY ?= SCHED_PRIORITY_DEFAULT
+CONFIG_APP_HELLO_STACKSIZE ?= 2048
+
+APPNAME = hello
+PRIORITY = $(CONFIG_APP_HELLO_PRIORITY)
+STACKSIZE = $(CONFIG_APP_HELLO_STACKSIZE)
+
+# Hello, World! Example
+
+ASRCS =
+CSRCS =
+MAINSRC = hello_main.c
+
+CONFIG_APP_HELLO_PROGNAME ?= hello$(EXEEXT)
+PROGNAME = $(CONFIG_APP_HELLO_PROGNAME)
+
+include $(APPDIR)/Application.mk
+#+end_src
+
+** hello_main.c
+
+#+begin_src C
+#include <nuttx/config.h>
+#include <stdio.h>
+
+int hello_main(int argc, char *argv[])
+{
+  printf("Hello, World!!\n");
+  return 0;
+}
+#+end_src
+
+* ビルド
+
+make menuconfig を実行すると、Application Configuration の階層に今回のアプリケーションの設定項目が表示されます。
+下記コマンドラインで指定することも可能です。
+
+#+begin_src
+kconfig-tweak --file .config --enable CONFIG_APP_HELLO
+kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_PRIORITY 100
+kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_STACKSIZE 2048
+#+end_src
+
+なお、コンフィグを削除する場合は nuttx/ ディレクトリの .config を削除します。
+
+* 実行結果
+
+helloアプリケーションが実行できました。
+
+file:images/389_nuttx_hello.png
+
+* 補足
+
+** Makeflieの記載方法
+今回のMakefileの記載方法については、下記ページが参考になります。
+
+- [[https://cwiki.apache.org/confluence/display/NUTTX/APPNAME+vs.+PROGNAME][APPNAME vs. PROGNAME - NUTTX - Apache Software Foundation]]
+https://cwiki.apache.org/confluence/display/NUTTX/APPNAME+vs.+PROGNAME
+
