@@ -47,6 +47,8 @@ echo "hello" >> rcS.template
 cd ../../../../..
 #+end_src
 
+なお、mkromfsimg.sh はxxdコマンドに依存しているため、vim-common パッケージのインストールが必要です。
+
 * 調査の経緯など
 
 ** CONFIG_FS_ROMFS
