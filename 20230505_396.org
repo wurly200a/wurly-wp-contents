@@ -1,0 +1,149 @@
+#+BLOG: wurly-blog
+#+POSTID: 396
+#+ORG2BLOG:
+#+DATE: [2023-05-05 Fri 23:06]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: NuttX, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: NuttX ビルトインアプリケーションの自動起動
+
+* 概要
+
+NuttXのビルトインアプリケーション hello を自動起動する設定にします。
+
+board は esp32-devkitc です。
+
+* 参考
+
+ - [[https://nuttx.apache.org/docs/latest/applications/nsh/installation.html#startupscript][Customizing NSH Initialization — NuttX latest documentation]]
+https://nuttx.apache.org/docs/latest/applications/nsh/installation.html#startupscript
+
+ - [[https://ma-tech.centurysys.jp/doku.php?id=xg_series_devel:autostart_rcs:start][アプリケーションの自動起動 [MA-X/MA-S/MA-E/IP-K Developers' WiKi]]]
+https://ma-tech.centurysys.jp/doku.php?id=xg_series_devel:autostart_rcs:start
+
+ - [[https://blog.tokor.org/2018/08/14/SPRESENSE%E3%81%AENuttX%E3%81%AB%E8%B5%B7%E5%8B%95%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%97%E3%83%88%E3%82%92%E8%A8%AD%E5%AE%9A%E3%81%99%E3%82%8B/][SPRESENSEのNuttXに起動スクリプトを設定する | Tokoro's Tech-Note]]
+https://blog.tokor.org/2018/08/14/SPRESENSE%E3%81%AENuttX%E3%81%AB%E8%B5%B7%E5%8B%95%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%97%E3%83%88%E3%82%92%E8%A8%AD%E5%AE%9A%E3%81%99%E3%82%8B/
+
+* 設定方法
+
+最終的にはビルドスクリプトに下記のように記述することで対応できました。
+
+#+begin_src 
+kconfig-tweak --file .config --enable CONFIG_FS_ROMFS
+kconfig-tweak --file .config --enable CONFIG_NSH_ROMFSETC
+kconfig-tweak --file .config --enable CONFIG_NSH_ARCHROMFS
+#+end_src
+
+#+begin_src 
+cd boards/xtensa/esp32/esp32-devkitc/include
+rm rc.sysinit.template
+touch rc.sysinit.template
+rm rcS.template
+touch rcS.template
+echo "#! /bin/nsh" > rcS.template
+echo "hello" >> rcS.template
+../../../../../tools/mkromfsimg.sh ../../../../../
+cd ../../../../..
+#+end_src
+
+* 調査の経緯など
+
+** CONFIG_FS_ROMFS
+
+CONFIG_FS_ROMFS は nuttx/fs/romfs/Kconfig で定義されており、下記の内容です。
+
+#+begin_src
+Enable ROMFS filesystem support
+#+end_src
+
+** CONFIG_NSH_ROMFSETC
+
+CONFIG_NSH_ROMFSETC は apps/nshlib/Kconfig で定義されており、下記の内容です。
+
+#+begin_src 
+Mount a ROMFS filesystem at /etc and provide a system init
+script at /etc/init.d/rc.sysinit and a startup script
+at /etc/init.d/rcS.  The default system init script will mount
+a FAT FS RAMDISK at /tmp but the logic is easily extensible.
+#+end_src
+
+認識しづらいですが ROMFSETC は ROMFS で ETC (/etc) ディレクトリをサポートするという意味ですね。
+下記が init スクリプトになります。
+
+ - /etc/init.d/rc.sysinit
+ - /etc/init.d/rcS
+
+** CONFIG_NSH_ARCHROMFS
+
+CONFIG_NSH_ARCHROMFS は apps/nshlib/Kconfig で定義されており、下記の内容です。
+
+#+begin_src 
+Enable this option to provide an architecture-specific ROMFS
+header at arch/<boardname>/nsh_romfsimg.h.  Note that this header
+will be linked (or copied) from nuttx/boards/<arch>/<chip>/<board>/include
+and should be stored at that location in the nuttx boards/
+sub-directory.
+#+end_src
+
+ESP32ではアーキテクチャ特有のROMFSを使う必要があります。
+
+nuttx/boards/<arch>/<chip>/<board>/include に nsh_romfsimg.h が必要になります。
+
+実際、上記定義を有効にしただけですと、下記のようなコンパイルエラーになります。
+
+#+begin_src 
+./nsh_romfsetc.c:43:12: fatal error: arch/board/nsh_romfsimg.h: No such file or directory
+   43 | #  include <arch/board/nsh_romfsimg.h>
+      |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+#+end_src
+
+** tools/mkromfsimg.sh
+
+nuttx/tools/mkromfsimg.sh にて nsh_romfsimg.h を生成することができます。
+
+引数なしで実行すると下記のようなメッセージが表示されます。
+
+#+begin_src 
+nuttx/tools/mkromfsimg.sh
+The full path to the NuttX base directory must be provided on the command line
+USAGE: nuttx/tools/mkromfsimg.sh [-nofat] <topdir> [rcsysinitfile] [<rcsfile>]
+#+end_src
+
+topdir で .config ファイルのある nuttx ディレクトリを指定し、rcsysinitfile と rcsfile のテンプレートをオプションで指定できるようになっているようです。
+が、出力先の指定が無いので、出力先(つまり nuttx/boards/<arch>/<chip>/<board>/include) で実行するのがよさそうです。
+
+nuttx/boards/<arch>/<chip>/<board>/include は今回の環境では nuttx/boards/xtensa/esp32/esp32-devkitc/include となります。
+
+ここに2つのファイルを作成します。
+
+ - rc.sysinit.template
+ - rcS.template
+
+rcS.template は下記の内容とします。
+
+#+begin_src 
+#! /bin/nsh
+hello
+#+end_src
+
+nuttx/boards/xtensa/esp32/esp32-devkitc/include 以下で下記のように実行することで、nsh_romfsimg.h が作成されます。
+
+これもわかりづらいですが、相対パスで mkromfsimg.sh を実行し、.config ファイルのある nuttx ディレクトリを引数で指定するという意味になります。
+
+#+begin_src 
+$ ../../../../../tools/mkromfsimg.sh ../../../../../
+#+end_src
+
+** ビルドスクリプトへの記述
+
+前記のビルドスクリプトへの記述は、この一連の流れを実行するものとなります。
+
+* 実行結果
+
+helloアプリケーションが自動起動できました。
+
+file:images/396_nuttx_hello.png
+
+# images/396_nuttx_hello.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/05/396_nuttx_hello.png
+
