@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2023-04-30 Sun 18:22]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: Docker, Ubuntu
+#+CATEGORY: Docker, WSL, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 (WSL) に Dockerをインストール
