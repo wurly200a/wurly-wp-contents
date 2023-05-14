@@ -6,7 +6,7 @@
 #+CATEGORY: ESP32, NuttX
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: ESP32 NuttX で Lチカ
+#+TITLE: ESP32 NuttX で Lチカ(即席版)
 
 * 概要
 
