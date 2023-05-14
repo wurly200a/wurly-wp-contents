@@ -1,0 +1,58 @@
+#+BLOG: wurly-blog
+#+POSTID: 429
+#+ORG2BLOG:
+#+DATE: [2023-05-14 Sun 18:54]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WordPress Cocoonテーマ 追加CSSのカスタマイズ
+
+* 概要
+
+記事中でソースを引用した場合の色が見にくかったので設定方法を調査しました。
+
+* ChatGPTより
+
+** 質問
+
+Wordpress、cocoonテーマ使用で、<pre class="example"> の部分の背景を黒色にしたいのですが、追加CSSのところで記載する場合はどのように記載すればよいでしょうか。
+
+** 回答
+
+WordPressのCocoonテーマで<pre class="example">要素の背景色を黒色に変更するための追加CSSを記述するには、以下の手順に従ってください。
+
+ - WordPressの管理画面にログインし、ダッシュボードにアクセスします。
+ - 外観（Appearance）メニューから、「テーマエディタ（Theme Editor）」を選択します。
+ - テーマエディタが表示されたら、右側のファイルリストから「追加CSS（Additional CSS）」を選択します。通常、このファイルにはカスタムCSSの記述が保管されます。
+ - 「追加CSS」ファイルを開いたら、そこにCSSコードを追加します。以下の例を参考にしてください。
+
+#+begin_src css
+pre.example {
+    background-color: black !important;
+    color: white; /* 必要に応じてテキストの色も変更してください */
+}
+#+end_src
+
+ - 上記のCSSコードでは、pre.exampleセレクタを使用して<pre class="example">要素を選択し、background-colorプロパティをblackに設定しています。!importantを付けることで、他のスタイル設定よりも優先されるようになります。
+ - 必要に応じて、colorプロパティを変更してテキストの色も調整できます。
+ - 変更が完了したら、テーマエディタの下部にある「ファイルを更新（Update File）」ボタンをクリックして変更を保存します。
+
+上記の手順に従ってCSSコードを追加すると、<pre class="example">要素の背景色が黒色に変更されるはずです。ただし、他のCSSルールやプラグインによって上書きされる可能性もあるため、!importantを使用して優先順位を上げることが重要です。
+
+* 実際に追加CSSに記載した内容
+
+class="example" のところは改善したのですが、class="src" のところも設定が必要であることに気付いたので下記のように設定しました。
+
+#+begin_src css
+pre.example {
+    background-color: black;
+    color: white;
+}
+
+pre.src {
+    background-color: black;
+    color: white;
+}
+#+end_src
+
