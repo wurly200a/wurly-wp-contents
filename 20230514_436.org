@@ -1,0 +1,88 @@
+#+BLOG: wurly-blog
+#+POSTID: 436
+#+ORG2BLOG:
+#+DATE: [2023-05-14 Sun 23:36]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: ESP32, NuttX, Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32 NuttX で Lチカ(正式版)
+
+* 概要
+
+ESP32 DevKitCボードをNuttXベースのファームウェアでLチカしてみます。
+ハードウェアとしては下記と同じものを使います。
+(32ピンにLEDを接続します)
+
+ - [[http://microtechnica.xyz/?p=271][ESP32-DevKitC-32Dボードの基本的な使い方 ～Arduino IDE編～ – マイクロテクニカ製品情報Wiki]]
+http://microtechnica.xyz/?p=271
+
+今回は、下記で検討した結果を取り込んだ正式版となります。
+
+ - [[./?p=376][ESP32 NuttX で Lチカ(即席版)]]
+ - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
+
+* 作成したプロジェクト
+
+** nuttx_led_blink
+
+これが今回作成したプロジェクトです。
+
+ - [[https://github.com/wurly200a/nuttx_led_blink][wurly200a/nuttx_led_blink]]
+https://github.com/wurly200a/nuttx_led_blink
+
+ - LICENSE
+ - README.md
+ - build-nuttx-esp32
+  - 01_build-builder.sh
+  - 02_enter-builder.sh
+  - 03_build.sh
+  - Dockerfile
+ - nuttx_led_blink
+  - Kconfig
+  - Make.defs
+  - Makefile
+  - led_blink_main.c
+
+* ビルド方法
+
+README.md にも記載しています。下記と同様です。
+
+ - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
+
+* 解説
+
+** led_blink_main.c
+
+内容は前回と同様です。
+
+#+begin_src C
+#include <nuttx/config.h>
+#include <stdio.h>
+#include "../../nuttx/arch/xtensa/src/esp32/esp32_gpio.h"
+
+#define LED_PORT_NUM 32
+ 
+int led_blink_main(int argc, char *argv[])
+{
+    static int flag;
+
+    esp32_configgpio(LED_PORT_NUM, OUTPUT);
+
+    while (1)
+    {
+        if( flag )
+        {
+            esp32_gpiowrite(LED_PORT_NUM, 0);
+        }
+        else
+        {
+            esp32_gpiowrite(LED_PORT_NUM, 1);
+        }
+        flag ^= 1;
+        sleep(1);
+    }
+
+    return 0;
+}
+#+end_src
