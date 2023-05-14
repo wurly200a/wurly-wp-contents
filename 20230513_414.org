@@ -1,0 +1,297 @@
+#+BLOG: wurly-blog
+#+POSTID: 414
+#+ORG2BLOG:
+#+DATE: [2023-05-13 Sat 15:31]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: NuttX, ESP32, Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: NuttX ESP32 アプリケーションのDockerビルド
+
+* 概要
+
+ - [[./?p=389][NuttX ビルトインアプリケーションの作成]]
+ - [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
+
+上記にてNuttXのビルトインアプリケーションを作成してESP32で自動起動するやり方を理解しました。
+
+WSLのUbuntuでビルド用のDockerコンテナを作成してビルドします。
+Dockerfileとスクリプトを組み合わせたビルド方法、ファイル構成について検討し、プロジェクトとして作成しましたのでこの説明をしたいと思います。
+
+* 前提
+ - MCU及び基板 ESP32-DevKitC-32 (ESP32-DevKitC-32E)
+ - OS NuttX
+ - ビルド環境 Ubuntu22.04 (WSL) Docker
+ - アプリケーションは Hello World 相当
+ - nsh (NuttX Shell) 使用
+
+* 方針
+ - Dockerfileとシェルスクリプトにてビルドする
+#  - おそらくmakeを使う方がスマート。今後検討
+ - コンテナイメージは1度ビルドしたものを使いまわすことができる
+  - docker build するスクリプトをプロジェクトに含める
+ - OSを含むソースコードはDocker外のファイルシステムに置いたままビルドする
+  - ソースコードを編集しやすくする
+ - OSのソースコードとアプリケーションのソースコードのディレクトリを分ける
+  - アプリケーションのソースコードを識別しやすくする
+  - 類似のプロジェクトを作成する際に流用しやすくする
+
+* 作成したプロジェクト
+
+** nuttx_hello
+
+これが今回作成したプロジェクトです。
+
+ - [[https://github.com/wurly200a/nuttx_hello][wurly200a/nuttx_hello]]
+https://github.com/wurly200a/nuttx_hello
+
+ - LICENSE
+ - README.md
+ - build-nuttx-esp32
+  - 01_build-builder.sh
+  - 02_enter-builder.sh
+  - 03_build.sh
+  - Dockerfile
+ - execution.png
+ - hello
+  - Kconfig
+  - Make.defs
+  - Makefile
+  - hello_main.c
+
+* ビルド方法
+
+** スクリプトの実行方法
+
+READMEの通り、プロジェクトをクローンしたら最上位のディレクトリから、スクリプトがあるディレクトリのパスを含んだ形でスクリプトを実行します。
+
+** step1
+
+ビルド用のDockerコンテナのイメージを docker build します。(最初の1回のみ)
+
+(なおデフォルトのイメージ名は"nuttx_esp32_builder"としており、第一引数で任意の名前を指定可能です。)
+
+#+begin_src sh
+$ build-nuttx-esp32/01_build-builder.sh
+#+end_src
+
+** step2
+
+ビルド用のDockerコンテナに入ります。(第一引数でイメージ名を指定可能です。)
+
+コンテナに入ったら "get_idf" を実行します。
+
+#+begin_src 
+$ build-nuttx-esp32/02_enter-builder.sh
+$ get_idf
+#+end_src
+
+** step3
+
+ソースコードをビルドします。
+スクリプトの中で https://github.com/apache/incubator-nuttx と https://github.com/apache/incubator-nuttx-apps をクローンしています。
+
+#+begin_src 
+$ build-nuttx-esp32/03_build.sh
+#+end_src
+
+* 解説
+
+** hello
+
+下記のような構成で作成します。
+
+ - hello
+  - Kconfig
+  - Make.defs
+  - Makefile
+  - hello_main.c
+
+今回は external/ ディレクトリ以下に配置する為、Make.defs は下記のような記述になります。
+
+#+begin_src 
+ifeq ($(CONFIG_APP_HELLO),y)
+CONFIGURED_APPS += external/hello
+endif
+#+end_src
+
+** Dockerfile
+
+引数指定することでdocker build を実行した環境のユーザ、グループを作成します。
+
+#+begin_src sh
+# add user and group
+RUN groupadd -g $GROUP_ID $GROUP_NAME
+RUN useradd -u $USER_ID -g $GROUP_ID -m $USER_NAME
+RUN echo "$USER_NAME:$PASSWORD" | chpasswd
+#+end_src
+
+ - [[https://nuttx.apache.org/docs/latest/quickstart/install.html][Installing — NuttX latest documentation]]
+https://nuttx.apache.org/docs/latest/quickstart/install.html
+
+NuttXについては上記ページの Prerequisites, KConfig frontend, Toolchain に基づくパッケージをインストールします。
+
+#+begin_src sh
+# NuttX Prerequisites
+RUN apt install -y \
+    bison flex gettext texinfo libncurses5-dev libncursesw5-dev xxd \
+    gperf automake libtool pkg-config build-essential gperf genromfs \
+    libgmp-dev libmpc-dev libmpfr-dev libisl-dev binutils-dev libelf-dev \
+    libexpat-dev gcc-multilib g++-multilib picocom u-boot-tools util-linux
+
+# NuttX Kconfig frontend
+RUN apt install -y kconfig-frontends
+
+# NuttX Toolchain
+RUN apt install -y gcc-arm-none-eabi binutils-arm-none-eabi
+#+end_src
+
+ - [[https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/linux-macos-setup.html][Standard Toolchain Setup for Linux and macOS - ESP32 - — ESP-IDF Programming Guide latest documentation]]
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/linux-macos-setup.html
+
+ESP32向けのビルドを行う為 ESP-IDF が必要です。
+上記ページの Install Prerequisites, Get ESP-IDF に基づくパッケージのインストールと esp-idf のクローン、"get_idf"エイリアスの設定を行います。
+
+#+begin_src sh
+# ESP-IDF Prerequisites
+RUN apt install -y git wget flex bison gperf python3 python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+
+# Get ESP-IDF
+USER ${USER_ID}
+RUN mkdir -p ~/esp
+RUN git clone --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
+
+# ESP-IDF Set up the tools
+RUN ~/esp/esp-idf/install.sh esp32
+RUN echo "alias get_idf='. $HOME/esp/esp-idf/export.sh'" > ~/.bash_aliases
+#+end_src
+
+** 01_build-builder.sh
+
+docker buildします。上記の Dockerfile に合わせて引数を指定します。
+
+#+begin_src sh
+CMD="docker build . -f $(cd $(dirname $0); pwd)/Dockerfile -t ${IMAGE_NAME} \
+            --build-arg USER_NAME=$(id -u -n) \
+            --build-arg USER_ID=$(id -u) \
+            --build-arg GROUP_NAME=$(id -g -n) \
+            --build-arg GROUP_ID=$(id -g) \
+            --build-arg PASSWORD=password"
+#+end_src
+
+イメージ名を指定可能にしています。
+
+#+begin_src sh
+if [ "$#" != 1 ]; then
+IMAGE_NAME="nuttx_esp32_builder"
+else
+IMAGE_NAME=$1
+fi
+#+end_src
+
+** 02_enter-builder.sh
+
+Dockerコンテナに入った後、 "get_idf" の実行が必要ですのでそのメッセージを表示します。
+
+** 03_build.sh
+
+ - [[https://nuttx.apache.org/docs/latest/quickstart/install.html#download-nuttx][Installing — NuttX latest documentation]]
+https://nuttx.apache.org/docs/latest/quickstart/install.html#download-nuttx
+
+上記に記載があるように https://github.com/apache/incubator-nuttx と https://github.com/apache/incubator-nuttx-apps をそれぞれ、nuttx と apps というディレクトリ名にしてクローンします。
+
+アプリケーションについては、apps/external 以下にシンボリックリンクを作成します。
+
+ - [[https://mickey-happygolucky.hatenablog.com/entry/2019/03/22/141549][NuttX ビルトインアプリケーションを作成する - みつきんのメモ]]
+https://mickey-happygolucky.hatenablog.com/entry/2019/03/22/141549
+
+ - [[https://cwiki.apache.org/confluence/display/NUTTX/Building+NuttX+with+Applications+Outside+of+the+Source+Tree][Building NuttX with Applications Outside of the Source Tree - NUTTX - Apache Software Foundation]]
+https://cwiki.apache.org/confluence/display/NUTTX/Building+NuttX+with+Applications+Outside+of+the+Source+Tree
+
+上記にも記載されている通りです。
+
+ただし、/external ディレクトリにも Make.defs, Makefile が必要です。
+
+例えば既存の apps/games などを参考にすればよく、最低限下記の記述が必要です。
+
+Make.defs
+
+#+begin_src
+include $(wildcard $(APPDIR)/games/*/Make.defs)
+#+end_src
+
+Makefile
+
+#+begin_src 
+MENUDESC = "External"
+
+include $(APPDIR)/Directory.mk
+#+end_src
+
+ここではスクリプトで処理します。
+
+#+begin_src sh
+NUTTX_APPS_EXTERNAL_DIR=${NUTTX_APPS_DIR}/external
+
+if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR} ]; then
+    mkdir -p ${NUTTX_APPS_EXTERNAL_DIR}
+    cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Makefile
+MENUDESC = "Extenal"
+
+include $(APPDIR)/Directory.mk
+EOS
+    cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Make.defs
+include $(wildcard $(APPDIR)/external/*/Make.defs)
+EOS
+fi
+
+if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME} ]; then
+    ln -s $(pwd)/${MY_APP_NAME} ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME}
+#+end_src
+
+configure を行います。
+ESP32-DevKitC-32、nsh を使用するため、下記のように指定します。
+
+#+begin_src sh
+./tools/configure.sh -l esp32-devkitc:nsh
+#+end_src
+
+make menuconfig を行う代わりに、kconfig-tweak で設定します。
+
+#+begin_src sh
+kconfig-tweak --file .config --enable CONFIG_BOARDCTL_ROMDISK
+kconfig-tweak --file .config --set-str CONFIG_NSH_SCRIPT_REDIRECT_PATH ""
+kconfig-tweak --file .config --set-val CONFIG_FS_ROMFS_CACHE_FILE_NSECTORS 1
+
+kconfig-tweak --file .config --disable CONFIG_NSH_CONSOLE_LOGIN
+
+kconfig-tweak --file .config --enable CONFIG_FS_ROMFS
+kconfig-tweak --file .config --enable CONFIG_NSH_ROMFSETC
+kconfig-tweak --file .config --enable CONFIG_NSH_ARCHROMFS
+
+kconfig-tweak --file .config --enable CONFIG_FS_FAT
+
+kconfig-tweak --file .config --enable CONFIG_APP_HELLO
+kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_PRIORITY 100
+kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_STACKSIZE 2048
+#+end_src
+
+自動起動設定用のヘッダ生成を行います。
+
+#+begin_src sh
+cd boards/xtensa/esp32/esp32-devkitc/include
+rm rc.sysinit.template
+touch rc.sysinit.template
+rm rcS.template
+touch rcS.template
+echo "#! /bin/nsh" > rcS.template
+echo "hello" >> rcS.template
+../../../../../tools/mkromfsimg.sh ../../../../../
+cd ../../../../..
+#+end_src
+
+make します。
+
+#+begin_src sh
+make -j$(nproc)
+#+end_src
