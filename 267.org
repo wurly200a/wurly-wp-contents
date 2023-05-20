@@ -6,7 +6,7 @@
 #+CATEGORY: WSL,Docker
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu on WSL2 に Dockerをインストール
+#+TITLE: Ubuntu 20.04 (WSL) に Dockerをインストール
 
 * 概要
 
