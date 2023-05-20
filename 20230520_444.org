@@ -15,6 +15,7 @@ Wordpressで人気記事ランキングのウィジェットを作成する方�
 下記ページを参考にしました。
 
 [[https://yujiblog.org/cocoon-popular][【Cocoon】人気記事ランキングの設定方法とカスタマイズ]]
+
 https://yujiblog.org/cocoon-popular
 
 * 方法
