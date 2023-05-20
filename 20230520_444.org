@@ -1,0 +1,30 @@
+#+BLOG: wurly-blog
+#+POSTID: 444
+#+ORG2BLOG:
+#+DATE: [2023-05-20 Sat 14:22]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WordPress Cocoonテーマ 人気記事ランキングの作成
+
+* 概要
+
+Wordpressで人気記事ランキングのウィジェットを作成する方法です。
+
+下記ページを参考にしました。
+
+[[https://yujiblog.org/cocoon-popular][【Cocoon】人気記事ランキングの設定方法とカスタマイズ]]
+https://yujiblog.org/cocoon-popular
+
+* 方法
+
+外観 → ウィジェット から [C]人気記事:アクセスランキング を追加します。
+
+表示モードは、「全ての人気記事(全ページで表示)」のまま、
+
+人気記事のタイトルは「アクセスランキング」、
+
+表示数は「7」とし、
+
+「ランキング表示」をチェックしました。
