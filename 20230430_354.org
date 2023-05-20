@@ -6,7 +6,7 @@
 #+CATEGORY: Docker, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: apt-key is deprecated
+#+TITLE: Ubuntu 22.04 (WSL) で apt-key を使ってしまった後の対処方法
 
 * 概要
 
@@ -15,7 +15,21 @@
 
 * 事象
 
-OK とはなりますが、"Warning: apt-key is deprecated." という警告が出ます。
+[[./?p=267][Ubuntu 20.04 (WSL) に Dockerをインストール]] の通り、Ubuntu 20.04 では下記のような手順で docker をインストールしていました。
+
+#+begin_src 
+$ sudo apt -y install apt-transport-https ca-certificates curl software-properties-common
+
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -a
+
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+$ sudo apt update
+$ sudo apt -y install docker-ce
+$ sudo usermod -a -G docker ${USER}
+#+end_src
+
+Ubuntu 22.04 では apt-key 実行時、OK とはなりますが、"Warning: apt-key is deprecated." という警告が出ます。
 
 #+begin_src 
 $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -a
@@ -28,7 +42,7 @@ OK
 ** 信頼された鍵の表示
 
 trusted keys を表示します。
-Docker の key が登録されています。
+Docker の key (9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88) が登録されています。
 
 #+begin_src 
 $ sudo apt-key list
@@ -54,6 +68,8 @@ uid           [ unknown] Ubuntu Archive Automatic Signing Key (2018) <ftpmaster@
 #+end_src
 
 ** 信頼された鍵から削除
+
+最後の8桁を指定します。
 
 #+begin_src 
 $ sudo apt-key del 0EBFCD88
