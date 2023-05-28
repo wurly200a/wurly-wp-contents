@@ -146,3 +146,35 @@ cd hello_world
 idf.py set-target esp32
 idf.py build
 #+end_src
+
+* FlashROMへの書き込み
+
+ビルドするとFlashROMへの書き込みコマンドが表示されます。
+
+#+begin_src 
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 2MB --flash_freq 40m 0x1000 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/hello_world.bin
+or from the "/home/wurly/work/hello_world/build" directory
+ python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset write_flash @flash_args
+#+end_src
+
+usbipd-win などを使えば、WSL環境からもUSBデバイスが使用できるのですが、ここでは下記のようにバイナリファイルをWindowsファイルシステム上にコピーし、 [[./?p=257][ESP32 FlashROM 書き込み]] の方法で書き込みを行いました。
+
+#+begin_src 
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\esp-idf_hello_world\hello_world\build\bootloader\bootloader.bin .\
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\esp-idf_hello_world\hello_world\build\partition_table\partition-table.bin .\
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\esp-idf_hello_world\hello_world\build\hello_world.bin .\
+
+esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 hello_world.bin
+#+end_src
+
+* 実行結果
+
+helloアプリケーションが実行できました。
+
+file:images/455_freertos_hello_world.png
+
