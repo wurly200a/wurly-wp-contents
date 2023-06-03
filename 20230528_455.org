@@ -44,7 +44,7 @@ READMEの通り、プロジェクトをクローンしたら最上位のディ�
 
 ビルド用のDockerコンテナのイメージを docker build します。最初の1回のみ実行が必要です。
 
-なおデフォルトのイメージ名は"esp-idf_builder"としており、第一引数で任意の名前を指定可能です。
+なおデフォルトのイメージ名は"esp-idf-v5_builder"としており、第一引数で任意の名前を指定可能です。
 
 #+begin_src sh
 $ build/01_build-builder.sh
@@ -117,7 +117,7 @@ CMD="docker build . -f $(cd $(dirname $0); pwd)/Dockerfile -t ${IMAGE_NAME} \
 
 #+begin_src sh
 if [ "$#" != 1 ]; then
-IMAGE_NAME="esp-idf_builder"
+IMAGE_NAME="esp-idf-v5_builder"
 else
 IMAGE_NAME=$1
 fi
