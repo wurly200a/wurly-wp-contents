@@ -1,0 +1,48 @@
+#+BLOG: wurly-blog
+#+POSTID: 484
+#+ORG2BLOG:
+#+DATE: [2023-06-24 Sat 22:54]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu Google Chrome Install
+
+* はじめに
+
+Ubuntu で Google Chrome を Install する方法です。
+
+* For Ubuntu 22.04
+
+#+begin_src 
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrom-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrom-keyring.gpg
+sudo apt update
+sudo apt install google-chrome-stable
+#+end_src
+
+* For Ubuntu 20.04
+
+#+begin_src 
+curl https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google-chrome.list
+sudo apt update
+sudo apt install google-chrome-stable
+#+end_src
+
+なお、Ubuntu 22.04 でこの方法で apt update すると下記の Warning が出てしまいます。
+
+#+begin_src 
+W: http://dl.google.com/linux/chrome/deb/dists/stable/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+#+end_src
+
+この場合、一旦下記を行ってから上記のgpgを使う方法を再度実行します。
+
+#+begin_src 
+sudo apt-key del 7FAC5991
+sudo rm /etc/apt/sources.list.d/google-chrome.list
+#+end_src
+
+* 参考
+ - [[https://qiita.com/porizou1/items/8c58682c454fe0f8e19e][ubuntu22.04LTSにGoogle Chromeをインストールする - Qiita]]
+https://qiita.com/porizou1/items/8c58682c454fe0f8e19e
