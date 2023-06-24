@@ -1,0 +1,47 @@
+#+BLOG: wurly-blog
+#+POSTID: 465
+#+ORG2BLOG:
+#+DATE: [2023-06-24 Sat 17:02]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL2(WSLg) 日本語環境で記号が入力できない。ダブルクォートでなく"2"が入力されてしまう
+
+* 概要
+
+過去にあった不具合について、履歴として残しています。
+
+WSL2(WSLg)でX Window版のEmacsを使い始め、便利なのですが日本語環境が不十分で下記の問題がありました。
+
+ - 記号が入力できない。例えばダブルクォート(SHIFT + 2)を入力したいのですが"2"が入力されてしまう
+
+* 経緯
+
+** 試したこと
+ - [[https://qiita.com/boonrew/items/c502faca401930947206][WSLのキーボードが英語配列になってしまふ - Qiita]]
+https://qiita.com/boonrew/items/c502faca401930947206
+
+
+当初、上記を試しましたが、これだけですと下記の現象になりました。
+
+ - xterm ではダブルクォートが入力できる
+ - Emacs では 左SHIFT + 2 だとダブルクォートが入力できる。右SHIFT + 2 だと "2" になってしまう
+
+下記のやり方で行うことで一旦は所望の入力ができるようになりました。
+
+ - [[https://www.server-world.info/query?os=Ubuntu_20.04&p=keymap][Ubuntu 20.04 LTS : キーボードの割り当てを設定する : Server World]]
+
+** やはり右SHIFT + 2 だと "2" になってしまう
+
+ただし、Emacsを起動すると、右SHIFT + 2 だと "2" になってしまう状態に戻ってしまいます。
+
+Emacsが起動した状態で下記を実行するとダブルクォートが入力できるようになるので、面倒ですがとりあえずそれで対応していました。
+
+#+begin_src 
+$ sudo localectl set-keymap jp106
+#+end_src
+
+* 原因
+
+しばらくして分かったことですがこちらはWSLのバグということでした。WSLをバージョンアップすることでこの不具合は発生しなくなりました(2023.4.8)
