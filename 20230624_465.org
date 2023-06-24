@@ -45,3 +45,50 @@ $ sudo localectl set-keymap jp106
 * 原因
 
 しばらくして分かったことですがこちらはWSLのバグということでした。WSLをバージョンアップすることでこの不具合は発生しなくなりました(2023.4.8)
+
+* その他
+
+上記の調査中に下記のようなトラブルシューティングを行いました。参考のため残しておきます。
+
+ - [[https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html][トラブルシューティング（Ubuntu 20.04LTS on WSL2）]]
+https://www.aise.ics.saitama-u.ac.jp/~gotoh/TroubleShootingAboutUbuntu2004OnWSL2.html
+
+#+begin_src 
+$ dpkg -l | grep language-pack-ja
+ii  language-pack-ja                       1:20.04+20220818                  all          translation updates for language Japanese
+ii  language-pack-ja-base                  1:20.04+20220818                  all          translations for language Japanese
+$ env | grep LANG
+LANG=ja_JP.UTF-8
+#+end_src
+
+# ./images/mozc_setting_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_01.jpg
+# ./images/mozc_setting_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_02.jpg
+# ./images/mozc_setting_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/03/mozc_setting_03.jpg
+
+** setxkbmap
+
+#+begin_src 
+$ setxkbmap -print -verbose 10
+Setting verbose level to 10
+locale is C
+Trying to load rules file ./rules/evdev...
+Trying to load rules file /usr/share/X11/xkb/rules/evdev...
+Success.
+Applied rules from evdev:
+rules:      evdev
+model:      pc105
+layout:     us
+Trying to build keymap using the following components:
+keycodes:   evdev+aliases(qwerty)
+types:      complete
+compat:     complete
+symbols:    pc+us+inet(evdev)
+geometry:   pc(pc105)
+xkb_keymap {
+        xkb_keycodes  { include "evdev+aliases(qwerty)" };
+        xkb_types     { include "complete"      };
+        xkb_compat    { include "complete"      };
+        xkb_symbols   { include "pc+us+inet(evdev)"     };
+        xkb_geometry  { include "pc(pc105)"     };
+};
+#+end_src
