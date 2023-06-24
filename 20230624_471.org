@@ -1,0 +1,58 @@
+#+BLOG: wurly-blog
+#+POSTID: 471
+#+ORG2BLOG:
+#+DATE: [2023-06-24 Sat 17:42]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL2 Mozc カスタマイズ
+
+* 概要
+
+WSL2で日本語文字の表示、入力が可能にする為、一旦 Mozc を使ってみました。
+
+Emacsを多用する私にとっては、各種ショートカットがMozcに奪われてしまうことが不便だったので、カスタマイズしました。
+
+* 経緯
+
+ - [[https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/#][Win11のWSL2 (WSLg)を日本語化 & Mozcで日本語入力 | AsTechLog]]
+https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/
+
+上記で、WSL2で日本語文字の表示、入力が可能にするスクリプトを公開されています。
+
+試してみました。
+
+ただし、Mozcを使う場合、Emacsを使う上で下記が気になりました。私は別の機能として使っているためです。
+
+ - Ctrl + ; のショートカット で 先頭に"Select to paste"とあるウィンドウが表示される
+
+* Ctrl + ; のショートカットの無効化
+
+下記のコマンドで入力メソッドの設定を表示させます。
+
+#+begin_src 
+$ fcitx-config-gtk3
+#+end_src
+
+「アドオン」タブを開きます。
+
+file:./images/mozc_setting_01.jpg
+
+Trigger Key for Clipboard History List が 「Ctrl+;」 になっています。
+
+file:./images/mozc_setting_02.jpg
+
+「空」に設定します。
+
+file:./images/mozc_setting_03.jpg
+
+* その後
+
+Mozcでは他にもいろいろなショートカットがあり、Emacsのショートカットと競合することがありました。
+
+上記のように逐一無効化設定すれば対応できるかもしれませんが、そこまでして使う理由が無かったので、現在は Mozc は使っていません。
+
+# ./images/mozc_setting_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/06/mozc_setting_01.jpg
+# ./images/mozc_setting_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/06/mozc_setting_02.jpg
+# ./images/mozc_setting_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/06/mozc_setting_03.jpg
