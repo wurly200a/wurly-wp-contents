@@ -1,0 +1,55 @@
+#+BLOG: wurly-blog
+#+POSTID: 492
+#+ORG2BLOG:
+#+DATE: [2023-06-25 Sun 22:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs の redo
+
+* 概要
+
+Meadow、NTEmacs 時代から長らく http://www.fan.gr.jp/~ring/Meadow/elisp/redo.el を使用してきました。
+最近ではほぼ全てのelispは package-list-packages からインストールしている為、同様にこちらから最新のものを入手したいと思いました。
+
+調べた結果としては、Emacs28 ではデフォルトで使えるとのことだったので "undo-redo" を define-key しました。
+
+* 経緯
+
+下記のページを発見しました。
+
+ - [[http://xahlee.info/emacs/emacs/emacs_best_redo_mode.html][Emacs: Undo/Redo Saga]]
+http://xahlee.info/emacs/emacs/emacs_best_redo_mode.html
+
+なんと redo.el の歴史が記されています。
+
+そしてそこには、下記の記載がありました。
+
+#+begin_quote
+2022-10-20
+
+note: emacs 28 fixed undo/redo
+2022-10-20 Emacs 28 finally fixed the undo/redo. It added a command undo-redo which is redo, and added the variable you can set by (setq undo-no-redo t)
+
+To redo, press Ctrl+g then do a undo Ctrl+_. Further undo will all be redo. Press Ctrl+g to reverse direction again.
+#+end_quote
+
+確かに Ctrl+g で undo/redo が切り替わるようなのですが、私にとっては少し使い難いです。
+
+* 結論
+
+私は元々 Ctrl + . を redo に割り当てていましたので、下記のように設定しました。
+
+#+begin_src elisp
+(define-key global-map [?\C-.] 'undo-redo)
+#+end_src
+
+今のところ、以前の redo.el と同様に使用できています。
+
+* その他
+
+上記調査をしている中で懐しいページを見つけました。かつてはだいぶお世話になりました。
+
+ - [[http://www.fan.gr.jp/~ring/Meadow/meadow.html][Emacs / Meadow の覚え書き - Meadow TIPS]]
+http://www.fan.gr.jp/~ring/Meadow/meadow.html
