@@ -43,3 +43,13 @@ go get github.com/jdeng/goheif
 #+begin_src 
 go run main.go 入力ファイル.HEIC 出力ファイル.JPG
 #+end_src
+
+下記でまとめて変換することができます。
+
+#+begin_src 
+ls *.HEIC | sed s/.HEIC// | xargs -t -n1 bash -c 'go run main.go $0.HEIC $0.JPG'
+#+end_src
+
+* 参考
+ - [[https://qiita.com/knknkn1162/items/806604341508d32b160e][xargsでサクッと書く - Qiita]]
+https://qiita.com/knknkn1162/items/806604341508d32b160e
