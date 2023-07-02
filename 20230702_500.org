@@ -1,0 +1,206 @@
+#+BLOG: wurly-blog
+#+POSTID: 500
+#+ORG2BLOG:
+#+DATE: [2023-07-02 Sun 11:20]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: AI, Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Dockerで日本語BERTを使ってみる
+
+* はじめに
+
+- [[https://yukoishizaki.hatenablog.com/entry/2019/11/27/151018][すぐに試せる日本語BERTのDocker Imageを作ってみた - 機械学習 Memo φ(・ω・ )]]
+https://yukoishizaki.hatenablog.com/entry/2019/11/27/151018
+
+上記ページで公開されているDocker ImageとJupyter Notebook用のPythonコードを使用させていだだき、日本語BERTを試しました。
+
+* 準備
+
+** docker pull
+
+#+begin_src sh
+$ docker pull ishizakiyuko/japanese_bert_trial:1.0.1
+1.0.1: Pulling from ishizakiyuko/japanese_bert_trial
+Digest: sha256:7d3aaf385e7c2ecc810eaf96098bb522b945fcdeb70e104e0a5cc3e3a8fd7182
+Status: Downloaded newer image for ishizakiyuko/japanese_bert_trial:1.0.1
+docker.io/ishizakiyuko/japanese_bert_trial:1.0.1
+#+end_src
+
+** docker image ls
+
+#+begin_src sh
+$ docker image ls
+REPOSITORY                         TAG       IMAGE ID       CREATED       SIZE
+ishizakiyuko/japanese_bert_trial   1.0.1     0d5c7dc32e9d   3 years ago   10.5GB
+#+end_src
+
+** docker container ls
+
+#+begin_src sh
+$ docker container ls
+CONTAINER ID   IMAGE                                    COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+e0ba28ed92ee   ishizakiyuko/japanese_bert_trial:1.0.1   "/bin/sh -c '/opt/co…"   50 seconds ago   Up 50 seconds   0.0.0.0:8888->8888/tcp, :::8888->8888/tcp   musing_jang
+#+end_src
+
+** docker logs
+
+token は c909ce4c1770455b12e6ef46d4b13ef7733190affe22b510 であることが確認できます。
+
+#+begin_src sh
+$ docker logs e0ba28ed92ee
+[I 02:23:09.614 NotebookApp] Writing notebook server cookie secret to /home/jovyan/.local/share/jupyter/runtime/notebook_cookie_secret
+[I 02:23:09.730 NotebookApp] Serving notebooks from local directory: /home/jovyan
+[I 02:23:09.730 NotebookApp] The Jupyter Notebook is running at:
+[I 02:23:09.730 NotebookApp] http://e0ba28ed92ee:8888/?token=c909ce4c1770455b12e6ef46d4b13ef7733190affe22b510
+[I 02:23:09.730 NotebookApp]  or http://127.0.0.1:8888/?token=c909ce4c1770455b12e6ef46d4b13ef7733190affe22b510
+[I 02:23:09.730 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 02:23:09.733 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/jovyan/.local/share/jupyter/runtime/nbserver-7-open.html
+    Or copy and paste one of these URLs:
+        http://e0ba28ed92ee:8888/?token=c909ce4c1770455b12e6ef46d4b13ef7733190affe22b510
+     or http://127.0.0.1:8888/?token=c909ce4c1770455b12e6ef46d4b13ef7733190affe22b510
+[I 02:23:26.334 NotebookApp] 302 GET / (172.17.0.1) 0.48ms
+[I 02:23:26.338 NotebookApp] 302 GET /tree? (172.17.0.1) 0.78ms
+#+end_src
+
+** token を入れる
+
+上記で取得したtokenを "Password or token:" のところに入力して "Log in" します。
+
+file:./images/500_DockerBert01.jpg
+
+** ログイン後の画面
+
+file:./images/500_DockerBert02.jpg
+
+** Notebookを作成
+
+file:./images/500_DockerBert03.jpg
+
+* 参考ページのコードの実行
+
+** コードの実行方法
+
+スクリプトをブラウザ上のコードエリアに記載し、順次実行していきます。
+
+file:./images/500_DockerBert04.jpg
+
+** 参考ページの内容を実行
+
+下記のような内容となります。
+
+#+begin_quote
+どんなに勉強しても全然頭が良くならない
+#+end_quote
+
+この文章において、「頭」という単語(トークン)をマスクして予測するという内容です。
+
+下記は、参考にしたページで公開されているJupyter Notebook用のPythonコードです。
+
+#+begin_src python
+import os
+import torch
+from transformers import BertForMaskedLM, BertConfig, BertTokenizer
+from pyknp import Juman
+
+BASE_PATH = './Japanese_L-12_H-768_A-12_E-30_BPE_WWM_transformers'
+BERT_CONFIG = 'config.json'
+BERT_MODEL = 'pytorch_model.bin'
+VOCAVULARY_LIST = 'vocab.txt'
+
+jumanpp = Juman()
+
+# 形態素解析
+text = 'どんなに勉強しても全然頭が良くならない'
+result = jumanpp.analysis(text)
+tokenized_text =[mrph.midasi for mrph in result.mrph_list()]
+print(tokenized_text)
+#+end_src
+
+#+begin_src python
+# Mask 
+tokenized_text.insert(0, '[CLS]')
+tokenized_text.append('[SEP]')
+
+masked_index = 6 # Maskしたいtextのindex 
+tokenized_text[masked_index] = '[MASK]'
+print(tokenized_text)
+#+end_src
+
+#+begin_src python
+# Bert model
+config = BertConfig.from_json_file(os.path.join(BASE_PATH, BERT_CONFIG))
+model = BertForMaskedLM.from_pretrained(os.path.join(BASE_PATH, BERT_MODEL), config=config)
+tokenizer = BertTokenizer(os.path.join(BASE_PATH, VOCAVULARY_LIST), do_lower_case=False, do_basic_tokenize=False)
+
+# token化
+indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+tokens_tensor = torch.tensor([indexed_tokens])
+print(tokens_tensor)
+#+end_src
+
+#+begin_src python
+# 予測
+model.eval()
+
+tokens_tensor = tokens_tensor.to('cpu')
+model.to('cpu')
+
+with torch.no_grad():
+    outputs = model(tokens_tensor)
+    predictions = outputs[0]
+
+_, predicted_indexes = torch.topk(predictions[0, masked_index], k=5)
+predicted_tokens = tokenizer.convert_ids_to_tokens(predicted_indexes.tolist())
+print(predicted_tokens)
+#+end_src
+
+下記の通り、実行できました。
+
+file:./images/500_DockerBert05.jpg
+
+* 別のコードの実行
+
+** 別の文章でお試し
+
+別の文章で試しました。
+
+#+begin_quote
+英語が上達するには毎日、勉強を行うことが望ましいでしょう。
+#+end_quote
+
+この文章において、「勉強」をマスクして予測してみます。
+
+結果は、['講義', 'スピーチ', '授業', 'トレーニング', '礼拝'] となりました。
+
+file:./images/500_DockerBert06.jpg
+
+** 考察
+
+ - 元の文章
+  - 英語が上達するには毎日、勉強を行うことが望ましいでしょう。
+
+ - 予測された文章
+  - 英語が上達するには毎日、講義を行うことが望ましいでしょう。
+  - 英語が上達するには毎日、スピーチを行うことが望ましいでしょう。
+  - 英語が上達するには毎日、授業を行うことが望ましいでしょう。
+  - 英語が上達するには毎日、トレーニングを行うことが望ましいでしょう。
+  - 英語が上達するには毎日、礼拝を行うことが望ましいでしょう。
+
+多くの日本人は元の文章は「学習者が」毎日「何か」を「行う」ことで英語が上達することを想定すると思われますので、この場合「トレーニング」又は「スピーチ」が適切と考えると思われますが、それなりの結果は得られました。
+
+2023年現在では、ChatGPTが既に一般的に使われるようになっておりかつ実用レベルとなっていますが、2019年時点でもこれくらい手軽にAIによる自然言語処理がでできていたということがわかりました。
+
+# ただ実用レベルと言うには厳しいですね。
+
+# 元の文章を作成するときにはあまり意識していませんでしたが、日本語的に主語を省略していた、「行う」という動詞
+
+# ./images/500_DockerBert01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert01-1.jpg
+# ./images/500_DockerBert02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert02-1.jpg
+# ./images/500_DockerBert03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert03-1.jpg
+# ./images/500_DockerBert04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert04-1.jpg
+# ./images/500_DockerBert05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert05-1.jpg
+# ./images/500_DockerBert06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/500_DockerBert06.jpg
