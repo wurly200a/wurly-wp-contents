@@ -1,0 +1,199 @@
+#+BLOG: wurly-blog
+#+POSTID: 522
+#+ORG2BLOG:
+#+DATE: [2023-07-08 Sat 23:00]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: AI, Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Dockerで日本語BERTを使ってみる
+
+* 概要
+
+ - [[https://yukoishizaki.hatenablog.com/entry/2019/11/27/151018][すぐに試せる日本語BERTのDocker Imageを作ってみた - 機械学習 Memo φ(・ω・ )]]
+https://yukoishizaki.hatenablog.com/entry/2019/11/27/151018
+
+ - [[https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3][【PyTorch】BERTの使い方 - 日本語pre-trained modelsをfine tuningして分類問題を解く - Qiita]]
+https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3
+
+ - [[./?p=500][Dockerで日本語BERTを使ってみる]]
+
+上記で行った内容をベースに、Python/PyTorch/Jupyter Notebook環境でtransformersパッケージから BertJapaneseTokenizer、BertForMaskedLM を使用する Docker Image を作成して動かしてみました。
+
+* 公開物
+
+** github
+
+ - https://github.com/wurly200a/japanese_bert_trial_dockerfile
+https://github.com/wurly200a/japanese_bert_trial_dockerfile
+
+** docker hub
+
+ - https://hub.docker.com/r/wurly/japanese_bert_trial/tags
+https://hub.docker.com/r/wurly/japanese_bert_trial/tags
+
+* dockerコンテナの実行
+
+** docker pull
+
+#+begin_src sh
+$ docker pull wurly/japanese_bert_trial:1.0.1
+1.0.1: Pulling from wurly/japanese_bert_trial
+Digest: sha256:843693bedf39984445c779353410201ce0436bfb2fdda560518ec33c712e82a7
+Status: Downloaded newer image for wurly/japanese_bert_trial:1.0.1
+docker.io/wurly/japanese_bert_trial:1.0.1
+#+end_src
+
+** docker image ls
+
+#+begin_src sh
+$ docker image ls
+REPOSITORY                         TAG       IMAGE ID       CREATED       SIZE
+wurly/japanese_bert_trial          1.0.1     cdc6ff1702ad   9 hours ago   7.74GB
+#+end_src
+
+** docker run
+
+Dockerコンテナを起動します。
+Container IDが出力されます。
+
+#+begin_src sh
+$ docker run -p 8888:8888 -d wurly/japanese_bert_trial:1.0.1
+43ff0705566c9ebac4359abd41c04665b5ad1a716edfbda4106c1b8e0570977b
+#+end_src
+
+** docker logs
+
+上記のContainer IDを使用してlogを取得します。
+(docker container ls でも確認できます)
+
+token は e557213be728e0d4b996fa2d444e20e2e74eb8e6beaa4099 であることが確認できます。
+
+#+begin_src sh
+$ docker logs 43ff0705566c9ebac4359abd41c04665b5ad1a716edfbda4106c1b8e0570977b
+[I 08:01:13.455 NotebookApp] Writing notebook server cookie secret to /home/wurly/.local/share/jupyter/runtime/notebook_cookie_secret
+[I 08:01:13.705 NotebookApp] Serving notebooks from local directory: /home/wurly
+[I 08:01:13.705 NotebookApp] Jupyter Notebook 6.5.4 is running at:
+[I 08:01:13.705 NotebookApp] http://43ff0705566c:8888/?token=e557213be728e0d4b996fa2d444e20e2e74eb8e6beaa4099
+[I 08:01:13.705 NotebookApp]  or http://127.0.0.1:8888/?token=e557213be728e0d4b996fa2d444e20e2e74eb8e6beaa4099
+[I 08:01:13.705 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 08:01:13.707 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/wurly/.local/share/jupyter/runtime/nbserver-7-open.html
+    Or copy and paste one of these URLs:
+        http://43ff0705566c:8888/?token=e557213be728e0d4b996fa2d444e20e2e74eb8e6beaa4099
+     or http://127.0.0.1:8888/?token=e557213be728e0d4b996fa2d444e20e2e74eb8e6beaa4099
+#+end_src
+
+* ウェブブラウザの起動、Notebookの作成
+
+** ウェブブラウザの起動
+
+#+begin_src sh
+$ google-chrome &
+#+end_src
+
+** token を入れる
+
+上記で取得したtokenを "Password or token:" のところに入力して "Log in" します。
+(dockerlogs で出力されているtokenを含むURLを直接入力してもOK)
+
+** ログイン後の画面
+
+file:./images/522_DockerBert02.jpg
+
+** Notebookを作成
+
+file:./images/522_DockerBert03.jpg
+
+* 実行内容
+
+下記のような内容となります。
+
+#+begin_quote
+テレビでサッカーの試合を見る。
+#+end_quote
+
+この文章において、「サッカー」という単語(トークン)をマスクして予測するという内容です。
+
+* コードの実行
+
+#+begin_src python
+import torch
+from transformers import BertJapaneseTokenizer, BertForMaskedLM
+model_name = "cl-tohoku/bert-base-japanese-whole-word-masking"
+
+# Load pre-trained tokenizer
+tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
+
+# Tokenize input
+text = 'テレビでサッカーの試合を見る。'
+#text = 'どんなに勉強しても全然頭がよくならない'
+#text = '英語が上達するには毎日、勉強を行うことが望ましいでしょう'
+#text = '今日の昼食はうどんでした。'
+tokenized_text = tokenizer.tokenize(text)
+print(tokenized_text)
+# e.g. ['テレビ', 'で', 'サッカー', 'の', '試合', 'を', '見る', '。']
+#+end_src
+
+#+begin_src python
+# Mask a token that we will try to predict back with `BertForMaskedLM`
+masked_index = 2
+tokenized_text[masked_index] = '[MASK]'
+print(tokenized_text)
+# e.g. ['テレビ', 'で', '[MASK]', 'の', '試合', 'を', '見る', '。']
+#+end_src
+
+
+#+begin_src python
+# Convert token to vocabulary indices
+indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+print(indexed_tokens)
+# e.g. [571, 12, 4, 5, 608, 11, 2867, 8]
+
+# Convert inputs to PyTorch tensors
+tokens_tensor = torch.tensor([indexed_tokens])
+print(tokens_tensor)
+# e.g. tensor([[ 571,   12,    4,    5,  608,   11, 2867,    8]])
+#+end_src
+
+#+begin_src python
+# Load pre-trained model
+model = BertForMaskedLM.from_pretrained(model_name)
+model.eval()
+
+# Predict
+with torch.no_grad():
+    outputs = model(tokens_tensor)
+    predictions = outputs[0][0, masked_index].topk(5) # 予測結果の上位5件を抽出
+
+# Show results
+for i, index_t in enumerate(predictions.indices):
+    index = index_t.item()
+    token = tokenizer.convert_ids_to_tokens([index])[0]
+    print(i, token)
+#+end_src
+
+# ./images/522_DockerBert02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/522_DockerBert02.jpg
+# ./images/522_DockerBert03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/522_DockerBert03.jpg
+
+* 実行結果
+
+#+begin_src 
+0 クリケット
+1 タイガース
+2 サッカー
+3 メッツ
+4 カブス   
+#+end_src
+
+ - 元の文章
+  - テレビでサッカーの試合を見る。
+
+ - 予測された文章
+  - テレビでのクリケットの試合を見る。
+  - テレビでのタイガースの試合を見る。
+  - テレビでのサッカーの試合を見る。
+  - テレビでのメッツの試合を見る。
+  - テレビでのカブスの試合を見る。

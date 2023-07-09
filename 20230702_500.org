@@ -6,7 +6,7 @@
 #+CATEGORY: AI, Docker
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Dockerで日本語BERTを使ってみる
+#+TITLE: Dockerで日本語BERTを使ってみる(旧版)
 
 * はじめに
 
