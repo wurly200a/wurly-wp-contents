@@ -1,0 +1,60 @@
+#+BLOG: wurly-blog
+#+POSTID: 537
+#+ORG2BLOG:
+#+DATE: [2023-07-23 Sun 22:18]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSLのバックアップなど
+
+* 参考
+ - [[https://tech.garivinegar.com/wsl-duplicate-distro-ubuntu-2204/?_ga=2.119153729.916252808.1690114779-1809009289.1690114779][WSL – ディストリビューションの複製 – Ubuntu-22.04 の例 | GARI TECH]]
+ - [[https://softantenna.com/blog/wsl2-deta-folder-path/][WSL2のデータファイルの場所を確認する方法 | ソフトアンテナ]]
+ - [[https://www.curict.com/item/f4/f46da60.html][Docker(Windows) - 肥大化した ext4.vhdx の容量を減らす]]
+
+* イメージファイルの置き場
+
+#+begin_src sh
+PS C:\Users\wurly> Get-AppxPackage -Name "*Ubuntu*" | Select PackageFamilyName
+
+PackageFamilyName
+-----------------
+CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc
+CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc
+#+end_src
+
+上記ディレクトリの下のLocalState以下にext4.vhdxが格納されています。
+
+* ディストリビューションのバックアップ
+
+** 存在しているディストリビューションの確認
+
+#+begin_src 
+PS C:\Users\wurly> wsl -l -v
+  NAME            STATE           VERSION
+'* Ubuntu-22.04    Running         2
+  Ubuntu-20.04    Stopped         2
+#+end_src
+
+** wslのシャットダウン
+
+#+begin_src 
+PS C:\Users\wurly> wsl --shutdown
+#+end_src
+
+** 存在しているディストリビューションの再確認
+
+#+begin_src 
+PS C:\Users\wurly> wsl -l -v
+  NAME            STATE           VERSION
+'* Ubuntu-22.04    Stopped         2
+  Ubuntu-20.04    Stopped         2
+#+end_src
+
+** バックアップ
+
+#+begin_src 
+PS C:\Users\wurly> wsl --export Ubuntu-22.04 D:\data\backup\wsl\Ubuntu-22.04.20230723.tar
+エクスポートが進行中です。これには数分かかる場合があります。...
+#+end_src
