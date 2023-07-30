@@ -1,0 +1,169 @@
+#+BLOG: wurly-blog
+#+POSTID: 549
+#+ORG2BLOG:
+#+DATE: [2023-07-29 Sat 16:47]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Docker, ESP32, GitHub
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: GitHubでDockerコンテナイメージを作成してCI/CDパイプラインで自動的にDocker Hubにpushする
+
+* 概要
+
+タイトルの通りです。
+GitHubでDockerコンテナイメージを作成してCI/CDパイプラインで自動的にDocker Hubにpushするプロジェクトを作成しました。
+
+ここでは、下記にあるような ESP32をビルドするためのLinux向け ESP-IDF Toolchain の環境をコンテナ化します。
+
+ - [[https://docs.espressif.com/projects/esp-idf/en/v5.0.2/esp32/get-started/linux-macos-setup.html][Standard Toolchain Setup for Linux and macOS - ESP32 - — ESP-IDF Programming Guide v5.0.2 documentation]]
+https://docs.espressif.com/projects/esp-idf/en/v5.0.2/esp32/get-started/linux-macos-setup.html
+
+* 成果物
+
+ - [[https://github.com/wurly200a/builder_esp32_esp-idf-v5][wurly200a/builder_esp32_esp-idf-v5: Builder for ESP32 using esp-idf-v5]]
+https://github.com/wurly200a/builder_esp32_esp-idf-v5
+
+ - [[https://hub.docker.com/repository/docker/wurly/builder_esp32_esp-idf-v5/general][Docker Hub]]
+https://hub.docker.com/repository/docker/wurly/builder_esp32_esp-idf-v5/general
+
+* ファイル
+
+** Dockerfile
+
+ユーザ名、グループ名はbuilderとします。
+
+基本的に ESP-IDF の手順通りです。
+
+コンテナに入っていることをわかりやすくする為、PS1 の設定を行うようにしました。
+
+#+begin_src dockerfile
+FROM ubuntu:22.04
+
+ARG USER_NAME="builder"
+ARG GROUP_NAME="builder"
+ARG IMAGE_NAME
+
+RUN if [ -z "${USER_NAME}"  ] || \
+       [ -z "${IMAGE_NAME}"   ];   \
+    then echo "Please specify args"; \
+    exit 1; \
+    fi
+
+# basic
+RUN apt update -y
+
+# add user and group
+RUN groupadd ${GROUP_NAME}
+RUN useradd -g ${GROUP_NAME} -m ${USER_NAME}
+
+# ESP-IDF Prerequisites
+RUN apt install -y git wget flex bison gperf python3 python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+
+# Get ESP-IDF
+USER ${USER_NAME}
+RUN mkdir -p ~/esp
+RUN git clone --recursive https://github.com/espressif/esp-idf.git -b v5.0.2 ~/esp/esp-idf
+
+# ESP-IDF Set up the tools
+RUN ~/esp/esp-idf/install.sh esp32
+RUN echo "alias get_idf='. $HOME/esp/esp-idf/export.sh'" > ~/.bash_aliases
+
+# Set Prompt
+RUN echo PS1="'(docker)${IMAGE_NAME}:\w${PS1}'" >> ~/.bashrc
+#+end_src
+
+** Makefile
+
+make build で docker build、make push で DockerHubへのpush ができます。
+
+CI/CDでは mainブランチにおいて build と push、タグにおいて build-tag と push-tag を実行する想定です。
+
+#+begin_src makefile
+DOCKER_USERNAME ?= wurly
+DOCKER_IMAGE_NAME ?= builder_esp32_esp-idf-v5
+
+BUILD_ARGS := --build-arg IMAGE_NAME=${DOCKER_IMAGE_NAME}
+
+.PHONY: build
+build:
+	docker build -t $(DOCKER_USERNAME)/$(DOCKER_IMAGE_NAME):latest $(BUILD_ARGS) .
+
+.PHONY: push
+push:
+	echo ${DOCKER_PASSWORD} | docker login -u $(DOCKER_USERNAME) --password-stdin
+	docker push $(DOCKER_USERNAME)/$(DOCKER_IMAGE_NAME):latest
+
+.PHONY: ci-cd
+ci-cd: build push
+
+.PHONY: build-tag
+build-tag:
+	docker build -t $(DOCKER_USERNAME)/$(DOCKER_IMAGE_NAME):$(TAG) $(BUILD_ARGS) .
+
+.PHONY: push-tag
+push-tag:
+	echo ${DOCKER_PASSWORD} | docker login -u $(DOCKER_USERNAME) --password-stdin
+	docker push $(DOCKER_USERNAME)/$(DOCKER_IMAGE_NAME):$(TAG)
+#+end_src
+
+** .github/workflows/main.yml
+
+Makefile に合わせてパイプラインが動作するように記述します。
+
+$GITHUG_REF を参照してmainブランチとタグで実行コマンドを分けます。
+
+#+begin_src yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build and push Docker image
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      run: |
+        if [[ "$GITHUB_REF" == "refs/tags/"* ]]; then
+          # get tag name (remove "refs/tags/")
+          TAG=${GITHUB_REF#refs/tags/}
+          make build-tag TAG=$TAG
+          make push-tag TAG=$TAG
+        else
+          make ci-cd
+        fi
+#+end_src
+
+* その他の設定
+
+** secretの設定
+
+GitHubのリポジトリに移動し、「Settings」→「Secrets and variables」→「Actions」の「New repository secret」から、以下のようにDocker Hubのログイン情報を追加します。
+
+#+begin_src 
+Name: DOCKERHUB_USERNAME
+Secret: Docker Hubのユーザー名
+
+Name: DOCKERHUB_PASSWORD
+Secret: Docker Hubのパスワード
+#+end_src
+
+file:images/549_01.jpg
+
+また、.github/workflows/main.yml をローカルで編集してpushする場合には、PAT(Personal access tokens)の設定で workflow にチェックを入れる必要があります。
+
+file:images/549_02.jpg
+
+# images/549_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/549_01.jpg
+# images/549_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/07/549_02.jpg
