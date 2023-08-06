@@ -1,0 +1,150 @@
+#+BLOG: wurly-blog
+#+POSTID: 555
+#+ORG2BLOG:
+#+DATE: [2023-08-05 Sat 22:46]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 (WSL) に Emacs 28.02 をインストール
+
+* 概要
+
+Ubuntu 22.04 では通常のリポジトリからaptでインストールできる Emacs はバージョン 27 となっています。
+インストールしたいEmacs Lispのパッケージが既に バージョン28 の使用を要求するものがあり、これをインストールしたいと思います。
+
+ - [[./?p=231][WSL の Ubuntu 20.04 に Emacs 28 をインストール]]
+
+上記では kelleyk さんが提供されているリポジトリからインストールしましたが、
+ここでは自分でビルドを行った内容を共有します。(実際には2023.03.11に行ったものです)
+
+* 手順
+
+#+begin_src 
+$ git clone --depth 1 --branch emacs-28.2 git://git.savannah.gnu.org/emacs.git
+#+end_src
+
+#+begin_src 
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev libncurses-dev libncurses-dev libgtk-3-dev xorg-dev libjpeg-dev libgif-dev libtiff-dev libgnutls28-dev librsvg2-dev libcairo-5c-dev liblcms2-dev libgpm-dev libacl1-dev libxml2-dev libm17n-dev libotf-dev libsystemd-dev libjansson-dev
+#+end_src
+
+#+begin_src
+# cd emacs
+$ ./autogen.sh
+$ CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-native-compilation --without-pop
+#+end_src
+
+#+begin_src 
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    x11
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Does Emacs use -lXpm?                                   yes
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 -lz
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             no
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes -lglibc (inotify)
+  Does Emacs use access control lists?                    yes -lacl
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              yes
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   no
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ljansson?                               yes
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            no
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+
+
+configure: creating ./config.status
+config.status: creating src/verbose.mk
+config.status: creating src/emacs-module.h
+config.status: creating Makefile
+config.status: creating lib/gnulib.mk
+config.status: creating ./doc/man/emacs.1
+config.status: creating lib/Makefile
+config.status: creating lib-src/Makefile
+config.status: creating oldXMenu/Makefile
+config.status: creating doc/emacs/Makefile
+config.status: creating doc/misc/Makefile
+config.status: creating doc/lispintro/Makefile
+config.status: creating doc/lispref/Makefile
+config.status: creating src/Makefile
+config.status: creating lwlib/Makefile
+config.status: creating lisp/Makefile
+config.status: creating leim/Makefile
+config.status: creating nextstep/Makefile
+config.status: creating nt/Makefile
+config.status: creating test/Makefile
+config.status: creating admin/charsets/Makefile
+config.status: creating admin/unidata/Makefile
+config.status: creating admin/grammars/Makefile
+config.status: creating src/config.h
+config.status: executing src/epaths.h commands
+config.status: executing src/.gdbinit commands
+config.status: executing doc/emacs/emacsver.texi commands
+config.status: executing etc-refcards-emacsver.tex commands
+configure: You might want to install GNU Mailutils
+<https://mailutils.org> and use './configure --with-mailutils'.
+#+end_src
+
+make は私の環境(Core i5-1235U, 32GB Memory, SSD)で約25分かかりました。
+
+#+begin_src 
+make
+sudo make install
+#+end_src
+
+* その他
+
+site-lisp にsubdirs.elを格納されないので手動でコピーしました。
+
+#+begin_src 
+$ sudo cp /usr/local/share/emacs/site-lisp/subdirs.el /usr/share/emacs/site-lisp/
+#+end_src
+
+#+begin_src 
+sudo cp -r /usr/share/emacs/site-lisp/global /usr/local/share/emacs/site-lisp/
+#+end_src
+
+* 参考
+ - [[https://mako-note.com/ja/install-emacs28/][Native compilationを有効化したEmacs28のインストール - makoのノート]]
+https://mako-note.com/ja/install-emacs28/
+
+ - [[https://qiita.com/nanasess/items/6b731c933ebcd9b1c95a][Bash on Ubuntu on Windows で Emacs をビルドする - Qiita]]
+https://qiita.com/nanasess/items/6b731c933ebcd9b1c95a
+
+ - [[https://practical.li/blog/posts/build-emacs-28-on-ubuntu/][Practicalli: Building Emacs 28 on Ubuntu Linux]]
+https://practical.li/blog/posts/build-emacs-28-on-ubuntu/
