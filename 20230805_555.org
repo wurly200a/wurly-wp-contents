@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2023-08-05 Sat 22:46]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Emacs
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 (WSL) に Emacs 28.02 をインストール
@@ -21,7 +21,7 @@ Ubuntu 22.04 では通常のリポジトリからaptでインストールでき�
 * 手順
 
 #+begin_src 
-$ git clone --depth 1 --branch emacs-28.2 git://git.savannah.gnu.org/emacs.git
+$ git clone --depth 1 --branch emacs-28.2 git://git.savannah.gnu.org/emacs.git emacs-28.2
 #+end_src
 
 #+begin_src 
@@ -30,7 +30,7 @@ $ sudo apt install zlib1g-dev libncurses-dev libncurses-dev libgtk-3-dev xorg-de
 #+end_src
 
 #+begin_src
-# cd emacs
+# cd emacs-28.2
 $ ./autogen.sh
 $ CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-native-compilation --without-pop
 #+end_src
@@ -120,10 +120,13 @@ configure: You might want to install GNU Mailutils
 <https://mailutils.org> and use './configure --with-mailutils'.
 #+end_src
 
-make は私の環境(Core i5-1235U, 32GB Memory, SSD)で約25分かかりました。
-
 #+begin_src 
 make
+#+end_src
+
+正確に計測していませんが、make は私の環境(Core i5-1235U, 32GB Memory, SSD)で25分はかかりませんでした。
+
+#+begin_src 
 sudo make install
 #+end_src
 
