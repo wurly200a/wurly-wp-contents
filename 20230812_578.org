@@ -1,0 +1,95 @@
+#+BLOG: wurly-blog
+#+POSTID: 578
+#+ORG2BLOG:
+#+DATE: [2023-08-12 Sat 20:49]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Java
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に OpenJDK 17 をインストール
+
+* 概要
+
+Ubuntu22.04環境における、OpenJDKのバージョン、インストール、切り替え方法等についてです。
+
+* インストール方法
+
+#+begin_src sh
+$ sudo apt install openjdk-17-jdk
+#+end_src
+
+* 解説
+
+** バージョンの選定
+
+下記は、Ubuntu22.04でインストール可能なopenjdkパッケージの一例です。
+
+#+begin_src sh
+$ apt list | grep "openjdk-.\+-jdk*"
+openjdk-11-jdk-headless/jammy-updates,jammy-security 11.0.20+8-1ubuntu1~22.04 amd64
+openjdk-11-jdk/jammy-updates,jammy-security 11.0.20+8-1ubuntu1~22.04 amd64
+openjdk-17-jdk-headless/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64
+openjdk-17-jdk/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64
+openjdk-18-jdk-headless/jammy-updates,jammy-security 18.0.2+9-2~22.04 amd64
+openjdk-18-jdk/jammy-updates,jammy-security 18.0.2+9-2~22.04 amd64
+openjdk-19-jdk-headless/jammy-updates,jammy-security 19.0.2+7-0ubuntu3~22.04 amd64
+openjdk-19-jdk/jammy-updates,jammy-security 19.0.2+7-0ubuntu3~22.04 amd64
+openjdk-8-jdk-headless/jammy-updates,jammy-security 8u382-ga-1~22.04.1 amd64
+openjdk-8-jdk/jammy-updates,jammy-security 8u382-ga-1~22.04.1 amd64
+#+end_src
+
+ - [[https://endoflife.date/java][Java/OpenJDK | endoflife.date]]
+https://endoflife.date/java
+
+上記ページを見ればわかるように、現在のLTSはRelease17なので、特に理由が無ければこちらを使うべきでしょう。
+
+** headlessについて
+
+#+begin_src 
+openjdk-17-jdk-headless/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64
+openjdk-17-jdk/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64
+#+end_src
+
+また、それぞれのバージョンについて「headless」とそうでないもの(「headful」)の2つのパッケージが存在します。
+OpenJDKの「headless」モードはGUIを必要としないコマンドライン環境での実行をサポートし、通常の「headful」モードはグラフィカルなデスクトップ環境での実行を意味し、特定の用途に合わせて選択されるのことです。
+
+ここでは、headfulの方をインストールします。
+
+ちなみにインストール後の apt list の結果は下記のようになり、headlessの方がサブセットであることがわかります。
+
+#+begin_src 
+openjdk-17-jdk-headless/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64 [installed,automatic]
+openjdk-17-jdk/jammy-updates,jammy-security,now 17.0.8+7-1~22.04 amd64 [installed]
+#+end_src
+
+もしheadfulの方でheadlessモードを使用するには、Javaアプリケーションを実行する際に、-Djava.awt.headless=true フラグを指定します。
+例えば、コマンドラインでの実行時に次のようにフラグを追加します。
+
+#+begin_src sh
+$ java -Djava.awt.headless=true -jar YourHeadlessApp.jar
+#+end_src
+
+** バージョンの切り替え
+
+複数バージョン(例えば、バージョン8とバージョン17など)をインストールし、開発する対象のアプリケーションによってそれらを切り替えたい場合、
+下記のコマンドを使うことで切り替えが可能です。
+
+#+begin_src sh
+$ sudo update-alternatives --config java
+$ sudo update-alternatives --config javac
+#+end_src
+
+現在使用しているjava,javacのバージョンは下記のように確認できます。
+
+#+begin_src sh
+$ java --version
+openjdk 17.0.8 2023-07-18
+OpenJDK Runtime Environment (build 17.0.8+7-Ubuntu-122.04)
+OpenJDK 64-Bit Server VM (build 17.0.8+7-Ubuntu-122.04, mixed mode, sharing)
+#+end_src
+
+#+begin_src sh
+$ javac --version
+javac 17.0.8
+#+end_src
+
