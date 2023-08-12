@@ -3,8 +3,8 @@
 #+ORG2BLOG:
 #+DATE: [2023-08-11 Fri 20:46]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
-#+TAGS: 
+#+CATEGORY: Node.js
+#+TAGS:
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 LTS(WSL)へのNode.jsのインストール
 
