@@ -1,0 +1,72 @@
+#+BLOG: wurly-blog
+#+POSTID: 598
+#+ORG2BLOG:
+#+DATE: [2023-08-13 Sun 10:16]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Java
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: IntelliJ IDEA で Hello, World!
+
+* 概要
+
+IntelliJ IDEA で Hello, World! アプリケーションを作成、実行してみます。
+
+下記書籍を参考にしました。
+
+ - [[https://gihyo.jp/book/2022/978-4-297-12685-8][プロになるJava ―仕事で必要なプログラミングの知識がゼロから身につく最高の指南書：書籍案内｜技術評論社]]
+https://gihyo.jp/book/2022/978-4-297-12685-8
+
+* 手順
+
+New Project で、 Name を "HelloWorld"、Build system を "Maven" とし、Add sample code のチェックは外して Create します。
+
+file:images/598_01.jpg
+
+ビルドに必要なファイルが自動生成されます。
+
+file:images/598_02.jpg
+
+HelloWorld -> src -> main -> java のところで右クリックし、New -> Java Class
+
+file:images/598_03.jpg
+
+名前を "Hello" とします。
+
+file:images/598_04.jpg
+
+Hello.java が生成されます。
+
+file:images/598_05.jpg
+
+main と入力し、候補を確認してTabキーを押します。
+
+file:images/598_06.jpg
+
+sout と入力し、候補を確認してTabキーを押します。
+
+file:images/598_07.jpg
+
+println() の中に "Hello, World!" を記述します。
+
+file:images/598_10.jpg
+
+右クリックして Run 'Hello.main()' を選ぶか、Ctrl+Shift+F10 を入力します。
+
+file:images/598_09.jpg
+
+"Hello, World!" が出力されます。
+
+file:images/598_08.jpg
+
+
+# images/598_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_01.jpg
+# images/598_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_02.jpg
+# images/598_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_03.jpg
+# images/598_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_04.jpg
+# images/598_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_05.jpg
+# images/598_06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_06.jpg
+# images/598_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_07.jpg
+# images/598_10.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_10.jpg
+# images/598_09.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_09.jpg
+# images/598_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/598_08.jpg
