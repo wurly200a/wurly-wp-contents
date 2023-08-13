@@ -6,7 +6,7 @@
 #+CATEGORY: Java
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 に IntelliJ IDEA をインストール
+#+TITLE: Ubuntu 22.04(WSL) に IntelliJ IDEA をインストール
 
 * 概要
 
