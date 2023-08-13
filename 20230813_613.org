@@ -1,0 +1,110 @@
+#+BLOG: wurly-blog
+#+POSTID: 613
+#+ORG2BLOG:
+#+DATE: [2023-08-13 Sun 15:42]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32-DevKitC-32E で OLEDディスプレイ SSD1331 を使う (lcdgfxライブラリのdemoを動かす)
+
+* 概要
+
+ESP32-DevKitC-32EボードとOLEDディスプレイSSD1331を組み合せた IoTデバイスを製作しています。
+
+ArduinoのデバイスとしてESP32-DevKitC-32Eボードを使用した場合、Adafruit-SSD1331ライブラリを使えば比較的簡単に動かすことができました。
+
+そういう意味ではArduinoは本当によくできていますが、複数のタスクを活用した設計を行いたく、まず、RTOSとC/C++で開発できる環境を構築することを目指します。
+
+いろいろと試した結果、lcdgfxライブラリのdemoをビルドしてSSD1331に表示することができました。
+
+https://youtu.be/Je_M4_7rO2w
+
+* 作成したプロジェクト
+
+** esp-idf_hello_world
+
+これが今回作成したプロジェクトです。
+
+ - [[https://github.com/wurly200a/ssd1331_demo_esp32][wurly200a/ssd1331_demo_esp32]]
+https://github.com/wurly200a/ssd1331_demo_esp32
+
+ - build
+  - 01_build-builder.sh
+  - 02_enter-builder.sh
+  - 03_build.sh
+  - Dockerfile
+
+(README等は省略)
+
+* ビルド方法
+
+** スクリプトの実行方法
+
+READMEの通り、プロジェクトをクローンしたら最上位のディレクトリから、スクリプトがあるディレクトリのパスを含んだ形でスクリプトを実行します。
+
+** step1
+
+ビルド用のDockerコンテナのイメージを docker build します。最初の1回のみ実行が必要です。
+
+なおデフォルトのイメージ名は"esp-idf-v4_builder"としており、第一引数で任意の名前を指定可能です。
+
+#+begin_src sh
+$ build/01_build-builder.sh
+#+end_src
+
+** step2
+
+ビルド用のDockerコンテナに入ります。第一引数でイメージ名を指定可能です。
+
+#+begin_src 
+$ build/02_enter-builder.sh
+#+end_src
+
+** step3
+
+ソースコードをビルドします。
+
+#+begin_src 
+$ build/03_build.sh
+#+end_src
+
+* 解説
+
+** Dockerfile
+
+** 01_build-builder.sh
+
+** 02_enter-builder.sh
+
+** 03_build.sh
+
+* FlashROMへの書き込み
+
+ビルドするとFlashROMへの書き込みコマンドが表示されます。
+
+#+begin_src 
+Generating sections.ld
+LD /home/wurly/work/lcdgfx/bld/esp32/build/ssd1331_demo.elf
+esptool.py v3.3.2
+Creating esp32 image...
+Merged 2 ELF sections
+Successfully created esp32 image.
+To flash all build output, run 'make flash' or:
+python /home/wurly/esp/esp-idf/components/esptool_py/esptool/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 115200 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0x1000 /home/wurly/work/lcdgfx/bld/esp32/build/bootloader/bootloader.bin 0x10000 /home/wurly/work/lcdgfx/bld/esp32/build/ssd1331_demo.bin 0x8000 /home/wurly/work/lcdgfx/bld/esp32/build/partitions_singleapp.bin
+#+end_src
+
+usbipd-win などを使えば、WSL環境からもUSBデバイスが使用できるのですが、ここでは下記のようにバイナリファイルをWindowsファイルシステム上にコピーし、 [[./?p=257][ESP32 FlashROM 書き込み]] の方法で書き込みを行いました。
+
+#+begin_src 
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\ssd1331_demo_esp32\lcdgfx\bld\esp32\build\bootloader\bootloader.bin .\
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\ssd1331_demo_esp32\lcdgfx\bld\esp32\build\partitions_singleapp.bin .\
+copy \\wsl.localhost\Ubuntu-22.04\home\wurly\project\ssd1331_demo_esp32\lcdgfx\bld\esp32\build\ssd1331_demo.bin .\
+
+esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x1000 bootloader.bin 0x8000 partitions_singleapp.bin 0x10000 ssd1331_demo.bin
+#+end_src
+
+* 実行結果
+
+概要にある動画の通りです。
+
