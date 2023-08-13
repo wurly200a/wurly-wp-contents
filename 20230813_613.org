@@ -18,13 +18,54 @@ ArduinoのデバイスとしてESP32-DevKitC-32Eボードを使用した場合�
 
 いろいろと試した結果、lcdgfxライブラリのdemoをビルドしてSSD1331に表示することができました。
 
-https://youtu.be/Je_M4_7rO2w
+[[yt:Je_M4_7rO2w]]
+
+* 参考にしたページ
+
+Arduinoで動かす際に下記を参考にしました。
+
+ - [[https://denshikit.main.jp/topf/technology97.html][カラー有機ＥＬ SSD1331を動かしてみた！]]
+https://denshikit.main.jp/topf/technology97.html
+
+
+* lcdgfxについて
+
+今回利用しているライブラリがlcdgfxです。
+
+ - [[https://github.com/lexus2k/lcdgfx][lexus2k/lcdgfx: Driver for LCD displays running on Arduino/Avr/ESP32/Linux (including Rasperry) platforms]]
+https://github.com/lexus2k/lcdgfx
+
+プロジェクトの説明として、下記が記述されています。
+
+#+begin_quote
+Driver for LCD displays running on Arduino/Avr/ESP32/Linux (including Rasperry) platforms
+#+end_quote
+
+元となっているプロジェクトが下記、ssd1306 である模様です。
+
+ - [[https://github.com/lexus2k/ssd1306][lexus2k/ssd1306: Driver for SSD1306, SSD1331, SSD1351, IL9163, ILI9341, ST7735, PCD8544, Nokia 5110 displays running on Arduino/ESP32/Linux (Rasperry) platforms]]
+https://github.com/lexus2k/ssd1306
+
+ちなみにこちらのプロジェクトの説明は下記の通りです。
+
+#+begin_quote
+Driver for SSD1306, SSD1331, SSD1351, IL9163, ILI9341, ST7735, PCD8544, Nokia 5110 displays running on Arduino/ESP32/Linux (Rasperry) platforms
+#+end_quote
+
+元はSSD1306シリーズを中心としたLCDをターゲットにしていたところに対し、幅広いLCDに対応するようにプロジェクトを変更したように見えます。
+最後のリリースは2021年となっており、README.md にも下記の記載があることから、lcdgfx を使用することにしました。
+
+#+begin_quote
+Check also new C++ library lcdgfx. It consumpts less memory, has simple C++ api
+#+end_quote
 
 * 作成したプロジェクト
 
 ** esp-idf_hello_world
 
 これが今回作成したプロジェクトです。
+
+内容としては、ビルド用のDockerコンテナ(Builder)を作成し、それを利用して私の環境に合わせたビルドを行うDockerfileとシェルスクリプトのセットとなります。
 
  - [[https://github.com/wurly200a/ssd1331_demo_esp32][wurly200a/ssd1331_demo_esp32]]
 https://github.com/wurly200a/ssd1331_demo_esp32
@@ -73,11 +114,67 @@ $ build/03_build.sh
 
 ** Dockerfile
 
+lcdgfxのexamples/demos/ssd1331_demoはesp-idf v4ではビルド可能ですが、v5ではビルドエラーになりました。よって、こちらはv4に相当するbuilderを作成します。
+
 ** 01_build-builder.sh
+
+特記事項なし
 
 ** 02_enter-builder.sh
 
+特記事項なし
+
 ** 03_build.sh
+
+ビルド手順については、lcdgfx/README.md に基いています。
+
+"Using with plain avr-gcc:"のところに下記記載があります。
+
+#+begin_quote
+ * Build demo code (variant 2)
+   * cd lcdgfx/tools && ./build_and_run.sh -p avr -m <your_mcu> ssd1306_demo
+#+end_quote
+
+ESP32についても有効なようで、最後に下記のコマンドを実行しています。
+
+#+begin_src 
+cd tools
+./build_and_run.sh -p esp32 demos/ssd1331_demo
+#+end_src
+
+ビルドした結果を見てみると、
+
+bld/esp32/ に Makefileやソースコードがコピーされています。
+
+#+begin_src 
+Makefile
+build
+components
+main
+sdkconfig
+sdkconfig.defaults
+#+end_src
+
+このうち、main/ 以下には esp32_main.cpp に freertos のタスク生成処理が記述されています。
+build/ 以下には esp-idf の各コンポーネントがずらっとコピーされており、この中にビルド生成物(ssd1331_demo.bin,ssd1331_demo.elf,ssd1331_demo.map)もあります。
+
+components/ 以下には lcdgfx/src と sketch ディレクトリが examples/demos/ssd1331_demo/ 以下のファイルがコピーされており、そのうち、ssd1331_demo.ino が main.cpp としてコピーされています。
+
+ssd1331_demo.ino(main.cpp) が今回のプログラムの本質的な部分であり、SSD1331で使用するGPIOについてもここで定義されています。
+
+元々は下記の定義であるところを、
+
+#+begin_src C
+DisplaySSD1331_96x64x8_SPI display(3,{-1, 4, 5, 0,-1,-1}); // Use this line for Atmega328p
+#+end_src
+
+私の環境に合わせて下記のように書き換えます。
+
+#+begin_src C
+DisplaySSD1331_96x64x8_SPI display(4,{-1, 17, 16, 0,18,23});
+#+end_src
+
+ビルドスクリプトの記述のほとんどを占めてしまっているのが、この書き換え処理(パッチ適用)になります。
 
 * FlashROMへの書き込み
 
