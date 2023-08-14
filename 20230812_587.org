@@ -66,3 +66,12 @@ file:images/587_04.jpg
 # images/587_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/587_02.jpg
 # images/587_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/587_03.jpg
 # images/587_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/587_04.jpg
+
+* その他の設定
+
+私の環境では、~/IdeaIC/ にファイルを格納し、~/.bash_aliases に下記のように記述しました。
+
+#+begin_src sh
+alias idea='/home/wurly/IdeaIC/idea-IC-232.8660.185/bin/idea.sh'
+#+end_src
+
