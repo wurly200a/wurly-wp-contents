@@ -1,0 +1,82 @@
+#+BLOG: wurly-blog
+#+POSTID: 634
+#+ORG2BLOG:
+#+DATE: [2023-08-15 Tue 21:21]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs で Docker を使う
+
+* 概要
+
+これまでDockerはコマンドラインから操作していたのですが、ふと、EmacsでDockerが扱えるのでは？と思い調べてみたところ、そういったパッケージがありました。
+
+あまりに便利で驚きました。。
+
+* 参考
+ - [[https://blog.agile.esm.co.jp/entry/2022/03/01/090000][Emacs でだって Docker で開発したい！ - ESM アジャイル事業部 開発者ブログ]]
+https://blog.agile.esm.co.jp/entry/2022/03/01/090000
+
+* 詳細
+
+確認したのは下記のパッケージです。
+
+ - [[https://github.com/Silex/docker.el][Silex/docker.el: Manage docker from Emacs.]]
+https://github.com/Silex/docker.el
+
+ - [[https://github.com/emacs-pe/docker-tramp.el][emacs-pe/docker-tramp.el: TRAMP integration for docker containers]]
+https://github.com/emacs-pe/docker-tramp.el
+
+ - [[https://github.com/masasam/emacs-counsel-tramp][masasam/emacs-counsel-tramp: Tramp ivy interface for ssh and docker and ‎vagrant]]
+https://github.com/masasam/emacs-counsel-tramp
+
+docker-tramp.el については、GitHubのREADMEに下記の通り記載があり、Emacs29ではインストール不要でした。
+
+#+begin_quote
+NOTE: Similar functionality is built-in to Emacs from version 29 onwards, so perhaps you don't need this package any more.
+#+end_quote
+
+その他は package.el でインストールしました。
+
+* 使用例
+
+M-x docker から、c (Containers)、i (Images) が選択できます。
+
+file:images/634_01.jpg
+
+コンテナ、イメージが参照できます。
+
+file:images/634_02.jpg
+
+docker-images
+
+? キー押下でメニューが表示され、Remove, Pull, Inspect, Push, Run, Tag など実行できます！
+
+file:images/634_03.jpg
+
+docker-containers
+
+こちらも ? キー押下でメニューが表示され、Kill, Stop, Start など実行できます！
+
+file:images/634_04.jpg
+
+
+また、tramp から /docker: を入力して Tab補完で実行中のコンテナが選択でき、中に入れます！
+
+file:images/634_06.jpg
+
+コンテナであることを意識することなく、Dired で各種操作ができます！
+
+file:images/634_05.jpg
+
+* まとめ
+
+今頃気付いたのかと突っ込まれそうですが(誰に？)、非常に便利なのでこれから積極的に使っていこうと思います。
+
+# images/634_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_01.jpg
+# images/634_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_02.jpg
+# images/634_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_03.jpg
+# images/634_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_04.jpg
+# images/634_06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_06.jpg
+# images/634_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/08/634_05.jpg
