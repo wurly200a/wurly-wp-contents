@@ -26,7 +26,24 @@ $ git clone --depth 1 --branch emacs-28.2 git://git.savannah.gnu.org/emacs.git e
 
 #+begin_src 
 $ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
-$ sudo apt install zlib1g-dev libncurses-dev libncurses-dev libgtk-3-dev xorg-dev libjpeg-dev libgif-dev libtiff-dev libgnutls28-dev librsvg2-dev libcairo-5c-dev liblcms2-dev libgpm-dev libacl1-dev libxml2-dev libm17n-dev libotf-dev libsystemd-dev libjansson-dev
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libm17n-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev
 #+end_src
 
 #+begin_src
