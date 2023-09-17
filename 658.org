@@ -1,0 +1,28 @@
+#+BLOG: wurly-blog
+#+POSTID: 658
+#+ORG2BLOG:
+#+DATE: [2023-09-17 Sun 15:56]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 で 変換、無変換キーをCtrlキーに割り当てる
+
+* 方法
+
+dconf-editor の使い方は下記を参考にしました。
+
+ - [/etc/default/keyboard を編集して CapsLock を Ctrl にしようとしたのに GNOME デスクトップで適用されなかったときの対処 - Qiita](https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6)
+https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6
+
+* 過去のページ
+ - [Ubuntu キーバインディング変更](http://cha.la.coocan.jp/doc/UbuntuKeyBind.html)
+
+* 参考にしたページ
+
+ - [Windows 10とUbuntu 18.04 デュアルブートする方法 | パソコン工房 NEXMAG](https://www.pc-koubou.jp/magazine/35542)
+ - [XKBでJIS配列のキーボードをUS配列 / HHKB風にする](https://staging.haxibami.net/blog/posts/xkb-jis-hhkb)
+ - [Ubuntu(Linux)のキーボード設定を日本語に変えて「半角/全角」でひらがなに「無変換」で英数字に変える方法 | 謎の技術研究部](https://www.ultra-noob.com/blog/2020/117/)
+ - [Ubuntuのキーボード配列をUS101からJP106にしたメモ(mozc) - 黒川文書](https://kurokawanushi.hatenablog.com/entry/2020/11/28/100000)
+ - [Japanese keyboard layout symbol file broken since 18.04 to 20.04 upgrade - Ask Ubuntu](https://askubuntu.com/questions/1240457/japanese-keyboard-layout-symbol-file-broken-since-18-04-to-20-04-upgrade)
+ - [Ubuntu：「無変換+○」にカーソル移動系ホットキーを設定する（xkb編）](https://did2memo.net/2015/07/20/ubuntu-xkb-muhenkan-hotkey/)
