@@ -1,0 +1,54 @@
+#+BLOG: wurly-blog
+#+POSTID: 648
+#+ORG2BLOG:
+#+DATE: [2023-08-18 Fri 14:22]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Git
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Git Submodule を使う
+
+* 概要
+
+サブモジュールのプロジェクトへの追加方法、サブモジュールを含んだGitレポジトリの取り出し方法をまとめました。
+
+* 参考
+ - [[https://git-scm.com/book/ja/v2/Git-%E3%81%AE%E3%81%95%E3%81%BE%E3%81%96%E3%81%BE%E3%81%AA%E3%83%84%E3%83%BC%E3%83%AB-%E3%82%B5%E3%83%96%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB][Git - サブモジュール]]
+https://git-scm.com/book/ja/v2/Git-%E3%81%AE%E3%81%95%E3%81%BE%E3%81%96%E3%81%BE%E3%81%AA%E3%83%84%E3%83%BC%E3%83%AB-%E3%82%B5%E3%83%96%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB
+
+ - [[https://qiita.com/kysnm/items/c083674deac0c4a34756][git submodule でブランチ/タグをチェックアウトする - Qiita]]
+https://qiita.com/kysnm/items/c083674deac0c4a34756
+
+ - [[https://www.m3tech.blog/entry/git-submodule][git submodule はトモダチ！怖くないよ！ （チートシート付き） - エムスリーテックブログ]]
+https://www.m3tech.blog/entry/git-submodule
+
+* 使用方法
+
+** サブモジュールの追加
+
+サブモジュールのプロジェクトへの追加方法です。
+
+下記は、タグ等を指定して取り込む方法となっています。
+
+#+begin_src sh
+$ git submodule add https://example.com/sub-modules
+$ cd sub-modules
+$ git checkout v1.0
+$ cd ..
+$ git commit
+#+end_src
+
+** 取り出し
+
+サブモジュールを含んだGitレポジトリを git clone する場合は、--recursive オプションを使用します。
+
+#+begin_src 
+$ git clone https://example.com/repo-with-sub-modules --recursive
+#+end_src
+
+又は、git submodule update --init で後からチェックアウトできます。
+
+#+begin_src sh
+$ git submodule update --init
+#+end_src
+
