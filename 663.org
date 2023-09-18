@@ -1,0 +1,45 @@
+#+BLOG: wurly-blog
+#+POSTID: 663
+#+ORG2BLOG:
+#+DATE: [2023-09-18 月 11:37]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacsでインストール済のバッケージをまとめてインストールする
+
+* 概要
+
+最近、自分の環境を整理し、.emacs.d/init.el を gitで管理し、Windows/Linux問わず、いくつかの環境で共用して使えるようになってきました。
+
+また、elファイルもほぼすべて package管理されたものを使用できるようになりました。
+
+そのような環境で、新たにPC環境を作成する際のpackgeのインストール方法についてです。
+
+* 結論
+
+下記を実行することでこれまでインストールしたパッケージが自動でまとめてインストールされます。
+
+#+begin_src
+package-install-selected-packages
+#+end_src
+
+* 詳細
+
+Emacsのpackage管理を利用してインストールしていますと、例えば init.el に自動的に下記のような記述が行われます。
+これを常にgitで管理するようにしておきます。(変更があったらcommit、pushしておく)
+
+そのようにしておきますと、これが選択されたパッケージとして扱われますので、前述のコマンドを実行することでこれらのパッケージが順次インストールされます。
+
+#+begin_src emacs-lisp
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(org-publish-use-timestamps-flag nil)
+ '(org2blog/wp-show-post-in-browser 'show)
+ '(package-selected-packages
+   '(docker counsel-tramp kconfig-mode go-mode org2blog modus-themes helm-ag ox-zenn dockerfile-mode markdown-mode yaml-mode plantuml-mode flycheck-plantuml flycheck git-commit git-gutter google-maps helm helm-core irony magit-popup popup pos-tip powerline rich-minority smart-mode-line swiper with-editor rust-mode bazel-mode counsel-gtags counsel flx swiper-helm flycheck-pos-tip smart-mode-line-powerline-theme spaceline git-gutter-fringe git-gutter-fringe+ fringe-helper org-plus-contrib org o-blog markdown-mode+ magit js-doc irony-eldoc htmlize git-gutter+ flycheck-irony cp5022x color-identifiers-mode calfw browse-kill-ring auto-complete auctex))
+ '(tramp-connection-timeout 10))
+#+end_src
