@@ -168,3 +168,7 @@ New /etc/adjtime data:
 1695022256
 LOCAL
 #+end_src
+
+* Docker install
+
+- [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]]
