@@ -6,23 +6,110 @@
 #+CATEGORY: Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 で 変換、無変換キーをCtrlキーに割り当てる
+#+TITLE: Ubuntu で 変換、無変換キーをCtrlキーに割り当てる
+
+* 概要
+
+Ubuntu で 変換、無変換キーをCtrlキーに割り当てる(役割を変更する)の方についてです。
+
+下記は、Ubuntu 22.04 で行った内容です。
+
+* 結論
+
+** 参考
+- [[https://junology.hatenablog.com/entry/2017/06/24/141322][Ubuntu で「変換」キーを Shift にする話 (xkb + dconf) - junologyのブログ]]
+https://junology.hatenablog.com/entry/2017/06/24/141322
+
+上記ページを基に設定する方法が私にはベストでした。
+
+** /usr/share/X11/xkb/symbols/jphenk
+
+/usr/share/X11/xkb/symbols/jphenk を下記の内容で作成します。
+
+#+begin_src sh
+partial modifier_keys
+    xkb_symbols "rcontrol" {
+    replace key <HENK> { [ Control_R, Control_R ] };
+    modifier_map Control { <HENK> };
+};
+
+partial modifier_keys
+    xkb_symbols "lcontrol" {
+    replace key <HENK> { [ Control_L, Control_L ] };
+    modifier_map Control { <MUHE> };
+};
+#+end_src
+
+** /usr/share/X11/xkb/rules/evdev
+
+/usr/share/X11/xkb/rules/evdev に下記内容を追記します。
+
+#+begin_src sh
+! option	=	symbols
+  jphenk:rcontrol  = +jphenk(rcontrol)
+  jphenk:lcontrol  = +jphenk(lcontrol)
+#+end_src
+
+具体的には、私の場合は、下記のように、既存の ! option	=	symbols に続くリストの最後に追記しました。
+
+#+begin_src 
+! option	=	symbols
+  grp:shift_toggle	=	+group(shifts_toggle)
+  altwin:menu		=	+altwin(menu)
+  altwin:menu_win	=	+altwin(menu_win)
+・
+・
+・
+  lv5:lwin_switch_lock_cancel     =       +level5(lwin_switch_lock_cancel)
+  lv5:rwin_switch_lock_cancel     =       +level5(rwin_switch_lock_cancel)
+  parens:swap_brackets   =   +parens(swap_brackets)
+  jphenk:rcontrol  = +jphenk(rcontrol)
+  jphenk:lcontrol  = +jphenk(lcontrol)
+#+end_src
+
+
+** dconf の編集
+
+#+begin_src sh
+$ dconf-editor
+#+end_src
+
+GUI の設定画面が開くので、
+org > gnome > desktop > input-sources > xkb-options を開きます。
+そこに カスタム値(Custom Value)欄があるので、これを編集します。
+
+#+begin_src 
+['jphenk:rcontrol', 'jphenk:lcontrol']
+#+end_src
+
+file:./images/658_01.png
+
 
 * 方法
 
+* 過去のページ
+ - [[http://cha.la.coocan.jp/doc/UbuntuKeyBindOld.html][Ubuntu キーバインディング変更(古い、2020年の情報)]]
+ - [[http://cha.la.coocan.jp/doc/UbuntuKeyBind.html][Ubuntu キーバインディング変更]]
+
+結局2020年のときにやっていた対応に近いものになりました。
+
+* 参考にしたページ
+
+** dconf-editor
 dconf-editor の使い方は下記を参考にしました。
 
  - [/etc/default/keyboard を編集して CapsLock を Ctrl にしようとしたのに GNOME デスクトップで適用されなかったときの対処 - Qiita](https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6)
 https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6
 
-* 過去のページ
- - [Ubuntu キーバインディング変更](http://cha.la.coocan.jp/doc/UbuntuKeyBind.html)
+** その他
 
-* 参考にしたページ
+ - [[https://www.pc-koubou.jp/magazine/35542][Windows 10とUbuntu 18.04 デュアルブートする方法 | パソコン工房 NEXMAG]]
+ - [[https://staging.haxibami.net/blog/posts/xkb-jis-hhkb][XKBでJIS配列のキーボードをUS配列 / HHKB風にする]]
+ - [[https://www.ultra-noob.com/blog/2020/117/][Ubuntu(Linux)のキーボード設定を日本語に変えて「半角/全角」でひらがなに「無変換」で英数字に変える方法 | 謎の技術研究部]]
+ - [[https://kurokawanushi.hatenablog.com/entry/2020/11/28/100000][Ubuntuのキーボード配列をUS101からJP106にしたメモ(mozc) - 黒川文書]]
+ - [[https://askubuntu.com/questions/1240457/japanese-keyboard-layout-symbol-file-broken-since-18-04-to-20-04-upgrade][Japanese keyboard layout symbol file broken since 18.04 to 20.04 upgrade - Ask Ubuntu]]
+ - [[https://did2memo.net/2015/07/20/ubuntu-xkb-muhenkan-hotkey/][Ubuntu：「無変換+○」にカーソル移動系ホットキーを設定する（xkb編）]]
+ - [[https://www.insilico.jp/blog/2019/05/31/programming_thumb_ctrl_key/][プログラミングが捗る親指Ctrl - In Silico 創薬]]
 
- - [Windows 10とUbuntu 18.04 デュアルブートする方法 | パソコン工房 NEXMAG](https://www.pc-koubou.jp/magazine/35542)
- - [XKBでJIS配列のキーボードをUS配列 / HHKB風にする](https://staging.haxibami.net/blog/posts/xkb-jis-hhkb)
- - [Ubuntu(Linux)のキーボード設定を日本語に変えて「半角/全角」でひらがなに「無変換」で英数字に変える方法 | 謎の技術研究部](https://www.ultra-noob.com/blog/2020/117/)
- - [Ubuntuのキーボード配列をUS101からJP106にしたメモ(mozc) - 黒川文書](https://kurokawanushi.hatenablog.com/entry/2020/11/28/100000)
- - [Japanese keyboard layout symbol file broken since 18.04 to 20.04 upgrade - Ask Ubuntu](https://askubuntu.com/questions/1240457/japanese-keyboard-layout-symbol-file-broken-since-18-04-to-20-04-upgrade)
- - [Ubuntu：「無変換+○」にカーソル移動系ホットキーを設定する（xkb編）](https://did2memo.net/2015/07/20/ubuntu-xkb-muhenkan-hotkey/)
+
+# ./images/658_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/09/658_01.png
