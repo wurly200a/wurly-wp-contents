@@ -110,6 +110,6 @@ https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6
  - [[https://askubuntu.com/questions/1240457/japanese-keyboard-layout-symbol-file-broken-since-18-04-to-20-04-upgrade][Japanese keyboard layout symbol file broken since 18.04 to 20.04 upgrade - Ask Ubuntu]]
  - [[https://did2memo.net/2015/07/20/ubuntu-xkb-muhenkan-hotkey/][Ubuntu：「無変換+○」にカーソル移動系ホットキーを設定する（xkb編）]]
  - [[https://www.insilico.jp/blog/2019/05/31/programming_thumb_ctrl_key/][プログラミングが捗る親指Ctrl - In Silico 創薬]]
-
+ - [[https://qiita.com/mkuriki1990/items/6fcdf9ab9eb9d4d74eb6][/etc/default/keyboard を編集して CapsLock を Ctrl にしようとしたのに GNOME デスクトップで適用されなかったときの対処 - Qiita]]
 
 # ./images/658_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2023/09/658_01.png
