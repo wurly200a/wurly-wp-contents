@@ -3,21 +3,136 @@
 #+ORG2BLOG:
 #+DATE: [2023-09-17 Sun 08:52]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 (Native環境) を使う
+#+TITLE: Ubuntu 22.04 (Native環境) 導入
 
-* 流れ
+* 概要
 
- - SSDの半分のパーティションを確保し、Windows11をインストール
- - Ubuntu 22.04 をインストール
+現在、メインのPCはラップトップを使用しており、以前使用していた自作デスクトップPCはサブ用途としています。
+
+この度この自作デスクトップPCのパーツを新調し、Windows11／Ubuntu22.04 のデュアルブート環境とすることにしました。
+
+ここでは、Ubuntu22.04 の環境を一通り構築するところまでをまとめます。
+
+* PC環境
+ - CPU Intel i7-10700F
+ - Memory 16GB
+ - M.2 SSD 2TB
+
+* 全体の流れ
+
+ - Windows11 インストール
+ - Ubuntu 22.04 インストール
  - UEFI でブート順を切り替え
  - curl install
- - google chrome install
+ - Google Chrome のインストール
  - git install
  - Emacs install
+ - 日本語入力の設定
 
+* Windows11 インストール
 
+SSDの半分のパーティション(約1TB)を確保し、Windows11をクリーンインストールしました。
 
+元々、Windows10 Professional を使用しており、今回パーツを新調してWindows11のインストール要件を満たすようになりました。
+
+インストールする前の環境で一旦Windows11にアップデートを行い、その上で新規インストールを行いました。
+
+インストール時のライセンスキー入力は行わず、インストール後に自動的にデジタル認証が行われました。
+
+* WindowsとLinuxのデュアルブートについて
+
+以前、eSATA外付けドライブを使ってLinuxのデュアルブート環境を作成したことがあったのですが、ブートローダーの扱いでトラブルがありました。
+(一度Windowsが立ち上がらなくなり、リカバリディスクから起動し、コマンドラインでブートローダーを復活させた記憶があります)
+
+下記、参考にしたサイトです。
+
+ - [[https://slacknotebook.com/os-dual-boot-is-a-bad-idea/][LinuxとWindowsをデュアルブートするのは止めたほうが良い – SlackNote]]
+ - [[https://jp.minitool.com/partition-disk/windows-11-and-linux-dual-boot.html][Windows 11とLinuxをデュアルブートする方法 - MiniTool]]
+ - [[https://www.pc-koubou.jp/magazine/35542][Windows 10とUbuntu 18.04 デュアルブートする方法 | パソコン工房 NEXMAG]]
+
+結果的には、上記のリストの一番下のリンク先に記載がある通り、
+
+最初にWindowsをインストールしたときに _Linux向けにパーティションを確保せずに_ 、インストール時は「UbuntuをWindows Boot Managerとは別にインストール」を選択することでうまくいくようでした。
+
+なお、私が実行した際と、参考ページで違いがありました。
+私が実行した際には、「UbuntuをWindows Boot Managerとは別にインストール」を選択した後、特にパーティションサイズを設定するような画面は表示されず、自動的に空き領域にパーティションを確保しUbuntuがインストールされました。
+
+* デュアルブートの是非
+ - [[https://slacknotebook.com/os-dual-boot-is-a-bad-idea/][LinuxとWindowsをデュアルブートするのは止めたほうが良い – SlackNote]]
+
+上記ページでは初心者にはデュアルブートを推奨していませんが、これは私もトラブルに遭遇したことがあるので、特にメイン環境でデュアルブートを構築するのはリスクがあると思います。
+
+なお、私がかつておこなったケースでは、前述の通りeSATA外付けドライブを使っていたのでそちらにインストールする限りは安全、と思い込んでいましたが問題が発生したので、外付けの場合でもかなりリスクはあります。
+
+今回の私のケースでは、サブ環境であること、及び元々の目的が Native Linux 環境を使用して高パフォーマンスを得るのが目的であり、それ以外の目的では WSLやVirtualBOXを使用してLinuxを活用できているので、それら考慮した上でデュアルブートを選択することとしました。
+
+* Ubuntu 22.04 のディストリビューションについて
+
+Ubuntu 22.04 LTS (2027年4月までサポート) を使うことには迷いはなかったのですが、
+できるだけ標準的な環境を使いたかったので、日本語 Remix版を使うかは少し迷いましたが、
+日本語ファイル名を扱うことはありそうなので、日本語 Remix版(ubuntu-ja-22.04-desktop-amd64.iso)を使いました。
+
+ - [[https://www.ubuntulinux.jp/download/ja-remix][Ubuntu Desktop 日本語 Remixのダウンロード | Ubuntu Japanese Team]]
+
+* 起動ドライブの作成
+ - [[https://rufus.ie/ja/#google_vignette][Rufus - 起動可能なUSBドライブを簡単に作成できます]]
+
+これまでにも何度かやったことがありますが、Rufus を使用して起動可能なUSBドライブを作成しました。
+
+前述のサイトのやり方では、ファイルシステムは「NTFS」になっていますが、NTFSでは起動ドライブにならず、「Large FAT32(規定)」を使いました。
+USBメモリが64GBのものだったからかもしれません。
+
+* UEFI でブート順を切り替え
+
+当面はどちらかというとLinuxをメインで使う予定なので、デフォルトでLinuxが起動するように設定します。
+
+今回のマザーボードはUEFIなので、UEFIで起動優先度を設定できました。
+(この構成だと以前よりはデュアルブートのリスクは少ないように思われます。)
+
+* curl のインストール
+
+次に続く Google Chrome など、インストール時に curl を使うため、まずは curl をインストールします。
+
+#+begin_src sh
+$ sudo apt install curl
+#+end_src
+
+* Google Chrome のインストール
+
+下記の方法でインストールしました。
+
+- [[./?p=484][Ubuntu Google Chrome Install]]
+
+* git install
+
+次に続く Emacs をビルドしてインストールする際に必要なため、ここで git をインストールします。
+
+#+begin_src sh
+$ sudo apt install git
+#+end_src
+
+* Emacs install
+
+下記の方法でインストールしました。
+
+- [[./?p=563][Ubuntu 22.04 (WSL) に Emacs 29.01 をインストール]]
+
+今回の環境では約10分でビルドできました。
+
+さらに、所定のgitリポジトリから .emacs.d/init.el を取り出し、下記の通り従来使用していたパッケージをまとめてインストールします。
+
+- [[./?p=663][Emacsでインストール済のバッケージをまとめてインストールする]]
+
+* 日本語入力の設定
+
+毎回、試行錯誤している件。今回は決定版になったかと思います。
+
+- [[./?p=658][Ubuntu で 変換、無変換キーをCtrlキーに割り当てる]]
+
+この件も長らく困っていた件。やっと解決しました。
+
+- [[./?p=677][Ubuntu 22.04 Ctrl + ; のショートカットの無効化]]
 
