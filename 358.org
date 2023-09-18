@@ -67,6 +67,12 @@ $ sudo apt update
 
 #+begin_src 
 $ sudo apt install docker-ce
+#+end_src
+
+dockerグループにユーザを追加します。
+(Ubuntu 22.04 Native インストール時にはこの後、OSの再起動が必要でした)
+
+#+begin_src 
 $ sudo usermod -a -G docker ${USER}
 #+end_src
 
