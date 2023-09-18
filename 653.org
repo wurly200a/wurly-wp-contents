@@ -136,3 +136,35 @@ $ sudo apt install git
 
 - [[./?p=677][Ubuntu 22.04 Ctrl + ; のショートカットの無効化]]
 
+* Linuxを動かした後にWindows側の時刻がずれてしまう現象に対しての対策
+
+この件も長らく困っていた件。別件を探している中でたまたま見つけました。助かります！
+
+- [[https://ubiqlog.com/archives/11842#:~:text=Windows%E3%83%9E%E3%82%B7%E3%83%B3%E3%81%ABDebian%E3%82%84,%E3%81%84%E3%82%8B%E3%81%9F%E3%82%81%E3%81%AB%E8%B5%B7%E3%81%93%E3%82%8A%E3%81%BE%E3%81%99%E3%80%82][hwclockコマンドでLinuxとWindowsの時刻のズレを修正する方法 | UBIQLOG 2.0]]
+
+#+begin_src sh
+$ sudo hwclock --verbose --systohc --localtime
+#+end_src
+
+実行結果
+
+#+begin_src sh
+$ sudo hwclock --verbose --systohc --localtime
+hwclock from util-linux 2.37.2
+System Time: 1695022256.799829
+Trying to open: /dev/rtc0
+Using the rtc interface to the clock.
+ハードウェアの時刻が ローカル時刻 に設定されているものと仮定します。
+RTC type: 'rtc_cmos'
+Using delay: 0.500000 seconds
+missed it - 1695022256.800445 is too far past 1695022256.500000 (0.300445 > 0.001000)
+1695022257.500000 is close enough to 1695022257.500000 (0.000000 < 0.002000)
+Set RTC to 1695022257 (1695022256 + 1; refsystime = 1695022256.000000)
+Setting Hardware Clock to 16:30:57 = 1695022257 seconds since 1969
+ioctl(RTC_SET_TIME) に成功しました。
+Not adjusting drift factor because the --update-drift option was not used.
+New /etc/adjtime data:
+0.000000 1695022256 0.000000
+1695022256
+LOCAL
+#+end_src
