@@ -1,0 +1,31 @@
+#+BLOG: wurly-blog
+#+POSTID: 715
+#+ORG2BLOG:
+#+DATE: [2023-09-23 土 14:20]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WordPress
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WordPressからX(旧Twitter)への自動投稿
+
+* 概要
+
+ふと、WordPressからX(旧Twitter)への自動投稿をしたいと思い、方法を探しました。
+
+* 結論
+ - [[https://katata.info/2023/06/autoshare-to-twitter/][2023年6月：WordPressからTwitterへの自動投稿方法（プラグインあり・なし） - Katata/堅田]]
+https://katata.info/2023/06/autoshare-to-twitter/
+
+上記で紹介されている Autoshare for Twitter で設定しました。
+
+* 詳細
+
+基本的に前述のページで紹介されているやり方通りで設定できたのですが、下記の点が、異なっていました。
+Xへの接続時に設定するのは API Key と API Key Secret のみで Access Token と Access Token Secret は不要でした。
+ただし、X の Developer Portal (まだ青い鳥がいました) の方で、Callback URL を適切に設定する必要がありました。
+設定方法はプラグインの設定(Autoshare for Twitter Settings)に詳しく記載がありますので、そちらに従って設定しました。
+
+ - [[https://qiita.com/non0311/items/48a6b25097d1783eab23][TwitterのAPIでcallbackURLをチェックするようになった - Qiita]]
+https://qiita.com/non0311/items/48a6b25097d1783eab23
+
+
