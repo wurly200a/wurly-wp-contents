@@ -1,0 +1,115 @@
+#+BLOG: wurly-blog
+#+POSTID: 732
+#+ORG2BLOG:
+#+DATE: [2023-10-01 日 07:00]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境
+
+* 概要
+
+Ubuntu にて OpenJDK/Maven/IntelliJ IDEAインストールしてIDEによる開発環境を作成したのですが、Emacsのヘヴィユーザの私としてはやはりどうも馴染めません。
+
+Emacsで同様の環境が構築できないかを探ります。
+
+行いたいことは、下記の通りです。
+
+ - ソースコードに基づく補完
+ - 部分的なコードの実行、デバッグ、テストの実行
+
+* 初期調査
+
+どうやら、LSP(Language Server Protocol)を使用するEmacsパッケージを使用することでやりたいことができそうです。
+
+下記が参考となった動画、ページです。
+
+ - [[https://renato.athaydes.com/posts/switching-from-heavyweight-ides-to-emacs.html][My IDE is too heavy so I moved to Emacs(Renato Athaydes)]]
+
+ - [[https://www.ncaq.net/2019/11/08/12/39/59/][EmacsでJava開発をする時eglotではなくlsp-modeを使えば割とあっさり構築完了しました - ncaq]]
+
+ - [[https://media.emacsconf.org/2019/19.html][How Emacs became my awesome Java editing environment - Torstein Krause Johansen - EmacsConf 2019]]
+
+
+上記ページから私が理解したことは下記です。
+
+ - LSPは、自動補完、定義への移動、シンボルの参照などの機能をツールに依存せずに汎用的に提供するためのプロトコル。
+ - 元々は Visual Studio Code で使用するために Microsoft が開発したもの
+ - C,C++,Java,Python,Go... など多数の言語に対応している
+ - Javaの場合、LSPに対応した Language server、LSP client それぞれ複数の実装が存在する
+
+* LSP(Language Server Protocol)
+
+ - [[https://en.wikipedia.org/wiki/Language_Server_Protocol][Language Server Protocol - Wikipedia]]
+https://en.wikipedia.org/wiki/Language_Server_Protocol
+
+ - [[https://langserver.org/][Langserver.org]]
+https://langserver.org/
+
+LSPの概念の説明、言語と Language Server、LSP Client の対応関係などが説明されています。
+
+ - [[https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/][Overview]]
+https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/
+
+ - [[https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/][Specification]]
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+
+Microsoftによる解説と仕様が記載されています。
+
+* Language server
+
+** 提供されている Language server
+
+Javaの場合、少なくとも下記3つが提供されているようです。
+
+ - Eclipse JDT Language Server
+  - github.com/eclipse/eclipse.jdt.ls
+  - Maintainer : Eclipse Foundation, Red Hat, Microsoft
+ - java-language-server
+  - github.com/georgewfraser/vscode-javac
+  - Maintainer : georgewfraser
+ - Language Server for Java by Apache NetBeans
+  - marketplace.visualstudio.com/items?itemName=ASF.apache-netbeans-java
+  - Maintainer : Apache NetBeans
+
+** Eclipse JDT Language Server
+
+# Maintainer が Eclipse Foundation, Red Hat, Microsoft となっています。
+
+ - [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][eclipse-jdtls/eclipse.jdt.ls: Java language server]]
+https://github.com/eclipse-jdtls/eclipse.jdt.ls
+
+ - [[https://download.eclipse.org/jdtls/milestones/?d][Project download area | The Eclipse Foundation]]
+https://download.eclipse.org/jdtls/milestones/?d
+
+* LSP client
+
+** lsp-mode と lsp-java
+
+lsp-mode と lsp-java の機能・役割については補完関係にあります。
+
+** lsp-mode
+
+lsp-mode は Java に限らず、様々な言語に対応する Emacs 上の LSP Client です。
+
+ - [[https://emacs-lsp.github.io/lsp-mode/page/installation/][Installation - LSP Mode - LSP support for Emacs]]
+https://emacs-lsp.github.io/lsp-mode/page/installation/
+
+ - [[https://github.com/emacs-lsp/lsp-mode][emacs-lsp/lsp-mode: Emacs client/library for the Language Server Protocol]]
+https://github.com/emacs-lsp/lsp-mode
+
+** lsp-java
+
+lsp-mode の Java 部分に対応する LSP Client のようです。
+Eclipse JDT Language Server (jdt.ls) を自動的にビルド・インストールする仕組みが含まれています。
+
+ - [[https://emacs-lsp.github.io/lsp-java/][LSP Java]]
+https://emacs-lsp.github.io/lsp-java/
+
+ - [[https://github.com/emacs-lsp/lsp-java][emacs-lsp/lsp-java: lsp-mode java]]
+https://github.com/emacs-lsp/lsp-java
+
+* その他
+ - [[https://note.com/ktakayama/n/ne9d3bfd2eec4][VSCode のおかげで Vim の開発環境がめちゃくちゃ良くなった｜たかやま]]
+https://note.com/ktakayama/n/ne9d3bfd2eec4
