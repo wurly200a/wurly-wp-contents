@@ -110,10 +110,49 @@ companyの設定
 
 * 使用方法
 
-最初にmavenのプロジェクトを開きますと、インストールする Language Server を聞かれますので、jdtを選択します。
+** Language Server のインストール
+
+[[https://github.com/projava17/examples][GitHub - projava17/examples]] のサンプルコードを例にしています。
+
+最初にmavenのプロジェクトを開きますと、インストールする Language Server を聞かれますので、jdtlsを選択します。(TABキーを押すと自動的に入力されます)
 Language Serverは自動的にインストールされます。(便利！)
 
+Language Serverのインストールが必要なのは初回のみです。
+
+file:images/738_01.jpg
+
+file:images/738_02.jpg
+
+** Project のインポート
+
+その後、下記のように聞かれますので、"i" を選択します。
+
+#+begin_src bash
+ForEachArraySample.java is not part of any project.
+
+i ==> Import project root ~/project/projava17_examples/
+I ==> Import project by selecting root directory interactively
+. ==> Import project at current directory /home/wurly/project/projava17_examples/part-3/chapter-10-foreach/src/main/java/projava/
+d ==> Do not ask again for the current project by adding ~/project/projava17_examples/ to lsp-session-folders-blacklist
+D ==> Do not ask again for the current project by selecting ignore path interactively
+n ==> Do nothing: ask again when opening other files from the current project
+
+Select action: 
+#+end_src
+
+file:images/738_03.jpg
+
+* 使用方法
+
 実際に実行するコマンドについては、前記の init.el 設定中の global-set-key を参照ください。
+
+file:images/738_04.jpg
+
+例えば、上記サンプルコードの場合、String にカーソルを置き、lsp-goto-implementation を実行すると、String の実装(implementation)を見ることができます。
+
+(自動的にダウンロード、decompileされるようです。)
+
+また、main 内で dap-java-debug を実行すると実際にプログラムが実行されます。
 
 * 参考
 
@@ -142,7 +181,7 @@ s-l
 
 
 * その他の参考
- - [[https://mugijiru.github.io/.emacs.d/programming/lsp-mode/][lsp-mode :: 麦汁's Emacs Config]]
+ - [[https://mugijiru.github.io/.emacs.d/programming/lsp-mode/][lsp-mode 麦汁's Emacs Config]]
 
  - [[https://www.ncaq.net/2023/02/05/04/16/05/][Emacsでhelm-grep-agでジャンプした後xref-pop-marker-stackで履歴マーカーを辿って元に戻る設定 - ncaq]]
 
@@ -156,3 +195,8 @@ lsp-mode のキーアサイン等
 私はcompanyを使っていますが、このような選択肢もあるようです。
 
 
+
+# images/738_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/10/738_01.jpg
+# images/738_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/10/738_02.jpg
+# images/738_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/10/738_03.jpg
+# images/738_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/10/738_04.jpg
