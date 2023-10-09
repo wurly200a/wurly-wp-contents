@@ -3,12 +3,14 @@
 #+ORG2BLOG:
 #+DATE: [2023-10-01 日 07:00]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: Emacs
+#+CATEGORY: Emacs, Java
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境
+#+TITLE: Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境 (技術解説編)
 
 * 概要
+
+具体的な設定方法等については [[./?p=738][Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境 (実践編)]] をご覧ください。
 
 Ubuntu にて OpenJDK/Maven/IntelliJ IDEAインストールしてIDEによる開発環境を作成したのですが、Emacsのヘヴィユーザの私としてはやはりどうも馴染めません。
 
@@ -56,6 +58,12 @@ https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/
 https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
 
 Microsoftによる解説と仕様が記載されています。
+
+ - [[https://qiita.com/atsushieno/items/ce31df9bd88e98eec5c4][language server protocolについて (前編) - Qiita]]
+https://qiita.com/atsushieno/items/ce31df9bd88e98eec5c4
+
+language server protocolの存在意義、コード アクションとCode Lensの解説など、非常に参考になります。
+
 
 * Language server
 
@@ -113,3 +121,8 @@ https://github.com/emacs-lsp/lsp-java
 * その他
  - [[https://note.com/ktakayama/n/ne9d3bfd2eec4][VSCode のおかげで Vim の開発環境がめちゃくちゃ良くなった｜たかやま]]
 https://note.com/ktakayama/n/ne9d3bfd2eec4
+
+ - [[https://xpressrazor.wordpress.com/2020/11/04/java-programming-in-emacs/][Java Programming in Emacs | xpressrazor]]
+https://xpressrazor.wordpress.com/2020/11/04/java-programming-in-emacs/
+
+

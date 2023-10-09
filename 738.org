@@ -1,0 +1,158 @@
+#+BLOG: wurly-blog
+#+POSTID: 738
+#+ORG2BLOG:
+#+DATE: [2023-10-09 月 09:02]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, Java
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境 (実践編)
+
+* 概要
+
+[[./?p=732][Emacs で LSP(Language Server Protocol) を使用した Java IDE 環境(技術解説編)]] の続きです。
+
+* Prerequisites
+
+ - Ubuntu 22.04 (Native or WSL環境)
+ - [[./?p=578][Ubuntu 22.04(WSL) に OpenJDK 17 をインストール]]
+ - [[./?p=722][Ubuntu 22.04 に Maven を install]]
+
+* 設定方法
+
+#+begin_src emacs-lisp
+;---- lsp-mode ----
+(when (locate-library "lsp-mode")
+  (require 'lsp-mode)
+
+  (global-set-key [?\C-,] 'xref-go-back)
+
+;  (setq lsp-keymap-prefix "C-c l")
+
+;  (global-set-key "\M-t" 'lsp-goto-implementation)
+;  (global-set-key "\M-r" 'lsp-find-references)
+;  (global-set-key "\M-s" 'lsp-find-definition)
+  (global-set-key "\C-cli" 'lsp-goto-implementation    )
+  (global-set-key "\C-cld" 'lsp-find-definition        )
+  (global-set-key "\C-clr" 'lsp-find-references        )
+  (global-set-key "\C-clh" 'lsp-describe-thing-at-point)
+
+;  (setq lsp-enable-symbol-highlighting t)    ; 1. Symbol highlighting
+;  (setq lsp-ui-doc-enable t)                 ; 2. lsp-ui-doc - on hover dialogs. * disable via
+;  (setq lsp-ui-doc-show-with-cursor nil)     ;    * disable cursor hover (keep mouse hover)
+;  (setq lsp-ui-doc-show-with-mouse nil)      ;    * disable mouse hover (keep cursor hover)
+;  (setq lsp-lens-enable t)                   ; 3. Lenses
+;  (setq lsp-headerline-breadcrumb-enable t)  ; 4. Headerline
+;  (setq lsp-ui-sideline-enable t)            ; 5. Sideline code actions * disable whole sideline via
+  (setq lsp-ui-sideline-show-code-actions t) ;    * hide code actions
+;  (setq lsp-ui-sideline-enable t)            ; 6. Sideline hover symbols * disable whole sideline via
+;  (setq lsp-modeline-code-actions-enable t)  ; 7. Modeline code actions
+;  (setq lsp-diagnostics-provider :auto)      ; 8. Flycheck (or flymake if no flycheck is present)
+;  (setq lsp-ui-sideline-enable t)            ; 9. Sideline diagnostics * disable whole sideline via
+;  (setq lsp-ui-sideline-show-diagnostics t)  ;    * hide only errors
+;  (setq lsp-eldoc-enable-hover t)            ; 10. Eldoc
+;  (setq lsp-modeline-diagnostics-enable t)   ; 11. Modeline diagnostics statistics
+;  (setq lsp-signature-auto-activate nil)     ; 12. Signature help
+;  '(lsp-signature-auto-activate '(:on-trigger-char :on-trigger-char));; you could manually request them via `lsp-signature-activate`
+;  (setq lsp-signature-render-documentation t); 13. Signature help documentation (keep the signatures)
+;  (setq lsp-completion-provider :capf)       ; 14. Completion (company-mode)
+;  (setq lsp-completion-show-detail t)        ; 15. Completion item detail
+;  (setq lsp-completion-show-kind t)          ; 16. Completion item kind
+
+  (when (locate-library "lsp-java")
+    (require 'lsp-java)
+    (add-hook 'java-mode-hook #'lsp)
+
+    (when (locate-library "lsp-ui")
+      (use-package lsp-ui)
+      )
+
+    (when (locate-library "dap-mode")
+      (use-package dap-mode :after lsp-mode :config (dap-auto-configure-mode))
+
+      (global-set-key "\C-cpdd" 'dap-java-debug)
+      (global-set-key "\C-cpdm" 'dap-java-debug-test-method)
+      (global-set-key "\C-cpdc" 'dap-java-debug-test-class )
+      (global-set-key "\C-cprm" 'dap-java-run-test-method  )
+      (global-set-key "\C-cprt" 'dap-java-run-last-test    )
+      (global-set-key "\C-cprc" 'dap-java-run-test-class   )
+      )
+    )
+)
+#+end_src
+
+companyの設定
+
+#+begin_src emacs-lisp
+;---- company ----
+(when (locate-library "company")
+  (require 'company)
+
+  (global-company-mode t)
+  (setq company-transformers '(company-sort-by-backend-importance)) ;; sort order
+  (setq company-idle-delay 0) ; Default is 0.5
+  (setq company-minimum-prefix-length 3) ; Default is 4
+  (setq company-selection-wrap-around t) ; Back to the top when going to the below further on the most candidate bottom
+  (setq completion-ignore-case t)
+  (setq company-dabbrev-downcase nil)
+  (global-set-key (kbd "C-M-i") 'company-complete)
+  (define-key company-active-map (kbd "C-n") 'company-select-next) ;; Select next or privious candidate with C-n, C-p
+  (define-key company-active-map (kbd "C-p") 'company-select-previous)
+  (define-key company-search-map (kbd "C-n") 'company-select-next)
+  (define-key company-search-map (kbd "C-p") 'company-select-previous)
+  (define-key company-active-map (kbd "C-s") 'company-filter-candidates) ;; Narrow down with C-s
+  (define-key company-active-map (kbd "C-i") 'company-complete-selection) ;; Determin the candidate with TAB
+  (define-key company-active-map [tab] 'company-complete-selection) ;; Determin the candidate with TAB
+  (define-key company-active-map (kbd "C-f") 'company-complete-selection) ;; Determin the candidate with C-f
+  (define-key emacs-lisp-mode-map (kbd "C-M-i") 'company-complete) ;; Use company-mode completion with C-M-i on various major-mode
+  )
+#+end_src
+
+* 使用方法
+
+最初にmavenのプロジェクトを開きますと、インストールする Language Server を聞かれますので、jdtを選択します。
+Language Serverは自動的にインストールされます。(便利！)
+
+実際に実行するコマンドについては、前記の init.el 設定中の global-set-key を参照ください。
+
+* 参考
+
+ - [[https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/][A guide on disabling/enabling lsp-mode features - LSP Mode - LSP support for Emacs]]
+https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/
+
+下記の記述を見つけました。
+
+#+begin_src emacs-lisp
+(setq lsp-ui-sideline-show-code-actions nil)
+#+end_src
+
+ - [[https://emacs-lsp.github.io/lsp-mode/page/installation/#use-package][Installation - LSP Mode - LSP support for Emacs]]
+https://emacs-lsp.github.io/lsp-mode/page/installation/#use-package
+
+LSP Mode のインストール方法など
+
+ - [[https://kazuhira-r.hatenablog.com/entry/2023/01/04/165803][lsp-modeのlsp-keymap-prefixのデフォルト値がよくわからないという話 - CLOVER🍀]]
+https://kazuhira-r.hatenablog.com/entry/2023/01/04/165803
+
+#+begin_src emacs-lisp
+s-l
+#+end_src
+
+の件
+
+
+* その他の参考
+ - [[https://mugijiru.github.io/.emacs.d/programming/lsp-mode/][lsp-mode :: 麦汁's Emacs Config]]
+
+ - [[https://www.ncaq.net/2023/02/05/04/16/05/][Emacsでhelm-grep-agでジャンプした後xref-pop-marker-stackで履歴マーカーを辿って元に戻る設定 - ncaq]]
+
+ - [[https://codeberg.org/rui/.emacs.d/src/branch/master/init.el][.emacs.d/init.el at master - .emacs.d - Codeberg.org]]
+lsp-mode のキーアサイン等
+
+ - [[https://qiita.com/blue0513/items/c0dc35a880170997c3f5][Emacsの補完と検索を超強化する - Qiita]]
+直接lspは出てきませんが、auto-completeとcompanyの比較など、参考になりました。
+
+ - [[https://qiita.com/nobuyuki86/items/7c65456ad07b555dd67d][CompanyからCorfuに移行する - Qiita]]
+私はcompanyを使っていますが、このような選択肢もあるようです。
+
+
