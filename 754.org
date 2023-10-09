@@ -1,0 +1,35 @@
+#+BLOG: wurly-blog
+#+POSTID: 754
+#+ORG2BLOG:
+#+DATE: [2023-10-09 月 17:09]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Java, Maven
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Mavenの使い方
+
+* 概要
+
+Mavenの使い方のメモなど
+
+* サンプルプロジェクトの作成方法
+
+#+begin_src bash
+$ mvn archetype:generate -DgroupId=com.example -DartifactId=my-java-project -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+#+end_src
+
+* プロジェクトが使用する外部ライブラリや依存関係を自動的にPOMファイルに追加
+
+#+begin_src 
+$ mvn dependency:copy-dependencies
+#+end_src
+
+* ビルド
+
+#+begin_src bash
+$ mvn clean install
+#+end_src
+
+#+begin_src bash
+$ mvn clean install -DskipTests=true
+#+end_src
