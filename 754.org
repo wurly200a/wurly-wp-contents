@@ -20,7 +20,7 @@ $ mvn archetype:generate -DgroupId=com.example -DartifactId=my-java-project -Dar
 
 * プロジェクトが使用する外部ライブラリや依存関係を自動的にPOMファイルに追加
 
-#+begin_src 
+#+begin_src bash
 $ mvn dependency:copy-dependencies
 #+end_src
 
@@ -32,4 +32,22 @@ $ mvn clean install
 
 #+begin_src bash
 $ mvn clean install -DskipTests=true
+#+end_src
+
+* その他
+
+#+begin_src bash
+$ mvn dependency:sources
+#+end_src
+
+#+begin_src 
+$ mvn dependency:copy-dependencies
+#+end_src
+
+#+begin_src bash
+$ mvn org.fusesource.mvnplugins:maven-graph-plugin:reactor -Dhide-external=true
+#+end_src
+
+#+begin_src bash
+$ mvn org.fusesource.mvnplugins:maven-graph-plugin:reactor
 #+end_src
