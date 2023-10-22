@@ -1,0 +1,74 @@
+#+BLOG: wurly-blog
+#+POSTID: 768
+#+ORG2BLOG:
+#+DATE: [2023-10-22 日 16:56]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Node.js
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 LTS(WSL)へのNode.jsのインストール
+
+* はじめに
+
+Node.jsをインストールします。
+
+Ubuntu22.04のaptでインストールできるパッケージはだいぶ古いため、新しいバージョンをイントールする方法についてです。
+
+以前のやり方 [[./?p=573][Ubuntu 22.04 LTS(WSL)へのNode.jsのインストール(非推奨)]] は非推奨となったようです。
+
+* 参照
+
+ - [[https://github.com/nodesource/distributions][nodesource/distributions: NodeSource Node.js Binary Distributions]]
+https://github.com/nodesource/distributions
+
+上記の手順に従いました。
+
+* 手順
+
+下記の通りUbuutu22.04は標準でバージョン12(12.22.9)がインストールされます。
+
+#+begin_src bash
+$ sudo apt list | grep nodejs
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+netdata-plugins-nodejs/jammy,jammy 1.33.1-1ubuntu1 all
+nodejs-doc/jammy,jammy 12.22.9~dfsg-1ubuntu3 all
+nodejs/jammy 12.22.9~dfsg-1ubuntu3 amd64
+#+end_src
+
+#+begin_src bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+#+end_src
+
+ここでは18を指定しましたが、16,20,21 も指定可能です。
+
+#+begin_src bash
+NODE_MAJOR=18
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+#+end_src
+
+#+begin_src bash
+sudo apt update
+#+end_src
+
+18.18.2 がインストールできるようになっています。
+
+#+begin_src bash
+$ sudo apt list | grep nodejs
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+netdata-plugins-nodejs/jammy,jammy 1.33.1-1ubuntu1 all
+nodejs-doc/jammy,jammy 12.22.9~dfsg-1ubuntu3 all
+nodejs/nodistro 18.18.2-1nodesource1 amd64
+#+end_src
+
+インストールします。
+
+#+begin_src bash
+sudo apt install nodejs
+#+end_src

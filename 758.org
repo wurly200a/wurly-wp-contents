@@ -1,0 +1,35 @@
+#+BLOG: wurly-blog
+#+POSTID: 758
+#+ORG2BLOG:
+#+DATE: [2023-10-09 月 23:05]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: C/C++ で Emacs lsp-mode
+
+* インストール
+
+** clangd
+
+#+begin_src bash
+$ sudo snap install clangd
+error: This revision of snap "clangd" was published using classic confinement
+       and thus may perform arbitrary system changes outside of the security
+       sandbox that snaps are usually confined to, which may put your system at
+       risk.
+
+       If you understand and want to proceed repeat the command including
+       --classic.
+#+end_src
+
+#+begin_src bash
+$ sudo snap install clangd --classic
+clangd 6.0.0+git2102885 from Marco Trevisan (Treviño) (3v1n0) installed
+#+end_src
+
+** clang
+
+#+begin_src bash
+$ sudo apt install clang
+#+end_src
