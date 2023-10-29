@@ -1,0 +1,49 @@
+#+BLOG: wurly-blog
+#+POSTID: 783
+#+ORG2BLOG:
+#+DATE: [2023-10-29 日 12:15]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, Python
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Python で Emacs lsp-mode
+
+* 概要
+
+- [[https://github.com/emacs-lsp/lsp-pyright][emacs-lsp/lsp-pyright: lsp-mode pyright]]
+https://github.com/emacs-lsp/lsp-pyright
+
+上記を使用します。
+
+* 設定
+
+init.el に下記を記載します。
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :ensure t
+  :hook
+.
+.
+.
+  (python-mode . lsp)
+.
+.
+.
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package lsp-pyright
+  :ensure t
+  :after lsp-mode
+  )
+#+end_src
+
+最初にPythonのコードを開きますと、インストールする Language Server を聞かれますので、TABキーを押すと自動的に補完される pyright を指定します。
+Language Serverは自動的にインストールされます。(便利！)
+
+ただし、事前に npm を使用できるようにしておく必要があります。
+
+.emacs.d/.cache/lsp/npm/pyright にインストールされます。
+
+Language Serverのインストールが必要なのは初回のみです。
