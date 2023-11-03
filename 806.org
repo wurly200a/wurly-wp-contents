@@ -1,0 +1,53 @@
+#+BLOG: wurly-blog
+#+POSTID: 806
+#+ORG2BLOG:
+#+DATE: [2023-11-03 金 20:35]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs 29で追加された、全てのバッファのフォントサイズを変更するコマンド (global-text-scale-adjust)
+
+* 概要
+ - https://www.gnu.org/software/emacs/news/NEWS.29.1
+
+下記の変更点が気になっていたのですが、試すことができていませんでした。
+
+C-M-+ (Ctrl と Meta と +) がどうやればよいのかよくわからなかった為です。
+
+#+begin_quote
+\star{}\star{} New command to change the font size globally.
+
+To increase the font size, type 'C-x C-M-\plus{}' or 'C-x C-M-='; to
+decrease it, type 'C-x C-M--'; to restore the font size, type 'C-x
+C-M-0'.  The final key in these commands may be repeated without the
+leading 'C-x' and without the modifiers, e.g. 'C-x C-M-\plus{} C-M-\plus{} C-M-\plus{}' and 'C-x C-M-\plus{} \plus{} \plus{}' increase the font size by three steps.  When
+'mouse-wheel-mode' is enabled, 'C-M-wheel-up' and 'C-M-wheel-down' also
+increase and decrease the font size globally.  Additionally, the
+user option 'global-text-scale-adjust-resizes-frames' controls whether
+the frames are resized when the font size is changed.
+#+end_quote
+
+最近、オンライン会議中に自分の画面を共有する機会が増え、その際にグルーバルにフォントサイズを変えることは非常に有効であると考え、やり方を探しました。
+
+* 試行錯誤した結果
+
+まず、'C-M-wheel-up' and 'C-M-wheel-down' ができました。
+
+Ctrl と Alt と スクロールアップ／ダウンでOKでした。
+
+NEWSにはコマンドの記載がありませんでしたが、global-text-scale-adjust 関数のようです。
+
+下記のように実行することもできました。
+
+#+begin_src emacs-lisp
+(global-text-scale-adjust 1)
+#+end_src
+
+#+begin_src emacs-lisp
+(global-text-scale-adjust -1)
+#+end_src
+
+また、後で気づきましたが、'C-x C-M-+' と 'C-x C-M-=' も M(Meta) を Altキーとして実行できました。
+
+今後、使ってみたいと思います。
