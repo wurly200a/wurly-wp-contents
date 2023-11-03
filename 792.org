@@ -1,0 +1,111 @@
+#+BLOG: wurly-blog
+#+POSTID: 792
+#+ORG2BLOG:
+#+DATE: [2023-11-03 金 14:57]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: GPG鍵の作成と確認方法
+
+* 参考
+ - [[https://qiita.com/r-tamura/items/c6e49a3eb7f7f8aafb9d][gitレポジトリとhttpで通信する場合にユーザ情報の入力を省略する #Git - Qiita]]
+https://qiita.com/r-tamura/items/c6e49a3eb7f7f8aafb9d
+
+ - [[https://docs.github.com/ja/authentication/managing-commit-signature-verification/checking-for-existing-gpg-keys][既存の GPG キーの確認 - GitHub Docs]]
+https://docs.github.com/ja/authentication/managing-commit-signature-verification/checking-for-existing-gpg-keys
+
+ - [[https://docs.github.com/ja/authentication/managing-commit-signature-verification/generating-a-new-gpg-key][新しい GPG キーを生成する - GitHub Docs]]
+https://docs.github.com/ja/authentication/managing-commit-signature-verification/generating-a-new-gpg-key
+
+* 鍵の確認
+
+** 1回目
+
+#+begin_src bash
+$ gpg --list-secret-keys --keyid-format=long
+#+end_src
+
+#+begin_src bash
+$ gpg --list-secret-keys --keyid-format=long
+gpg: ディレクトリ'/home/wurly/.gnupg'が作成されました
+gpg: keybox'/home/wulry/.gnupg/pubring.kbx'が作成されました
+gpg: /home/wurly/.gnupg/trustdb.gpg: 信用データベースができました
+#+end_src
+
+** 2回目
+
+#+begin_src bash
+$ gpg --list-secret-keys --keyid-format=long
+#+end_src
+
+* 鍵の生成
+
+#+begin_src bash
+$ gpg --full-generate-key
+#+end_src
+
+#+begin_src bash
+$ gpg --full-generate-key
+gpg (GnuPG) 2.2.27; Copyright (C) 2021 Free Software Foundation, Inc.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+ご希望の鍵の種類を選択してください:
+   (1) RSA と RSA (デフォルト)
+   (2) DSA と Elgamal
+   (3) DSA (署名のみ)
+   (4) RSA (署名のみ)
+  (14) カードに存在する鍵
+あなたの選択は? 1
+RSA 鍵は 1024 から 4096 ビットの長さで可能です。
+鍵長は? (3072) 
+要求された鍵長は3072ビット
+鍵の有効期限を指定してください。
+         0 = 鍵は無期限
+      <n>  = 鍵は n 日間で期限切れ
+      <n>w = 鍵は n 週間で期限切れ
+      <n>m = 鍵は n か月間で期限切れ
+      <n>y = 鍵は n 年間で期限切れ
+鍵の有効期間は? (0) 
+鍵は無期限です
+これで正しいですか? (y/N) y
+
+GnuPGはあなたの鍵を識別するためにユーザIDを構成する必要があります。
+
+本名: ***
+電子メール・アドレス: ***@***
+コメント: 
+次のユーザIDを選択しました:
+    "*** <***@***>"
+
+名前(N)、コメント(C)、電子メール(E)の変更、またはOK(O)か終了(Q)? 0
+名前(N)、コメント(C)、電子メール(E)の変更、またはOK(O)か終了(Q)? O
+たくさんのランダム・バイトの生成が必要です。キーボードを打つ、マウスを動か
+す、ディスクにアクセスするなどの他の操作を素数生成の間に行うことで、乱数生
+成器に十分なエントロピーを供給する機会を与えることができます。
+たくさんのランダム・バイトの生成が必要です。キーボードを打つ、マウスを動か
+す、ディスクにアクセスするなどの他の操作を素数生成の間に行うことで、乱数生
+成器に十分なエントロピーを供給する機会を与えることができます。
+gpg: 鍵****************を究極的に信用するよう記録しました
+gpg: ディレクトリ'/home/wurly/.gnupg/openpgp-revocs.d'が作成されました
+gpg: 失効証明書を '/home/wurly/.gnupg/openpgp-revocs.d/****************************************.rev' に保管しました。
+公開鍵と秘密鍵を作成し、署名しました。
+
+pub   rsa3072 2023-11-03 [SC]
+      ****************************************
+uid                      *** <***@***>
+sub   rsa3072 2023-11-03 [E]
+#+end_src
+
+* 鍵の確認(作成後)
+
+#+begin_src bash
+$ gpg --list-secret-keys --keyid-format=long
+/home/wurly/.gnupg/pubring.kbx
+------------------------------
+sec   rsa3072/**************** 2023-11-03 [SC]
+      ****************************************
+uid                 [  究極  ] *** <***@***>
+ssb   rsa3072/**************** 2023-11-03 [E]
+#+end_src

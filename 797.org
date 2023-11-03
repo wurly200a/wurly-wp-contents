@@ -1,0 +1,120 @@
+#+BLOG: wurly-blog
+#+POSTID: 797
+#+ORG2BLOG:
+#+DATE: [2023-11-03 金 17:01]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs 黒背景に青文字が見にくいときの対応方法
+
+* 概要
+
+EmacsのシェルからRestAPIを叩いてjqで整形したときに、keyが黒背景に青文字となって見にくくて困っていました。
+
+下記ではその色を再現できていませんが、"login","id","node_id"... が濃い青文字となっていました。
+
+#+begin_src bash
+$ curl -s https://api.github.com/repos/octocat/Hello-World | jq '.owner'
+{
+  "login": "octocat",
+  "id": 583231,
+  "node_id": "MDQ6VXNlcjU4MzIzMQ==",
+  "avatar_url": "https://avatars.githubusercontent.com/u/583231?v=4",
+  "gravatar_id": "",
+  "url": "https://api.github.com/users/octocat",
+  "html_url": "https://github.com/octocat",
+  "followers_url": "https://api.github.com/users/octocat/followers",
+  "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+  "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+  "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+  "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+  "organizations_url": "https://api.github.com/users/octocat/orgs",
+  "repos_url": "https://api.github.com/users/octocat/repos",
+  "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+  "received_events_url": "https://api.github.com/users/octocat/received_events",
+  "type": "User",
+  "site_admin": false
+}
+#+end_src
+
+* 対応方法
+
+ - [[https://coffee.guhaw.com/Entry/540/][Bus errorとSegmentation faultに困ったら見るブログ 【emacs】黒字に青が見にくいときに、色合いを変更する方法]]
+https://coffee.guhaw.com/Entry/540/
+
+上記を参考に、list-faces-display で対象の色を探して変更しました。
+
+#+begin_src emacs-lisp
+M-x list-faces-display
+#+end_src
+
+結果的には下記の設定が反映されていました。
+
+既定の設定
+
+#+begin_src emacs-lisp
+(custom-set-faces
+ '(ansi-color-blue ((t (:background "blue2" :foreground "blue2"))))
+)
+#+end_src
+
+変更後の設定
+
+#+begin_src emacs-lisp
+(custom-set-faces
+ '(ansi-color-blue ((t (:background "blue2" :foreground "deep sky blue"))))
+)
+#+end_src
+
+* 参考情報
+
+curlの表示そのままだと色付けされず、jqを通すと色付けされるのは、実はjqの出力にはANSIの制御コードが含まれているからということがわかりました。
+
+下記の設定を行い、色付けをOFFにしてみます。
+
+#+begin_src emacs-lisp
+(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-off)
+#+end_src
+
+そうすると出力結果は下記のようになります。
+
+#+begin_src
+$ curl -s https://api.github.com/repos/octocat/Hello-World | jq '.owner'
+^[[1;39m{
+  ^[[0m^[34;1m"login"^[[0m^[[1;39m: ^[[0m^[[0;32m"octocat"^[[0m^[[1;39m,
+  ^[[0m^[[34;1m"id"^[[0m^[[1;39m: ^[[0m^[[0;39m583231^[[0m^[[1;39m,
+.
+.
+.
+#+end_src
+
+下記のようにファイルに保存すると制御コードは除去されます。
+(私は、これまで全く意識していませんでした。)
+
+#+begin_src shell-mode
+curl -s https://api.github.com/repos/octocat/Hello-World | jq '.owner' > Hello-World.owner.json
+#+end_src
+
+ansi-color-blue については、下記で定義(defface)されています。
+
+ansi-color.el (/usr/local/share/emacs/29.1/lisp/ansi-color.el.gz)
+
+#+begin_src emacs-lisp
+(defface ansi-color-blue
+  '((t :foreground "blue2" :background "blue2"))
+  "Face used to render blue color code."
+  :group 'ansi-colors
+  :version "28.1")
+#+end_src
+
+ansi-color の色種類は限られており、その中の"青"として定義されていたのが blue2 であったということがわかりました。
+
+#+begin_src emacs-lisp
+(defcustom ansi-color-names-vector
+  ["black" "red3" "green3" "yellow3" "blue2" "magenta3" "cyan3" "gray90"]
+.
+.
+.
+  :group 'ansi-colors)
+#+end_src

@@ -1,0 +1,42 @@
+#+BLOG: wurly-blog
+#+POSTID: 788
+#+ORG2BLOG:
+#+DATE: [2023-10-29 日 13:39]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, Bash
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Shell script で Emacs lsp-mode
+
+* 概要
+
+- [[https://github.com/bash-lsp/bash-language-server][bash-lsp/bash-language-server: A language server for Bash]]
+https://github.com/bash-lsp/bash-language-server
+
+上記を使用します。
+
+* 設定
+
+init.el に下記を記載します。
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :ensure t
+  :hook
+.
+.
+.
+  (sh-mode . lsp)
+.
+.
+.
+#+end_src
+
+最初にシェルスクリプトのコードを開きますと、インストールする Language Server を聞かれますので、TABキーを押すと自動的に補完される pyright を指定します。
+Language Serverは自動的にインストールされます。(便利！)
+
+ただし、事前に npm を使用できるようにしておく必要があります。
+
+.emacs.d/.cache/lsp/npm/bash-language-server にインストールされます。
+
+Language Serverのインストールが必要なのは初回のみです。
