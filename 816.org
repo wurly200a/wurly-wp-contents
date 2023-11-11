@@ -1,0 +1,63 @@
+#+BLOG: wurly-blog
+#+POSTID: 816
+#+ORG2BLOG:
+#+DATE: [2023-11-11 土 20:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Git, MSYS
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Git for Windows の Git Bash を活用する
+
+* 概要
+
+最近はEmacsやシェル操作(Git)等はWSLのUbuntu22.04をメインで使っていますが、たまにWindows上のEmacsを使いたいときがあります。
+
+その際、最低限のシェル(bash)環境が必要となります。以前はMSYS(MSYS2)をインストールしていたのですが、Git for Winidows に含まれる Git Bash をGit以外にも使うことができるのではないかと思い立ちました。
+
+pacmanが使用できれば必要なバイナリを適宜インストールできますが、既定ではpacmanは使えませんでした。
+
+* 参考ページ
+
+同様のことをやっている方がいらっしゃるので参考にさせていただきます。
+
+ - [[https://blue-red.ddo.jp/~ao/wiki/wiki.cgi?page=MSYS2+Portable%A4%CE%B4%C4%B6%AD%A4%F2%BA%EE%C0%AE%A4%B9%A4%EB#p11][MSYS2 Portableの環境を作成する - ふなWiki]]
+https://blue-red.ddo.jp/~ao/wiki/wiki.cgi?page=MSYS2+Portable%A4%CE%B4%C4%B6%AD%A4%F2%BA%EE%C0%AE%A4%B9%A4%EB#p11
+
+ - [[https://yujiorama.hatenablog.com/entry/2019/07/22/095214][Git for Windows で pacman を使う - yujioramaの日記]]
+https://yujiorama.hatenablog.com/entry/2019/07/22/095214
+
+ - [[https://qiita.com/lemonjp/items/b39f042c1f282b8856d0][Windows で git bash + tmux な環境づくり #Git - Qiita]]
+https://qiita.com/lemonjp/items/b39f042c1f282b8856d0
+
+* 設定方法
+
+Git for Windows を既定の C:\Program Files\Git ではなく、C:\usr\git にインストールします。
+
+そして、システム環境変数 Path に下記を追加します。
+
+#+begin_src 
+C:\usr\git\usr\bin
+#+end_src
+
+参考ページを基に、下記のように実行することでpacmanが使用できるようになりました。
+
+# Git for Windows の開発環境 Git for Windows SDK (https://github.com/git-for-windows/git-sdk-64) を活用するやり方です。
+
+#+begin_src bash
+$ cp gfw-sdk/usr/bin/pacman* /usr/bin/
+$ cp -a gfw-sdk/etc/pacman.* /etc/
+$ mkdir -p /var/lib/
+$ cp -a gfw-sdk/var/lib/pacman /var/lib
+$ mkdir /usr/share/makepkg/
+$ cp -a gfw-sdk/usr/share/makepkg/util* /usr/share/makepkg/
+$ pacman --database --check
+$ curl -L https://raw.githubusercontent.com/git-for-windows/build-extra/master/git-for-windows-keyring/git-for-windows.gpg \
+| pacman-key --add - \
+&& pacman-key --lsign-key 1A9F3986
+#+end_src
+
+#+begin_src bash
+$ pacman -Sy
+#+end_src
+
+diff, gpg などを使用したかったのですが、これらは上記の作業だけで使用することができました。
