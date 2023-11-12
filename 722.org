@@ -16,7 +16,13 @@ Ubuntu 22.04 の apt install だと 3.6 がインストールされます。
 
 最新をインストールしたい場合、バイナリをダウンロードしてパスを通すことで使用することができます。
 
+* Maven Releases History
+ - [[https://maven.apache.org/docs/history.html][Maven – Maven Releases History]]
+https://maven.apache.org/docs/history.html
+
 * 作業例
+
+** 3.9.4
 
 #+begin_src sh
 $ mkdir ~/maven
@@ -29,3 +35,15 @@ $ unzip apache-maven-3.9.4-bin.zip
 export PATH=$PATH:~/bin/:~/maven/apache-maven-3.9.4/bin/
 #+end_src
 
+** 3.9.5
+
+#+begin_src sh
+$ mkdir ~/maven
+$ cd ~/maven
+$ wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip
+$ unzip apache-maven-3.9.5-bin.zip
+#+end_src
+
+#+begin_src sh
+export PATH=$PATH:~/bin/:~/maven/apache-maven-3.9.5/bin/
+#+end_src
