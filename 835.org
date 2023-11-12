@@ -1,0 +1,74 @@
+#+BLOG: wurly-blog
+#+POSTID: 835
+#+ORG2BLOG:
+#+DATE: [2023-11-12 日 15:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL 2.0.0 (2.0.9) へアップデート
+
+* 概要
+
+2023年9月に WSL 2.0.0 がリリースされました。
+
+これまでの経緯として、WSL から WSL2 への移行があり、今回はWSL2においての 1.X.X から 2.X.X への移行であり、少しわかりにくいです。
+
+今回の私の環境でのアップデートにおいては、1.2.5.0 から 2.0.9.0 へのアップデートとなりました。
+
+これまでのバージョンでもWSLは非常に有用ですが、メモリの消費が大きいところは気になっていました。
+今回そのあたりが改善している模様なので期待したいと思います。
+
+* 参考
+ - [[https://www.mapion.co.jp/news/column/cobs2663485-1-all/][WSL 2.0.0の新機能とは？Microsoftが発表：マピオンニュース]]
+https://www.mapion.co.jp/news/column/cobs2663485-1-all/
+
+ - [[https://atmarkit.itmedia.co.jp/ait/articles/2309/22/news045.html][Microsoft、「Windows Subsystem for Linux」の最新版「WSL 2.0.0」公開：「自動メモリ解放」「ディスク容量の自動クリーンアップ」など実験的機能も - ＠IT]]
+https://atmarkit.itmedia.co.jp/ait/articles/2309/22/news045.html
+
+ - [[https://zenn.dev/dozo/articles/dd574ffa43d3f7][WSL2 2.0.0がこっそリリース]]
+https://zenn.dev/dozo/articles/dd574ffa43d3f7
+
+ - [[https://forest.watch.impress.co.jp/docs/news/1532311.html][「Windows Subsystem for Linux」がv2.0.0に、多数の試験機能を追加 - 窓の杜]]
+https://forest.watch.impress.co.jp/docs/news/1532311.html
+
+ - [[https://kledgeb.blogspot.com/2023/09/wsl-273-wsl-200wsl-200.html][WSL その273 - WSL 2.0.0がリリースされました・WSL 2.0.0の新機能や変更点と数々の実験的な新機能の導入 - kledgeb]]
+https://kledgeb.blogspot.com/2023/09/wsl-273-wsl-200wsl-200.html
+
+* 手順
+
+** アップデート前のバージョンの確認
+
+#+begin_src 
+PS> wsl --version
+WSL バージョン: 1.2.5.0
+カーネル バージョン: 5.15.90.1
+WSLg バージョン: 1.0.51
+MSRDC バージョン: 1.2.3770
+Direct3D バージョン: 1.608.2-61064218
+DXCore バージョン: 10.0.25131.1002-220531-1700.rs-onecore-base2-hyp
+Windows バージョン: 10.0.22621.2428
+#+end_src
+
+** アップデート
+
+リリースのアナウンスはされていますが、まだプレリリース版という扱いのようで、--pre-release のオプションが必要となります。
+
+#+begin_src 
+PS> wsl --update --pre-release
+更新プログラムを確認しています。
+Linux 用 Windows サブシステムをバージョンに更新しています: 2.0.9。
+#+end_src
+
+** アップデート後のバージョンの確認
+
+#+begin_src 
+PS> wsl --version
+WSL バージョン: 2.0.9.0
+カーネル バージョン: 5.15.133.1-1
+WSLg バージョン: 1.0.59
+MSRDC バージョン: 1.2.4677
+Direct3D バージョン: 1.611.1-81528511
+DXCore バージョン: 10.0.25131.1002-220531-1700.rs-onecore-base2-hyp
+Windows バージョン: 10.0.22621.2428
+#+end_src
