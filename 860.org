@@ -1,0 +1,34 @@
+#+BLOG: wurly-blog
+#+POSTID: 860
+#+ORG2BLOG:
+#+DATE: [2023-11-19 日 13:20]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Azure
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に Azure CLI をインストール
+
+* 概要
+
+Ubuntu 22.04 に Azure CLI をインストールします。
+
+* 公式
+
+ - [[https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt][Install the Azure CLI on Linux | Microsoft Learn]]
+https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
+
+上記の Option 2: Step-by-step installation instructions の手順を基に行いました。
+
+* 実際に行った手順
+
+公式手順と同等の内容ですが、少ない行数となるようにコマンドをまとめました。
+
+#+begin_src bash
+curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+#+end_src
+
+#+begin_src bash
+sudo apt-get update
+sudo apt-get install azure-cli
+#+end_src
