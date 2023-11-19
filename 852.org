@@ -1,0 +1,71 @@
+#+BLOG: wurly-blog
+#+POSTID: 852
+#+ORG2BLOG:
+#+DATE: [2023-11-19 日 10:50]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に kubectl をインストール (apt-keyを使用しない方法)
+
+* 概要
+
+Ubuntu 22.04 に kubectl をインストールします。
+
+ここで、公式手順では apt-key を使用する内容になっています。
+しかし、Ubuntu 22.04 では apt-key 実行時、OK とはなりますが、"Warning: apt-key is deprecated." という警告が出ます。
+
+#+begin_src 
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+#+end_src
+
+docker-ce のインストール方法やその他を参考に、apt-key を使わない方法でインストールしてみました。
+
+* 公式手順
+
+ - https://kubernetes.io/ja/docs/tasks/tools/install-kubectl/
+
+#+begin_quote
+Ubuntu、DebianまたはHypriotOS
+#+end_quote
+
+#+begin_src bash
+sudo apt-get update && sudo apt-get install -y apt-transport-https gnupg2
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubectl
+#+end_src
+
+* 今回行った方法
+
+下記のように実行したところ、インストールできました。
+
+#+begin_src bash
+$ curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/cloud.google.gpg
+$ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/cloud.google.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install kubectl
+#+end_src
+
+結果として、/etc/apt/keyrings/ に cloud.google.gpg が作成され、/etc/apt/sources.list.d/ に kubernetes.list が生成されることになります。
+
+kubernetes.list は下記の内容になります。
+
+#+begin_src 
+deb [arch=amd64 signed-by=/etc/apt/keyrings/cloud.google.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
+#+end_src
+
+* 参考
+
+ - [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]]
+
+ - [[https://qiita.com/SolKul/items/5b87bcf325db63b0ea28][apt-keyを使わないサードパーティーリポジトリからのパッケージのインストール方法 #Ubuntu - Qiita]]
+https://qiita.com/SolKul/items/5b87bcf325db63b0ea28
+
+ - [[https://cloud.google.com/sdk/docs/install?hl=ja#deb][gcloud CLI をインストールする  |  Google Cloud CLI のドキュメント]]
+https://cloud.google.com/sdk/docs/install?hl=ja#deb
+
