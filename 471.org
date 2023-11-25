@@ -3,10 +3,10 @@
 #+ORG2BLOG:
 #+DATE: [2023-06-24 Sat 17:42]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: WSL
+#+CATEGORY: WSL, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: WSL2 Mozc カスタマイズ
+#+TITLE:  Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (fcitx-mozc)
 
 * 概要
 
