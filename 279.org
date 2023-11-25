@@ -3,14 +3,14 @@
 #+ORG2BLOG:
 #+DATE: [2023-03-11 Sat 16:15]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: WSL
+#+CATEGORY: WSL, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: WSL2(WSLg) 日本語環境
+#+TITLE: WSL2(WSLg) Ubuntu 日本語環境 (fcitx-mozc)
 
 * 概要
 
-WSL2(WSLg)はインストールしただけでは日本語環境が設定されない為、下記のような事象が発生します。(2023年3月時点)
+WSL2(WSLg)にUbuntuをインストールしただけでは日本語環境が設定されない為、下記のような事象が発生します。(2023年3月時点)
 
  - 日本語の文字が文字化けする
  - 日本語の入力ができない
@@ -89,11 +89,11 @@ $ cat << 'EOS' | sudo tee /etc/fonts/local.conf
 EOS
 #+end_src
 
-* Mozcについて
+* Mozc(fcitx-mozc)について
 
-当初は上記ページで紹介されているMozcもインストールしたのですが、多くのMozcのショートカットがEmacsのショートカットと競合する為、現在は使用していません。
+当初は上記ページで紹介されているMozc(fcitx-mozc)もインストールしたのですが、多くのショートカットがEmacsのショートカットと競合する為、現在は使用していません。
 私の場合はフォント設定だけで十分でした。
-[[./?p=471][WSL2 Mozc カスタマイズ]] を参照ください。
+[[./?p=471][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (fcitx-mozc)]] を参照ください。
 
 * ダブルクォートでなく"2"が入力されてしまう不具合
 
