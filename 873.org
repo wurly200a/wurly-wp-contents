@@ -1,0 +1,76 @@
+#+BLOG: wurly-blog
+#+POSTID: 873
+#+ORG2BLOG:
+#+DATE: [2023-11-25 土 14:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu IM (Input Method)、特にfcitxとibusについて
+
+* 概要
+
+ - [[https://www.linux-setting.tokyo/2023/04/linuxibus-mozc-vs-fcitx-mozcibus.html][Linuxの日本語入力環境　ibus-mozc v.s. fcitx-mozc：基本中の基本・・ibus-mozcとfcitx-mozcの徹底的な違いって何？]]
+https://www.linux-setting.tokyo/2023/04/linuxibus-mozc-vs-fcitx-mozcibus.html
+
+上記によると、ibus-mozcとfcitx-mozcはLinuxの日本語入力環境として使用されるものであり、fcitx-mozcの方がアプリケーションウィンドウ毎にで日本語入力のOn/Offの状態を持つことが可能である点で使いやすいとのことです。
+
+なお、Ubuntu 22.04 LTS 日本語 Remix版をインストールした際の既定は ibus-mozc でした。
+
+ - [[https://hirooka.pro/ubuntu-22-04-lts-japanese-input-ibus-fcitx-mozc/][Ubuntu 22.04 LTSで日本語入力 (iBus – Mozc, Fcitx – Mozc)│hirooka.pro]]
+https://hirooka.pro/ubuntu-22-04-lts-japanese-input-ibus-fcitx-mozc/
+
+上記には、ibus-mozc と fcitx-mozc それぞれへの切り替え方法、設定方法が説明されています。
+
+当初、fcitx-mocz の方が使いやすいとのことで、そちらをインストールして切り替えたところ、確かに高機能なように見えました。
+ただ、既定ではUSキーボードの設定となっており、それからJPキーボードへの切り替え方法に苦戦したため、ibus-moczに戻し、こちらを使うことにしました。
+
+なお、ibus と fcitx のどちらを使うかを切り替えられますが、両方インストールしているとうまく動かないことがあるため、使わないものについては削除した方がよさそうです。
+
+ - 地域と言語(Region & Language) → インストールされている言語の管理(Manage Installed Languages)
+ - コマンド "im-config -n ibus" or "im-config -n fcitx5"
+
+* im-config
+
+GUIから ibus と fcitx を含む、IM の切り替えができるようなのですが、私の環境では設定が反映されているのか定かではないです。
+
+file:images/873_01.jpg
+
+file:images/873_02.jpg
+
+file:images/873_03.jpg
+
+file:images/873_04.jpg
+
+file:images/873_05.jpg
+
+
+* ibus-mozc
+
+ - [[https://rikoubou.hatenablog.com/entry/2023/04/05/140156][【WSL】リモートデスクトップでGUI化したUbuntuを日本語入力可能にする - ソースに絡まるエスカルゴ]]
+
+WSLでも、ibus-setup にて設定はできるのですが、どうしても実際の日本語入力ができません。
+(Input Methodが切り替わった後、キーを入力しても文字が表示されない)
+
+* 参考
+
+** ibus
+ - [[https://wiki.archlinux.jp/index.php/IBus][IBus - ArchWiki]]
+ - [[https://www.yokoweb.net/2022/06/30/ubuntu-emoji-ibus-setup/][Ubuntu 22.04 Desktopで、CTRL+. の絵文字ショートカットキーを変更 | The modern stone age.]]
+
+** fcitx
+ - [[https://notekunst.hatenablog.com/entry/fcitx-mozc][日本語入力の設定（fcitx + mozc） - Note to Self by notekunst]]
+ - [[https://wiki.archlinux.jp/index.php/Fcitx5][Fcitx5 - ArchWiki]]
+ - [[https://forums.ubuntulinux.jp/viewtopic.php?id=21498][Ubuntu日本語フォーラム / fcitxが自動で起動しません]]
+ - [[https://pc.shigizemi.com/2018/04/08/ubuntu%e3%81%aelibreoffice%e3%81%aecalc%e3%81%a7%e6%97%a5%e4%bb%98%e3%82%92%e3%80%8cctl%e3%80%8d%e3%81%a7%e5%85%a5%e5%8a%9b/][UbuntuのLibreOfficeのcalcで「Ctl+;」が使えない | Ubuntu | 福岡県パソコンサポート|志義どっとPC]]
+
+
+
+# images/873_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_01.jpg
+
+# images/873_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_02-1.jpg
+# images/873_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_05-1.jpg
+
+# images/873_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_03-1.jpg
+
+# images/873_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_04-1.jpg
