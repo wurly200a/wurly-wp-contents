@@ -1,0 +1,107 @@
+#+BLOG: wurly-blog
+#+POSTID: 866
+#+ORG2BLOG:
+#+DATE: [2023-11-25 土 08:35]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 日本語 Input Method の設定 (fcitx-mozc)
+
+* 概要
+
+WSL上のUbuntuではしばらく日本語入力はEmacs上でしか行っていなかったのですが、そちらでは日本語変換の品質が低いので、やはりmozcを使いたくなりました。
+
+Emacs上だけmozcを使うこともできそうですが、Chromeなどでもできれば使いたいので、IM(Input Method)で使えるようにします。
+
+できれば、日本語 Remix でも使用されている ibus-mozc を使いたかったのですが、いろいろトライしてみても、WSL上では動作しなかったので、fcitx-mozc を使うことにします。
+
+[[./?p=873][Ubuntu IM (Input Method)、特にfcitxとibusについて]] もご覧ください。
+
+
+* fcitx-mozc のインストール
+
+#+begin_src bash
+$ sudo apt install fcitx-mozc
+#+end_src
+
+* fcitx-mozc の設定
+
+~/.profile に下記を追記します。
+
+#+begin_src bash
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=@im=fcitx
+export DefaultIMModule=fcitx
+if [ $SHLVL = 1 ] ; then
+    fcitx-autostart > /dev/null 2>&1
+    xset -r 49
+fi
+#+end_src
+
+* ショートカットの設定変更
+
+ - [[./?p=471][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (fcitx-mozc)]]
+
+* キーボードを日本語配列にする
+
+ - [[https://tkyonezu.com/os-linux-windows/ubuntu-server-20-04%E3%82%92%E6%97%A5%E6%9C%AC%E8%AA%9E%E5%8C%96%E3%81%99%E3%82%8B/][Ubuntu Server 20.04を日本語化する | Takeshi Yonezu]]
+
+#+begin_src bash
+$ sudo localectl set-x11-keymap jp jp106
+$ localectl
+   System local: LANG=ja_JP.UTF-8
+       VC keymap: jp106
+     x11 Layout: jp
+       x11 Model: jp106
+#+end_src
+
+* ロケール
+ - [[https://scratchpad.jp/ubuntu-on-windows11-2/#toc4][UbuntuをWindows11上で動かす その2: 環境の整備 | メモ置場のブログ]]
+
+* インライン入力の設定
+ - [[https://dev.to/nabbisen/fcitx--1n59][Fcitx: リアルタイム入力（インライン入力）のための設定 - DEV Community]]
+
+私の環境ではインライン入力ができておらず、日本語入力が別ウィンドウで行われる状態です。
+上記を参考にインライン入力の設定はできたのですが、表示は変わらずでした。
+
+* 参考
+
+** xset -r の意味
+ - [[https://netlog.jpn.org/r271-635/2021/08/windows10ver21h1_wsl2_gui_jp.html][Windows 10バージョン21H1でのWSL2のGUI日本語化 (r271-635)]]
+
+上記より
+
+#+begin_quote
+xset -r は、キーのリピートを無効にするという意味合いで、全角・半角キーと重複するキーコード 49 『 ` 』が無駄にリピート入力されるバグを抑える働きをする。
+#+end_quote
+
+** 日本語 Remixに追加されているパッケージをインストール
+
+ - [[https://www.ubuntulinux.jp/japanese][Ubuntuの日本語環境 | Ubuntu Japanese Team]]
+
+Ubuntu 22.04 の場合
+
+#+begin_src bash
+sudo wget https://www.ubuntulinux.jp/ubuntu-jp-ppa-keyring.gpg -P /etc/apt/trusted.gpg.d/
+sudo wget https://www.ubuntulinux.jp/ubuntu-ja-archive-keyring.gpg -P /etc/apt/trusted.gpg.d/
+sudo wget https://www.ubuntulinux.jp/sources.list.d/jammy.list -O /etc/apt/sources.list.d/ubuntu-ja.list
+sudo apt update
+#+end_src
+
+#+begin_src bash
+$ sudo apt-get install ubuntu-defaults-ja
+#+end_src
+
+** gnome-session-properties
+
+gnome-session-properties でスタートアップ設定ができるようです。
+
+#+begin_src bash
+$ sudo apt install gnome-startup-applications
+#+end_src
+
+#+begin_src bash
+$ gnome-session-properties
+#+end_src
