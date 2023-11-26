@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2023-11-25 土 08:35]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: WSL, Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 日本語 Input Method の設定 (fcitx-mozc)
@@ -39,6 +39,15 @@ if [ $SHLVL = 1 ] ; then
     xset -r 49
 fi
 #+end_src
+
+* 設定
+
+#+begin_src bash
+$ fcitx-config-gtk3&
+#+end_src
+
+Input Method のタブで Mozc を追加し、Global Config のところで Trigger Input Method のところを Zenkakuhankaku に設定する。
+Extra key for trigger input method は Disable にする。
 
 * ショートカットの設定変更
 
