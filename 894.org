@@ -30,6 +30,8 @@ Ubuntu 22.04 で各種開発を行う環境を構築する際のインストー�
 
  - [[./?p=856][Ubuntu 22.04 に helm をインストール]]
 
+ - [[./?p=903][Ubuntu 22.04 に kind をインストール]]
+
  - [[./?p=860][Ubuntu 22.04 に Azure CLI をインストール]]
 
 * Java
@@ -38,6 +40,9 @@ Ubuntu 22.04 で各種開発を行う環境を構築する際のインストー�
  - [[./?p=578][Ubuntu 22.04(WSL) に OpenJDK 17 をインストール]]
 
  - [[./?p=587][Ubuntu 22.04(WSL) に IntelliJ IDEA をインストール]]
+
+* Python
+ - [[./?p=908][Ubuntu 22.04 に Python venv をインストール]]
 
 * Rust
  - [[./?p=777][EmacsによるRust開発環境構築]]
