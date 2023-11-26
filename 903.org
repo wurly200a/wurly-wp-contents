@@ -1,0 +1,27 @@
+#+BLOG: wurly-blog
+#+POSTID: 903
+#+ORG2BLOG:
+#+DATE: [2023-11-26 Sun 15:18]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に kind をインストール
+
+* 概要
+
+kindをインストールします。
+
+ - [[https://kind.sigs.k8s.io/][kind]]
+  - [[https://kind.sigs.k8s.io/docs/user/quick-start/][kind – Quick Start]]
+
+https://kind.sigs.k8s.io/
+
+* インストール方法 (v0.20.0)
+
+#+begin_src bash
+# For AMD64 / x86_64
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+#+end_src
