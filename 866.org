@@ -14,10 +14,30 @@ WSL上のUbuntuではしばらく日本語入力はEmacs上でしか行ってい
 
 Emacs上だけmozcを使うこともできそうですが、Chromeなどでもできれば使いたいので、IM(Input Method)で使えるようにします。
 
-できれば、日本語 Remix でも使用されている ibus-mozc を使いたかったのですが、いろいろトライしてみても、WSL上では動作しなかったので、fcitx-mozc を使うことにします。
+日本語 Remix では ibus-mozc が採用されていますが、いろいろトライしてみてもWSL上では動作しなかったので、fcitx-mozc を使うことにしました。
 
 [[./?p=873][Ubuntu IM (Input Method)、特にfcitxとibusについて]] もご覧ください。
 
+下記に記載した内容は、どれが必須で、どの順番で行えばよいのかを確定できていません。
+
+トライ＆エラーで何度か実行することで、使用できるようになりました。
+
+* 日本語 Remixに追加されているパッケージをインストール
+
+ - [[https://www.ubuntulinux.jp/japanese][Ubuntuの日本語環境 | Ubuntu Japanese Team]]
+
+Ubuntu 22.04 の場合
+
+#+begin_src bash
+sudo wget https://www.ubuntulinux.jp/ubuntu-jp-ppa-keyring.gpg -P /etc/apt/trusted.gpg.d/
+sudo wget https://www.ubuntulinux.jp/ubuntu-ja-archive-keyring.gpg -P /etc/apt/trusted.gpg.d/
+sudo wget https://www.ubuntulinux.jp/sources.list.d/jammy.list -O /etc/apt/sources.list.d/ubuntu-ja.list
+sudo apt update
+#+end_src
+
+#+begin_src bash
+$ sudo apt-get install ubuntu-defaults-ja
+#+end_src
 
 * fcitx-mozc のインストール
 
@@ -40,18 +60,39 @@ if [ $SHLVL = 1 ] ; then
 fi
 #+end_src
 
-* 設定
+* im-config
+
+#+begin_src bash
+$ im-config&
+#+end_src
+
+fcitx を選択します。
+
+file:images/873_01.jpg
+
+file:images/873_02.jpg
+
+file:images/873_03.jpg
+
+file:images/873_04.jpg
+
+file:images/873_05.jpg
+
+* fcitx-config-gtk3
 
 #+begin_src bash
 $ fcitx-config-gtk3&
 #+end_src
 
-Input Method のタブで Mozc を追加し、Global Config のところで Trigger Input Method のところを Zenkakuhankaku に設定する。
-Extra key for trigger input method は Disable にする。
-
-* ショートカットの設定変更
-
- - [[./?p=471][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (fcitx-mozc)]]
+ - Input Method のタブで Mozc を追加します。
+ - 全角/半角 キーで Mozc へ切り替える場合
+  - Global Config のところで Trigger Input Method のところを Zenkakuhankaku に設定します。
+  - Extra key for trigger input method は Disable にします。
+ - ショートカットの設定変更
+  - [[./?p=471][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (fcitx-mozc)]]
+ - インライン入力の設定
+  - [[https://dev.to/nabbisen/fcitx--1n59][Fcitx: リアルタイム入力（インライン入力）のための設定 - DEV Community]]
+  - 私の環境ではインライン入力ができておらず、日本語入力が別ウィンドウで行われる状態です。上記を参考にインライン入力の設定はできたのですが、表示は変わらずでした。
 
 * キーボードを日本語配列にする
 
@@ -66,14 +107,18 @@ $ localectl
        x11 Model: jp106
 #+end_src
 
-* ロケール
+* 日本語ロケールの追加
+
+下記を実行し、ja_JP.UTF-8 をマークすることで、日本語ロケールがインストールできます。
+
+#+begin_src bash
+$ sudo dpkg-reconfigure locales
+#+end_src
+
+下記を参考にしました。
+
  - [[https://scratchpad.jp/ubuntu-on-windows11-2/#toc4][UbuntuをWindows11上で動かす その2: 環境の整備 | メモ置場のブログ]]
-
-* インライン入力の設定
- - [[https://dev.to/nabbisen/fcitx--1n59][Fcitx: リアルタイム入力（インライン入力）のための設定 - DEV Community]]
-
-私の環境ではインライン入力ができておらず、日本語入力が別ウィンドウで行われる状態です。
-上記を参考にインライン入力の設定はできたのですが、表示は変わらずでした。
+https://scratchpad.jp/ubuntu-on-windows11-2/#toc4
 
 * 参考
 
@@ -86,23 +131,6 @@ $ localectl
 xset -r は、キーのリピートを無効にするという意味合いで、全角・半角キーと重複するキーコード 49 『 ` 』が無駄にリピート入力されるバグを抑える働きをする。
 #+end_quote
 
-** 日本語 Remixに追加されているパッケージをインストール
-
- - [[https://www.ubuntulinux.jp/japanese][Ubuntuの日本語環境 | Ubuntu Japanese Team]]
-
-Ubuntu 22.04 の場合
-
-#+begin_src bash
-sudo wget https://www.ubuntulinux.jp/ubuntu-jp-ppa-keyring.gpg -P /etc/apt/trusted.gpg.d/
-sudo wget https://www.ubuntulinux.jp/ubuntu-ja-archive-keyring.gpg -P /etc/apt/trusted.gpg.d/
-sudo wget https://www.ubuntulinux.jp/sources.list.d/jammy.list -O /etc/apt/sources.list.d/ubuntu-ja.list
-sudo apt update
-#+end_src
-
-#+begin_src bash
-$ sudo apt-get install ubuntu-defaults-ja
-#+end_src
-
 ** gnome-session-properties
 
 gnome-session-properties でスタートアップ設定ができるようです。
@@ -114,3 +142,9 @@ $ sudo apt install gnome-startup-applications
 #+begin_src bash
 $ gnome-session-properties
 #+end_src
+
+# images/873_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_01-1.jpg
+# images/873_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_02.jpg
+# images/873_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_03.jpg
+# images/873_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_04.jpg
+# images/873_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/11/873_05.jpg
