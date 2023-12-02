@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2023-12-02 土 13:00]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Emacs
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 で Emacs 29.1 をpgtk ビルドでインストール
