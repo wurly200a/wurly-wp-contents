@@ -1,0 +1,151 @@
+#+BLOG: wurly-blog
+#+POSTID: 925
+#+ORG2BLOG:
+#+DATE: [2023-12-02 土 13:00]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 で Emacs 29.1 をpgtk ビルドでインストール
+
+* 概要
+
+ - [[https://gihyo.jp/admin/serial/01/ubuntu-recipe/0717][第717回　Ubuntu 22.04 LTSにおける、Waylandとアプリケーションの微妙な関係 | gihyo.jp]]
+https://gihyo.jp/admin/serial/01/ubuntu-recipe/0717
+
+上記の記事を読んでいて、EmacsがWaylandに対応しているのか気になりました。
+
+29.1からはpgtk(Pure GTK)のビルドに対応しているということなので、これを試してみます。
+
+x11ビルドでは、たまにEmacsがgtkのバグであるという捨て台詞を残して落ちるときがあるので、これで改善されていることを期待します。
+
+参考
+
+ - [[https://www.linuxadictos.com/ja/emacs-29-1-llega-con-soporte-para-wayland-mejoras-y-mas.html][Emacs 29.1 は Wayland のサポート、改善などを備えて登場 | Linux中毒者]]
+https://www.linuxadictos.com/ja/emacs-29-1-llega-con-soporte-para-wayland-mejoras-y-mas.html
+
+ - [[https://batsov.com/articles/2021/12/19/building-emacs-from-source-with-pgtk/][Building Emacs from Source with pgtk - (think)]]
+https://batsov.com/articles/2021/12/19/building-emacs-from-source-with-pgtk/
+
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src 
+$ git clone --depth 1 --branch emacs-29.1 git://git.savannah.gnu.org/emacs.git emacs-29.1
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+#+begin_src 
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libm17n-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev
+#+end_src
+
+** Makefileの生成
+
+#+begin_src bash
+cd emacs-29.1
+./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop
+#+end_src
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 -lz
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  no
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             no
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes -lglibc (inotify)
+  Does Emacs use access control lists?                    yes -lacl
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ljansson?                               yes
+  Does Emacs use -ltree-sitter?                           no
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            no
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+#+end_src
+
+pgtkを有効にしない場合は "What window system should Emacs use?" が "x11" でしたが、これが "pgtk" になります。
+また、その他いくつかの項目が"no"または空欄となりました。
+
+#+begin_src 
+  What window system should Emacs use?                    pgtk
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lxft?                                   
+  Does Emacs use version 2 of the X Input Extension?      no
+#+end_src
+
+** make
+
+#+begin_src 
+make -j8
+#+end_src
+
+** make install
+
+#+begin_src 
+sudo make install
+#+end_src
