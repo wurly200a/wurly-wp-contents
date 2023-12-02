@@ -85,6 +85,7 @@ $ fcitx-config-gtk3&
 #+end_src
 
  - Input Method のタブで Mozc を追加します。
+ - また、ここで一番上が 「Keyboard - English (US)」 (「キーボード - 英語 (US)」)になっている場合は、これを削除し、新たに 「Keyboard - japanese」(「キーボード - 日本語」)を追加し、一番上になるように移動します。
  - 全角/半角 キーで Mozc へ切り替える場合
   - Global Config のところで Trigger Input Method のところを Zenkakuhankaku に設定します。
   - Extra key for trigger input method は Disable にします。
