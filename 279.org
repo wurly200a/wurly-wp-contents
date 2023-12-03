@@ -8,6 +8,10 @@
 #+DESCRIPTION:
 #+TITLE: WSL2(WSLg) Ubuntu 日本語環境 (fcitx-mozc)
 
+* 非推奨
+
+(2023.12.03) 本ページの内容は古くなっています。最新の内容については [[./?p=866][Ubuntu 日本語 Input Method の設定 (fcitx-mozc)]] を参照ください。
+
 * 概要
 
 WSL2(WSLg)にUbuntuをインストールしただけでは日本語環境が設定されない為、下記のような事象が発生します。(2023年3月時点)
