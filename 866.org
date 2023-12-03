@@ -10,7 +10,8 @@
 
 * 概要
 
-WSL上のUbuntuではしばらく日本語入力はEmacs上でしか行っていなかったのですが、そちらでは日本語変換の品質が低いので、やはりmozcを使いたくなりました。
+WSL上のUbuntuを使い始めてしばらくは、fcitx-mozcの設定が上手く行かなかったので、日本語入力はEmacs上でしか行っていませんでした。
+そちらでは日本語変換の品質が低いので、やはりmozcを使いたくなりました。
 
 Emacs上だけmozcを使うこともできそうですが、Chromeなどでもできれば使いたいので、IM(Input Method)で使えるようにします。
 
@@ -18,7 +19,7 @@ Emacs上だけmozcを使うこともできそうですが、Chromeなどでも�
 
 [[./?p=873][Ubuntu IM (Input Method)、特にfcitxとibusについて]] もご覧ください。
 
-下記に記載した内容は、どれが必須で、どの順番で行えばよいのかを確定できていません。
+現時点では、下記に記載した内容は、どれが必須で、どの順番で行えばよいのかを確定できていません。
 
 トライ＆エラーで何度か実行することで、使用できるようになりました。
 
@@ -38,6 +39,84 @@ sudo apt update
 #+begin_src bash
 $ sudo apt-get install ubuntu-defaults-ja
 #+end_src
+
+* 日本語言語パックのインストール
+
+#+begin_src 
+$ sudo apt -y install language-pack-ja
+#+end_src
+
+* Windowsの日本語フォントを使用する設定
+
+#+begin_src sh
+$ cat << 'EOS' | sudo tee /etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>/mnt/c/Windows/Fonts</dir>
+</fontconfig>
+<!-- Created by bash script from https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/ -->
+EOS
+#+end_src
+
+* キーボードを日本語配列にする
+
+日本語関連設定が何もされていない場合、下記のようになっているはずです。
+
+#+begin_src
+$ localectl
+   System Locale: LANG=C.UTF-8
+       VC Keymap: n/a
+      X11 Layout: us
+       X11 Model: pc105
+#+end_src
+
+jp106 に設定します。
+
+#+begin_src bash
+$ sudo localectl set-x11-keymap jp jp106
+$ localectl
+   System local: LANG=C.UTF-8
+       VC keymap: jp106
+     x11 Layout: jp
+       x11 Model: jp106
+#+end_src
+
+** 参考
+ - [[https://tkyonezu.com/os-linux-windows/ubuntu-server-20-04%E3%82%92%E6%97%A5%E6%9C%AC%E8%AA%9E%E5%8C%96%E3%81%99%E3%82%8B/][Ubuntu Server 20.04を日本語化する | Takeshi Yonezu]]
+
+* ロケール
+
+** 日本語ロケールの追加
+
+下記を実行し、ja_JP.UTF-8 をマークすることで、日本語ロケールがインストールできます。
+
+最後にシステムロケールの選択ができます。
+
+#+begin_src bash
+$ sudo dpkg-reconfigure locales
+#+end_src
+
+システム上のメッセージ(マニュアル、エラーなど)を全て日本語にしたい場合には、システムロケールは Ja_JP.UTF8 にするのが良いと思います。
+私は、英語のままがよいので C.UTF-8 にしています。
+
+** システムロケールの選択
+
+コマンドで行う場合には下記のように設定できます。
+
+#+begin_src bash
+$ sudo update-locale LANG=C.UTF8
+#+end_src
+
+#+begin_src bash
+$ sudo update-locale LANG=ja_JP.UTF8
+#+end_src
+
+** 参考
+下記を参考にしました。
+
+ - [[https://scratchpad.jp/ubuntu-on-windows11-2/#toc4][UbuntuをWindows11上で動かす その2: 環境の整備 | メモ置場のブログ]]
+https://scratchpad.jp/ubuntu-on-windows11-2/#toc4
 
 * fcitx-mozc のインストール
 
@@ -95,33 +174,33 @@ $ fcitx-config-gtk3&
   - [[https://dev.to/nabbisen/fcitx--1n59][Fcitx: リアルタイム入力（インライン入力）のための設定 - DEV Community]]
   - 私の環境ではインライン入力ができておらず、日本語入力が別ウィンドウで行われる状態です。上記を参考にインライン入力の設定はできたのですが、表示は変わらずでした。
 
-* キーボードを日本語配列にする
+* gnome-tweaks
 
- - [[https://tkyonezu.com/os-linux-windows/ubuntu-server-20-04%E3%82%92%E6%97%A5%E6%9C%AC%E8%AA%9E%E5%8C%96%E3%81%99%E3%82%8B/][Ubuntu Server 20.04を日本語化する | Takeshi Yonezu]]
-
-#+begin_src bash
-$ sudo localectl set-x11-keymap jp jp106
-$ localectl
-   System local: LANG=ja_JP.UTF-8
-       VC keymap: jp106
-     x11 Layout: jp
-       x11 Model: jp106
-#+end_src
-
-* 日本語ロケールの追加
-
-下記を実行し、ja_JP.UTF-8 をマークすることで、日本語ロケールがインストールできます。
+gnome-tweaks で Gnome の設定を開くことができます。
 
 #+begin_src bash
-$ sudo dpkg-reconfigure locales
+apt install gnome-tweaks
 #+end_src
 
-下記を参考にしました。
+キーボード設定など、ここから設定できるものもあるかもしれません。
 
- - [[https://scratchpad.jp/ubuntu-on-windows11-2/#toc4][UbuntuをWindows11上で動かす その2: 環境の整備 | メモ置場のブログ]]
-https://scratchpad.jp/ubuntu-on-windows11-2/#toc4
+* dpkg-reconfigure keyboard-configuration
+
+コンソールで使うキーボードレイアウトの設定ができるようですが、WSLからだと下記のメッセージが表示され、実行できません。
+
+#+begin_src bash
+$ sudo dpkg-reconfigure keyboard-configuration
+Your console font configuration will be updated the next time your system
+boots. If you want to update it now, run 'setupcon' from a virtual console.
+#+end_src
 
 * 参考
+
+** 参考ページ
+ - [[https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/#][Win11のWSL2 (WSLg)を日本語化 & Mozcで日本語入力 | AsTechLog]]
+https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/
+
+多くの内容に関して上記を参考にしました。
 
 ** xset -r の意味
  - [[https://netlog.jpn.org/r271-635/2021/08/windows10ver21h1_wsl2_gui_jp.html][Windows 10バージョン21H1でのWSL2のGUI日本語化 (r271-635)]]
