@@ -66,7 +66,22 @@ $ sudo apt install zlib1g-dev \
 #+begin_src bash
 cd emacs-29.1
 ./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils
+#+end_src
+
+(追記)
+最初、下記のようにconfigureしていたのですが、--with-mailutils を使うようお勧めされたので、上記に変更しました。
+
+#+begin_src bash
 CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop
+#+end_src
+
+#+begin_src bash
+configure: You might want to install GNU Mailutils
+<https://mailutils.org> and use './configure --with-mailutils'.
+#+end_src
+
+#+begin_src bash
 #+end_src
 
 #+begin_src bash
@@ -149,3 +164,27 @@ make -j8
 #+begin_src 
 sudo make install
 #+end_src
+
+* 表示
+
+pgtkが無効(x11)の場合には、下記のようなウィンドウ(フレーム)でした。
+
+file:images/925_01.jpg
+
+pgtkバージョンでは少し違っており、最小化、最大化のボタンがなく、クローズボタンのみ左側にあります。
+
+file:images/925_02.jpg
+
+pgtkバージョンでは少し違っており、最小化、最大化のボタンがなく、クローズボタンのみ左側にあります。
+
+file:images/925_03.jpg
+
+これが、Gnome(Wayland)の機能でウィンドウを表示している証拠であり、gnome-tweaks (apt install gnome-tweaks でインストールできます)の設定によって下記のように変更することができました。
+
+file:images/925_04.jpg
+
+# images/925_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_01-1.jpg
+# images/925_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_02-1.jpg
+# images/925_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_03-1.jpg
+
+# images/925_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_04.jpg
