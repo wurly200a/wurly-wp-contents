@@ -8,6 +8,10 @@
 #+DESCRIPTION:
 #+TITLE: Ubuntu 22.04 (WSL) に Emacs 29.1 をインストール
 
+* お知らせ
+
+(2023年12月9日追記)この後、 [[./?p=925][Ubuntu 22.04 で Emacs 29.1 をpgtk ビルドでインストール]] を作成しています。pure GTK (Wayland) 版をビルド希望の場合にはそちらをご覧ください。
+
 * 概要
 
 Emacs29(Emacs 29.1)がリリースされましたので、これをビルドしてインストールしたいと思います。
@@ -24,7 +28,7 @@ $ git clone --depth 1 --branch emacs-29.1 git://git.savannah.gnu.org/emacs.git e
 
 ** ビルドに必要なツールとライブラリの取得
 
-(2023年11月12日追記、28.02ビルド時に行った手順に対して libsqlite3-dev を追加)
+(2023年11月12日追記、28.2ビルド時に行った手順に対して libsqlite3-dev を追加)
 
 #+begin_src 
 $ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
