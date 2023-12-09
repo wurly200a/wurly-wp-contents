@@ -177,9 +177,9 @@ file:images/925_02.jpg
 
 pgtkバージョンでは少し違っており、最小化、最大化のボタンがなく、クローズボタンのみ左側にあります。
 
-file:images/925_03.jpg
-
 これが、Gnome(Wayland)の機能でウィンドウを表示している証拠であり、gnome-tweaks (apt install gnome-tweaks でインストールできます)の設定によって下記のように変更することができました。
+
+file:images/925_03.jpg
 
 file:images/925_04.jpg
 
@@ -188,3 +188,156 @@ file:images/925_04.jpg
 # images/925_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_03-1.jpg
 
 # images/925_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_04.jpg
+
+* 設定
+
+** WSL上のEmacsからWindowsへコピー＆ペーストができるようにする
+
+しばらく快適に使っていたのですが、WSL上のEmacsからWindowsへコピー＆ペーストができなくなっていることに気づきました。
+
+ - [[https://zenn.dev/ignorant/scraps/4456a9fb017eb3][WSLg(Wayland) の Emacs(--with-pgtk) でのクリップボード]]
+https://zenn.dev/ignorant/scraps/4456a9fb017eb3
+
+上記ページを参考に下記のように設定し、コピー＆ペーストができるようになりました。
+
+wl-clipboardをインストールします。
+
+#+begin_src bash
+$ sudo apt install wl-clipboard
+#+end_src
+
+ここでは、featurep で pgtk が有効であることを確認し、wl-copy 及び wl-paste が実行可能であることを確認してから設定するようにしています。
+
+#+begin_src emacs-lisp
+(if (featurep 'pgtk)
+    ; you need to install "wl-clipboard" first
+    (if (and (zerop (call-process "which" nil nil nil "wl-copy"))
+             (zerop (call-process "which" nil nil nil "wl-paste")))
+        ;; credit: yorickvP on Github
+        (progn
+          (setq wl-copy-process nil)
+          (defun wl-copy (text)
+            (setq wl-copy-process (make-process :name "wl-copy"
+                                                :buffe*r nil
+                                                :command '("wl-copy" "-f" "-n")
+                                                :connection-type 'pipe))
+            (process-send-string wl-copy-process text)
+            (process-send-eof wl-copy-process))
+          (defun wl-paste ()
+            (if (and wl-copy-process (process-live-p wl-copy-process))
+                nil ; should return nil if we're the current paste owner
+              (shell-command-to-string "wl-paste -n | tr -d \r")))
+          (setq interprogram-cut-function 'wl-copy)
+          (setq interprogram-paste-function 'wl-paste)
+          )
+      ))
+#+end_src
+
+** Emacs起動時のWarning
+
+こちらも上記引用ページからですが、確かに起動時に下記のWarningが出ていました。
+
+#+begin_src bash
+Gdk-Message: 21:53:00.644: Unable to load sb_v_double_arrow from the cursor theme
+Gdk-Message: 21:53:00.644: Unable to load sb_h_double_arrow from the cursor theme
+Gdk-Message: 21:53:00.670: Unable to load hand2 from the cursor theme
+Gdk-Message: 21:53:00.670: Unable to load sb_h_double_arrow from the cursor theme
+Gdk-Message: 21:53:00.670: Unable to load sb_v_double_arrow from the cursor theme
+#+end_src
+
+adwaita-icon-theme-full をインストールし、dark テーマを設定しました。
+
+#+begin_src bash
+$ sudo apt install adwaita-icon-theme-full
+#+end_src
+
+#+begin_src bash
+export GTK_THEME=Adwaita:dark
+#+end_src
+
+カッコいい！！
+
+file:images/925_05.jpg
+
+** タスクバーやスタートメニューのアイコンがペンギンのまま
+
+#+begin_src bash
+$ sudo vi /usr/local/share/applications/emacs.desktop
+#+end_src
+
+下記のようになっています。
+
+#+begin_src
+Desktop Entry]
+Name=Emacs
+GenericName=Text Editor
+Comment=Edit text
+MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;
+Exec=emacs %F
+Icon=emacs
+Type=Application
+Terminal=false
+Categories=Development;TextEditor;
+StartupNotify=true
+StartupWMClass=Emacs
+#+end_src
+
+下記のように書き換えます。
+
+変更前
+
+#+begin_src 
+Icon=emacs
+#+end_src
+
+変更後
+
+#+begin_src 
+Icon=emacs29
+#+end_src
+
+各種サイズのアイコンが格納されているソースディレクトリに移動します。
+
+#+begin_src 
+$ cd ~/source/emacs-29.1/etc/images/icons/hicolor/
+#+end_src
+
+#+begin_src bash
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 128x128
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 16x16
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 24x24
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 32x32
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 48x48
+drwxr-xr-x 4 wurly wurly 4096 Dec  2 16:21 scalable
+#+end_src
+
+スクリプトを作成します。
+
+#+begin_src bash
+cat << 'EOS' > copy_emacs_icons.sh
+#!/bin/bash
+
+for d in *
+do
+    sudo cp "$d/apps/emacs.png" "/usr/share/icons/hicolor/$d/apps/emacs29.png"
+done
+EOS
+#+end_src
+
+スクリプトを実行します。
+
+#+begin_src bash
+$ chmod +x copy_emacs_icons.sh
+$ ./copy_emacs_icons.sh
+#+end_src
+
+下記メッセージが表示されてしまうのはご愛嬌ということで・・・
+
+#+begin_src bash
+cp: cannot stat 'copy_emacs_icons.sh/apps/emacs.png': Not a directory
+cp: cannot stat 'scalable/apps/emacs.png': No such file or directory
+#+end_src
+
+wslを再起動 (PowerShell から wsl --shutdown)すると反映されます。
+
+# images/925_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/925_05.jpg
