@@ -1,0 +1,86 @@
+#+BLOG: wurly-blog
+#+POSTID: 976
+#+ORG2BLOG:
+#+DATE: [2023-12-29 Fri 14:57]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: PC
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Adobe Photoshop Organizer のカタログを移動 (バージョン15から2024へ)
+
+* 概要
+
+Adobe Photoshop/Premiere Elements 付属の Organizer を写真管理に使っています。
+
+使い続けている一つの理由は、これを使うことで iPhone の写真アプリにアルバムを転送できる、ということがあります。
+
+3.0 (2005年) → 10 (2012年) → 15 (2017年) と使ってきましたが、今回、HEIF/HEVC のサポートが必要になったため、2024 にアップグレードしました。
+
+ - [[https://www.adobe.com/jp/products/photoshop-premiere-elements/faq.html][よくある質問 | Adobe Photoshop Elements 2024 & Premiere Elements 2024]]
+
+#+begin_quote
+Photoshop Elements 2024 & Premiere Elements 2024ではHEIFおよびHEVCはサポートされますか？
+はい。Windows、macOSのいずれでも、HEIF写真ファイルとHEVCビデオファイルを読み込み、編集することができます。HEVCを使用する場合は、Windowsで個別のライセンスが必要になります。
+#+end_quote
+
+file:images/976_01.jpg
+
+* カタログについて
+
+写真自体ではないのですが、写真の管理データは、カタログという形で保存されます。
+ただし、iPhoneと同期する場合、この一時データがカタログディレクトリ内に変換して保存されるため、ストレージの容量を消費します。(私の環境では35GB)
+
+カタログは既定ではCドライブに保存されますが、私のPC環境ではできるかぎりデータをDドライブに保存しているため、これまで、ずっとカタログの保存先をそちらに変更していました。
+
+* カタログの変換
+
+Organizer 2024 を起動すると、画面の指示に従うことで自動的に以前のバージョンをカタログが変換できます。
+
+file:images/976_02.jpg
+
+file:images/976_03.jpg
+
+* カタログの保存先の移動
+
+C:\ProgramData\Adobe\Elements Organizer\Catalogs に保存されていました。
+
+アプリケーションを終了し、任意のディレクトリに移動します。(私は D:\data\appdata\Adobe\Catalogs2024\My Catalog となるように保存しました)
+
+なお、ファイル移動中に「Elements Auto Creation というアプリケーションが dbファイルを使用中」とのことでコピーできなかったので、タスクマネージャーからこのバックグラウンドアプリを終了させました。
+
+再度、Organizer 2024 を起動し、画面の指示にしたがって移動先のディレクトリを指定し、My Catalog を「開く」とすることで、移動が完了します。
+
+file:images/976_04.jpg
+
+file:images/976_05.jpg
+
+file:images/976_06.jpg
+
+file:images/976_07.jpg
+
+* iPhone へ HIEF 画像が転送されない！
+
+Elements Organizer 2024 では HEIF画像(.HEIC)が管理できるようになりました。
+
+しかし、アルバムに写真を登録しても、iPhone の写真アプリに同期されないことがわかりました。
+
+また、HEVC(動画)についてはそもそもアルバムに登録できませんでした。
+
+同じアルバムに登録されたJPG画像は転送されるので、HEIFには対応していないように見えます。
+
+今後対応するのかどうか不明ですが、現時点では、iPhoneに保存されている写真・動画についてはiPhoneに残しておくのがよさそうです。
+(PCにはバックアップとしてコピーしておく)
+
+* HEIC(HEIF) から JPG への変換
+
+これまでの運用に合わせ、既に、PCに転送した画像と動画は、iPhoneから削除してしまいました。
+
+仕方がないので、既に削除してしまった画像については、JPGに変換してiPhoneに再転送することにします。詳細については [[./?p=990][HEIC(HEIF) から JPG への変換]] をご覧ください。
+
+# images/976_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_01.jpg
+# images/976_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_02.jpg
+# images/976_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_03.jpg
+# images/976_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_04.jpg
+# images/976_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_05.jpg
+# images/976_06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_06.jpg
+# images/976_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2023/12/976_07.jpg
