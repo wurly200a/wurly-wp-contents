@@ -1,0 +1,153 @@
+#+BLOG: wurly-blog
+#+POSTID: 1004
+#+ORG2BLOG:
+#+DATE: [2024-01-03 Wed 14:56]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: HEIF
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: heif-convert(libheif) を使って HEIC(HEIF) から JPG へ変換する
+
+* 概要
+
+heif-convert(libheif) を使って HEIC(HEIF) から JPG へ変換する方法です。
+
+ - [[https://github.com/strukturag/libheif/releases/tag/v1.17.6][Release v1.17.6 - maintenance · strukturag/libheif]]
+ - [[https://github.com/strukturag/libheif/releases?page=2][Releases · strukturag/libheif]]
+ - [[https://github.com/strukturag/libheif/issues/227][Handle image rotation for JPEG output · Issue #227 · strukturag/libheif]]
+
+* Ubuntu 22.04 で実行
+
+** 使用方法
+下記でインストールすれば使用できます。
+
+#+begin_src bash
+$ sudo apt install libheif-examples
+#+end_src
+
+#+begin_src bash
+$ sudo apt list | grep libheif
+libheif-dev/jammy 1.12.0-2build1 amd64
+libheif-examples/jammy,now 1.12.0-2build1 amd64
+libheif1/jammy,now 1.12.0-2build1 amd64
+#+end_src
+
+バージョン 1.12.0 では、下記の通り、オプションが少ないです。
+
+#+begin_src bash
+USAGE: heif-convert [-q quality 0..100] <filename> <output>
+#+end_src
+
+iPhoneの画像を変換すると、IMG_XXXX-urn:com:apple:photo:2020:aux:hdrgainmap.JPG のように、Auxiliary image としてHDRのゲインマップ画像が一緒に生成される場合があります。
+
+** conv_heic_to_jpeg.sh
+
+libimage-exiftool-perl をインストールします。
+exif-tool を使用して変換後のJPGファイルに angle 情報を再書き込みするようにするスクリプトです。
+
+#+begin_src bash
+#!/usr/bin/bash
+heif-convert $1 $2
+exiftool -overwrite_original -Orientation=$(heif-info $1 | grep 'angle (ccw):' | awk '{print $3}') -n $2
+#+end_src
+
+下記のように実行します。
+
+#+begin_src bash
+$ conv_heic_to_jpeg.sh INPUT.HEC OUTPUT.JPG
+#+end_src
+
+一括変換する例
+
+ - カレントディレクトリに iPhone13mini ディレクトリがあり、その中に YYYYMM__ ディレクトリがあり、HEICファイルが格納されている
+ - カレントディレクトリの temp/ 以下の同じ階層でディレクトリを作成し、その中に変換後のJPGファイルを格納する
+
+#+begin_src bash
+find iPhone13mini -type d -exec bash -c 'echo ./temp/"{}"' \; | xargs mkdir -p
+find iPhone13mini -iname "*.HEIC" | sed s/.HEIC// | xargs -t -n1 bash -c './conv_heic_to_jpeg.sh $0.HEIC ./temp/$0.JPG'
+#+end_src
+
+* Docker Image を作成
+
+** 概要
+
+ここでは、node:21 をベースイメージとして、libheif v1.17.6 をビルドしています。
+また、exif-tool を使用して変換後のJPGファイルに angle 情報を再書き込みするようにしています。
+
+** ファイル
+
+*** Dockerfile
+
+#+begin_src dockerfile
+FROM node:21
+
+RUN apt update
+RUN apt install -y cmake
+RUN apt install -y libexpat1-dev
+RUN apt install -y libglib2.0-dev
+RUN apt install -y liblcms2-dev
+RUN apt install -y libgsf-1-dev
+RUN apt install -y liborc-0.4-dev
+RUN apt install -y libde265-dev
+RUN apt install -y libexif-dev
+
+# install libheif
+RUN apt purge -y libheif1 libheif-dev
+WORKDIR /home/node
+RUN git clone https://github.com/strukturag/libheif.git -b v1.17.6
+WORKDIR /home/node/libheif
+RUN mkdir build
+WORKDIR /home/node/libheif/build
+RUN cmake --preset=release ..
+RUN make
+RUN make install
+RUN ldconfig
+
+RUN apt install -y libimage-exiftool-perl
+
+RUN mkdir /home/node/bin
+WORKDIR /home/node/bin
+COPY entrypoint.sh /home/node/bin/entrypoint.sh
+RUN chmod +x /home/node/bin/entrypoint.sh
+
+ENTRYPOINT ["/home/node/bin/entrypoint.sh"]
+CMD ["input-file","output-file"]
+#+end_src
+
+*** entrypoints.sh
+
+#+begin_src bash
+#!/usr/bin/bash
+heif-convert $1 -o $2
+exiftool -overwrite_original -Orientation=$(heif-info $1 | grep 'angle (ccw):' | awk '{print $3}') -n $2
+#+end_src
+
+** ビルド方法
+
+#+begin_src bash
+$ docker build . -t convert-heic-to-jpeg3
+#+end_src
+
+** 使用方法
+
+*** docker run で直接変換する
+
+#+begin_src bash
+$ docker run --rm -v `pwd`:/home/node/work -w /home/node/work convert-heic-to-jpeg3 INPUT.HEIC OUTPUT.JPG
+#+end_src
+
+*** docker run で bash を起動する
+
+#+begin_src bash
+$ docker run --entrypoint '' --rm -it -v $(pwd):/home/node/work -w /home/node/work convert-heic-to-jpeg3 bash
+#+end_src
+
+*** 一括変換する例
+
+ - カレントディレクトリに iPhone13mini ディレクトリがあり、その中に YYYYMM__ ディレクトリがあり、HEICファイルが格納されている
+ - カレントディレクトリの temp/ 以下の同じ階層でディレクトリを作成し、その中に変換後のJPGファイルを格納する
+
+#+begin_src bash
+find iPhone13mini -type d -exec bash -c 'echo ./temp/"{}"' \; | xargs mkdir -p
+find iPhone13mini -iname "*.HEIC" | sed s/.HEIC// | xargs -t -n1 bash -c 'docker run --rm -v `pwd`:/home/node/work -w /home/node/work convert-heic-to-jpeg3 $0.HEIC ./temp/$0.JPG'
+#+end_src
