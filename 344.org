@@ -6,7 +6,7 @@
 #+CATEGORY: golang
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: HEIC(HEIF) から JPG への変換
+#+TITLE: goheif(by jdeng) を使って HEIC(HEIF) から JPG へ変換する
 
 * 概要
 
@@ -49,6 +49,20 @@ go run main.go 入力ファイル.HEIC 出力ファイル.JPG
 #+begin_src 
 ls *.HEIC | sed s/.HEIC// | xargs -t -n1 bash -c 'go run main.go $0.HEIC $0.JPG'
 #+end_src
+
+* 注意点(2024.01.03追記)
+
+ファイルによっては下記のようなメッセージが表示され、変換できないものがあるようです。
+
+EXIFが正しく読み込めない場合がありそうです。
+
+#+begin_src bash
+2024/01/03 11:10:51 Warning: no EXIF from iPhone13mini/202308__/IMG_6686.HEIC: error reading "meta" box: got box type "free" instead
+2024/01/03 11:10:51 Failed to parse iPhone13mini/202308__/IMG_6686.HEIC: error reading "meta" box: got box type "free" instead
+exit status 1
+#+end_src
+
+解決策については [[./?p=990][HEIC(HEIF) から JPG への変換]] をご覧ください。
 
 * 参考
  - [[https://qiita.com/knknkn1162/items/806604341508d32b160e][xargsでサクッと書く - Qiita]]
