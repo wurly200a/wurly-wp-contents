@@ -164,6 +164,8 @@ heif-convert --list-decoders
 
 最終的には、libx265-dev、libde265-dev をaptでインストールし、最新の libheif (v1.17.6) をビルドすることで libvips v8.11.3 のビルドが通り、下記の通り libheif が HEICデコードに対応していることを確認した上で、sharpを使ったのですが、やはり「heif: Unsupported feature: Unsupported codec (4.3000)」のままでした。
 
+ビルド・実行環境は https://github.com/wurly200a/docker-sharp に格納しました(動きませんが)。
+
 #+begin_src bash
 $ heif-convert --list-decoders
 heif-convert --list-decoders
