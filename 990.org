@@ -1,0 +1,220 @@
+#+BLOG: wurly-blog
+#+POSTID: 990
+#+ORG2BLOG:
+#+DATE: [2024-01-03 Wed 10:45]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: HEIF
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: HEIC(HEIF) から JPG への変換方法
+
+* 概要
+
+最近のiPhone では、デフォルトの設定では写真が *.HEIC (HEIF) で保存されます。
+PC(Windows10、11)上で参照する場合に困る場合があります。
+
+JPG形式に変換する方法をまとめました。
+
+* HEIF(HEIC) と JPEG
+
+まず、HEIF(HEIC) と JPEG の違いと、どちらを使うべきかについてです。
+
+iPhoneでは設定によって下記を選択できます。
+
+ - 保存方式をどちらにするか
+  - 設定→カメラ→フォーマット で 高効率(HEIF)/互換性優先(JPG)
+ - PCに転送する際にどちらにするか
+  - 設定→写真→MACまたはPCに転送 で 自動(JPG)/元のフォーマットのまま(HEIF)
+
+明らかに JPGに対して、HEIFの方が効率がよい(高画質かつ、データが小さい方向)ので、今後はできるかぎりHEIFを使用した方が良いと思います。
+
+HEIFのデメリットはハードウェアやソフトウェアの互換性のみであり、こちらはいずれ解消していくことと思われます。
+
+ - [[https://www.adobe.com/jp/creativecloud/file-types/image/comparison/heic-vs-jpeg.html][HEIC と JPEG ：どちらが適しているのか| Adobe]]
+https://www.adobe.com/jp/creativecloud/file-types/image/comparison/heic-vs-jpeg.html
+
+* Windows拡張機能の導入
+
+まずは、Windows10、11 を使用している場合、Windows拡張機能を導入するのが良いと思います。
+お金がかかってしまいますが、少額です。
+
+HEIF 画像拡張機能(無料)、HEVC ビデオ拡張機能(120円)の両方を導入することで、エクスプローラから参照、フォトアプリで表示、ペイントで編集、等を行うことができます。
+
+ペイントで開き、JPGで別名保存すればEXIFを維持したまま変換することができます。
+
+- [[https://helpx.adobe.com/jp/premiere-elements/using/hevc-decoding-on-windows.html][Windows での HEVC および HEIF メディアの使用]]
+https://helpx.adobe.com/jp/premiere-elements/using/hevc-decoding-on-windows.html
+
+* OSSの利用
+
+** 概要
+
+# Windows拡張機能を導入したくない場合や、まとめて変換する場合は、各種OSS(Open Source Software)を利用することができます。
+
+前述のやりかたで、1枚ずつ変換することができます。
+
+私は、iPhoneから転送した画像をまとめて変換したかったので、OSS(Open Source Software)を利用する方法を探りました。
+
+ - 必須要件
+  - 変換に失敗しないこと
+  - EXIF(撮影日時、場所、画像方向)が引き継がれること
+ - 必須ではないが考慮する要件
+  - 変換後のファイルサイズ
+
+結論としては、heif-convert(libheif) を使うことで上手くいきました。詳細については、下記を参照ください。
+
+ - [[./?p=1004][heif-convert(libheif) を使って HEIC(HEIF) から JPG へ変換する]]
+
+** goheif(by jdeng)
+
+ - [[./?p=344][goheif(by jdeng) を使って HEIC(HEIF) から JPG へ変換する]]
+
+変換が成功した場合には、EXIFを含めて正しく変換できました。ファイルサイズはHEIFよりも小さくなりました。
+ただ、ファイルによっては変換に失敗する場合があるので、要件を満たしませんでした。
+
+** heic-cli(by catdad-experiments)
+
+こちらは Node.js(JavaScript)環境にて実行可能でした。
+
+変換に失敗することも無かったのですが、HEIFに対してJPGのファイルサイズがかなり大きくなる(例:3MBに対して8MB)ことと、EXIFが引き継がれないという問題があり、要件を満たしませんでした。
+
+#+begin_src bash
+npx heic-cli < input.heic > result.jpg
+#+end_src
+
+ - [[https://github.com/catdad-experiments/heic-cli][catdad-experiments/heic-cli: 👨‍💻 convert heic/heif images to jpeg or png from the command line]]
+
+なお、catdad-experiments においては heif に関連するプロジェクトがあり、コンセプトは良いと思いました。
+(heic-cli は heic-convert をバックエンドとした CLI としての位置付けのようです)
+
+ - [[https://github.com/catdad-experiments/heic-convert][catdad-experiments/heic-convert: 🤳 convert heic/heif images to jpeg and png]]
+ - [[https://github.com/catdad-experiments/heic-app][catdad-experiments/heic-app: 🖥 convert HEIC images to JPEG and PNG in the browser or as a PWA]]
+ - [[https://github.com/catdad-experiments/heic-decode][catdad-experiments/heic-decode: 🤳 decode heic images to extracts the raw pixel data]]
+ - [[https://github.com/catdad-experiments/libheif-js][catdad-experiments/libheif-js: 🤳 libheif as an npm module]]
+
+** sharp
+ - [[https://toshiro110.hatenablog.com/entry/2021/09/12/205439][sharpでHEICをJPEGに変換する - toshiro110’s diary]]
+https://toshiro110.hatenablog.com/entry/2021/09/12/205439
+
+上記が非常に参考になりました。
+
+ - [[https://sharp.pixelplumbing.com/install#custom-libvips][Installation - sharp - High performance Node.js image processing]]
+
+sharpもNode.jsのライブラリであり、下記のように呼び出すことでEXIFを保持したまま変換ができそうなのですが、
+
+#+begin_src javascript
+const sharp = require('sharp');
+
+async function convertHeicToJpeg(inputPath, outputPath) {
+  try {
+    // HEIC から JPEG に変換し、Exif メタデータを保持する
+    await sharp(inputPath)
+      .jpeg({ quality: 90, progressive: true, withMetadata: true })
+      .toFile(outputPath);
+
+    console.log('変換が完了しました。');
+  } catch (error) {
+    console.error('変換中にエラーが発生しました:', error);
+  }
+}
+
+// 使用例
+const inputPath = 'input.heic';  // 入力 HEIC ファイルのパス
+const outputPath = 'output.jpg'; // 出力 JPEG ファイルのパス
+
+convertHeicToJpeg(inputPath, outputPath);
+#+end_src
+
+下記のメッセージが表示され変換できませんでした。
+
+#+begin_src bash
+heif: Unsupported feature: Unsupported codec (4.3000)
+#+end_src
+
+ - [[https://github.com/lovell/sharp/issues/2924][heif: unsupported feature · Issue #2924 · lovell/sharp]]
+
+これは前述の投稿にもある通り、sharpが libvipsに依存しており、更にlibvipsがlibde265、x265、libheifに依存しており、これをそれぞれソースからコンパイルしてインストールし、HEIFに対応させればよさそうです。
+
+node:21 をベースイメージとして、Dockerビルドを行っていたのですが、手順通りにやってもビルドができませんでした。
+
+ - libvips
+  - [[https://github.com/libvips/libvips/issues/1844][Compile libvips with libheif on amazon linux · Issue #1844 · libvips/libvips]]
+  - [[https://github.com/libvips/libvips/tags?after=v8.14.0][Tags · libvips/libvips]]
+
+ - libheif
+  - [[https://github.com/strukturag/libheif/releases][Releases · strukturag/libheif]]
+
+ -  Node.js
+  - [[https://zenn.dev/jrsyo/articles/e42de409e62f5d][Node.js Docker baseイメージには alpine < distroless < ubuntu+slim 構成がよさそう]]
+  - [[https://hub.docker.com/_/node/][node - Official Image | Docker Hub]]
+  - [[https://github.com/nodejs/docker-node/blob/main/Dockerfile-debian.template][docker-node/Dockerfile-debian.template at main · nodejs/docker-node]]
+  - [[https://www.docker.com/ja-jp/blog/how-to-use-the-node-docker-official-image/][ノードドッカーの公式イメージの使用方法 | Docker]]
+
+ - pkg-config
+  - [[https://qiita.com/tomtum/items/25549b7d7c4ad44b0fc9][【Ubuntu】ライブラリをpkg-configで管理する #ubuntu18.04 - Qiita]]
+  - [[https://askubuntu.com/questions/210210/pkg-config-path-environment-variable][pkg config - PKG_CONFIG_PATH environment variable - Ask Ubuntu]]
+  - [[https://github.com/libvips/libvips][libvips/libvips: A fast image processing library with low memory needs.]]
+
+そんな中でいろいろと調べていたところ、libheif に対応する heif-convert という CLIコマンドがあり、下記オプションにて対応しているdecoderを表示できることがわかりました。
+少なくとも、これにより HEIF(HEIC)に対応していることを確認する必要があります。
+
+#+begin_src bash
+heif-convert --list-decoders
+#+end_src
+
+最終的には、libx265-dev、libde265-dev をaptでインストールし、最新の libheif (v1.17.6) をビルドすることで libvips v8.11.3 のビルドが通り、下記の通り libheif が HEICデコードに対応していることを確認した上で、sharpを使ったのですが、やはり「heif: Unsupported feature: Unsupported codec (4.3000)」のままでした。
+
+#+begin_src bash
+$ heif-convert --list-decoders
+heif-convert --list-decoders
+HEIC decoders:
+- libde265 = libde265 HEVC decoder, version 1.0.11
+AVIF decoders:
+JPEG decoders:
+- jpeg = libjpeg-turbo 2.1.5 (libjpeg 6.2)
+JPEG 2000 decoders:
+- openjpeg = OpenJPEG 2.5.0
+uncompressed: yes
+#+end_src
+
+#+begin_src bash
+$ heif-convert --version
+heif-convert --version
+1.17.6
+libheif: 1.17.6
+plugin path: /usr/local/lib/libheif
+#+end_src
+
+ここで、今回の用途(画像変換)に対しては、libvips、sharp を使わずとも、heif-convert(libheif)がそのまま使えるのではないかということに思い当たりました。
+
+** heif-convert(libheif)
+
+最終的にこのやり方が上手く動作し、要件を満たしました。
+下記をご覧ください。
+
+ - [[./?p=1004][heif-convert(libheif) を使って HEIC(HEIF) から JPG へ変換する]]
+
+* 参考
+
+** iPhone
+ - [[https://shufublog.com/iphone-photo-del/][iPhoneの写真を消去する方法は？エラーが表示された場合の対処法 | shufublog]]
+ - [[https://ameblo.jp/pctascal/entry-12244801053.html][iPhoneの写真フォルダーにあるAAEファイルって何？ | Tascal PCサポート情報]]
+ - [[https://mech.hateblo.jp/entry/2022/04/09/171730][iPhone高効率(HEVC)240fpsファイルをWindows10で再生するとブロックノイズ - よろず手控え帖]]
+ - [[https://tech-camp.in/note/technology/100382/][パソコンからiPhoneに写真や動画を送る方法を簡単に紹介！注意点も解説 | テックキャンプ ブログ]]
+ - [[https://www.nwun.com/katsunakatamisa/2023-5-1/][iphoneからwin11へUSBで取り込む時、自動と元のフォーマットのままの違い]]
+
+** Adobe
+ - [[https://medium.com/@3534541195/best-workaround-to-import-hevc-to-premiere-elements-1fc9be4e6481][Best Workaround to Import HEVC to Premiere Elements | by chris-dou | Medium]]
+
+** ExifTool
+ - [[https://www.digitalboo.net/post/7518/a-note-about-exiftool][ExifToolのかんたんなメモ – DigitalBoo]]
+
+** docker
+ - [[https://www.tohoho-web.com/docker/dockerfile.html][Dockerfileによるビルド - とほほのWWW入門]]
+ - [[https://iret.media/16885][（超メモ）docker run する時にローカルホストのファイルを引数で渡したいのでメモ | iret.media]]
+ - [[https://inokara.hateblo.jp/entry/2015/11/07/183922][（超メモ）docker run する時にローカルホストのファイルを引数で渡したいのでメモ - ようへいの日々精進XP]]
+
+** Etc
+ - [[https://qiita.com/takech9203/items/b96eff5773ce9d9cc9b3][sedコマンドの備忘録 #sed - Qiita]]
+ - [[https://www.itmedia.co.jp/help/tips/linux/l0418.html][tarでファイル解凍先ディレクトリを指定したい - ITmedia エンタープライズ]]
+
