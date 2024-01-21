@@ -8,8 +8,188 @@
 #+DESCRIPTION:
 #+TITLE: おうちKubernetesをはじめる(その1)
 
-* 概要
+* はじめに
 
 前々からやりたいと思っていた、おうちKubernetesをはじめます。
 
-目的は、
+主な目的は、技術のキャッチアップです。
+普段業務でマネージドKubernetesを使用しているのですが、既に、アプリケーションも含め、ある程度環境が揃っているので、どのように導入するのか、どのように動いているのがわからないものがあります。
+それらや新たに導入するものを業務外で気軽に試したりしたいと考えました。
+
+最初はおうちKubernetesを常時運用することは重視せず、とにかくいろいろと試してみることととします。
+
+* 進め方
+
+実際におうちKubernetesを構築されている方のサイトをいくつか読みました。
+
+最終的には実用レベルのクラスタを構成したいと考えました。
+下記のページに記載されているように、物理マシンとして、コントロールプレーンに3台、ワーカーノードに3台設けるような構成です。
+
+ - [[https://zenn.dev/f110/articles/cab6590c4d4bc8][Managed Kubernetesサービス開発者の自宅k8sクラスタ全容]]
+https://zenn.dev/f110/articles/cab6590c4d4bc8
+
+ただ、最初から上記のレベルのクラスタを構成するのはコスト面、技術面いずれも少しハードルが高いと思いました。
+
+コスト面では、10万円コースになりそうなため、心理的ハードルが少しあります。
+技術面では、作業量が多いことに対し、まだクラスタ構築の全体を理解できていないので、途中で躓きそうです。
+
+よって、最初は下記のようなラズパイ3台でコントロールプレーン・ワーカーノードを含めたクラスタを構成するやり方にチャレンジしてみます。
+いずれ、この3台を最終構成でのコントロールプレーンに使用する想定です。
+
+ワーカーノードの物理マシンの選定は、物理的な制約や用途を含めて後で検討します。
+
+ - [[https://developers.cyberagent.co.jp/blog/archives/27443/][おうちで「おうち Kubernetes インターン」を実施しました | CyberAgent Developers Blog]]
+https://developers.cyberagent.co.jp/blog/archives/27443/
+
+* ハードウェアの選定
+
+** ラズパイ(Raspberry Pi)
+
+最初に導入する構成は、ラズパイ4 8GBモデル3台と決めました。
+
+2024年1月現在、既にラズパイ5がローンチされていることもあり、中古がそれなりに出回っており、もちろん価格が手頃であるというのもありますが、適切なものを選べば、セットアップの手間も省けます。
+
+全てヒートシンクが貼り付けられており、金属スペーサーが4本付属しているものを選びました。1台あたり約8,000円でした。
+
+** 電源構成
+
+ここがかなり悩んだところです。
+
+多くの事例でも採用されていることや、配線がシンプルになるということもあり、できればPoE HATを使いたいと思っていました。
+
+ただ、下記を懸念しました。
+
+ - PoE HATは中古ではあまり出回っておらず、1個あたり3,000円くらいするのですが、いずれ他の用途に流用することができません
+ - 本体含め発熱が大きいため、ファンが設置されており、それなりに騒音となる可能性があります
+ - 電力効率もそれほどよくないと想定されます
+ - PoE Hubの発熱、コストも気になります
+
+どっちにするかかなり揺らぎましたが、最終的にはGaN採用の小型充電器とUSB-C/USB-C極短ケーブル、電源タップと組み合わせる構成を採用しました。
+
+電源タップは、今後コントロールプレーンとなるマシンを増設することを考慮すると、専用のものを用意しておきたかったのでちょうど良く、スイッチで個別に電源を切ることができるので便利です。
+
+流用性、使用中の電力消費、システム全体の冷却容易性を重視しました。
+
+** microSDカード
+
+Class10 U1レベル以上あればよいという情報もありましたが、安定のSanDisk製、64GB、Class10 U3対応のHIGH ENDURANCEを謳っているものを採用しました。
+1枚1,500円程度と、コストパフォーマンスもよいです。
+
+** LANケーブル
+
+あまりこだわりは無かったので Cable Matters の Cat6 の5本入の極短のものを選びました。
+
+** LAN Hub
+
+今後コントロールプレーンとなるマシンを増設することを考慮し、一方でできるだけ省スペースとしたいので8ポートのものにします。
+PoEが不要なので少しコストが抑えられます。
+以前からポートミラーリングができるものが欲しかったので、TP-Link の "スマート" モデルのものにしました。
+
+** パーツの購入金額と画像
+
+ | 商品名 | 単価 | 数量 | 小計 | 購入先
+ | Raspberry Pi 4 Model B RAM 8GB 3台 | 22440 | 1 | 22440 | ヤフオク
+ | UGREEN Nexode Mini 20W PD 充電器 USB-C 急速充電器 【GaNFastⅡ(窒化ガリウム) 採用 超小型 折畳式プラグ PD3.0/PPS/QC4+規格対応/PSE技術基準適合】 タイプc 充電器 iPhone15-8シリーズ/GalaxyS23-S10シリーズ/Google Pixelシリーズ/iPad/MacBook Air/AirPodsなどに対応 CD318 | 1513 | 3 | 4539 | Amazon
+ | SanDisk SanDisk 【 サンディスク 正規品 】メーカー 2年保証 ドライブレコーダー対応 microSDカード 64GB UHS-I Class10 U3 V30対応 SDSQQNR-064G-GH3IA 新パッケージ | 1429 | 3 | 4287 | Amazon
+ | Anker PowerLine III USB-C & USB-C 2.0 ケーブル (0.3m ブラック) 超高耐久 60W USB PD対応 MacBook Pro/Air iPad Pro/Air Galaxy 等対応 | 990 | 3 | 2970 | Amazon
+ | UGREEN マイクロhdmiケーブル hdmi Micro hdmi 変換 双方向伝送 高耐久性 4K 60Hz 3D HDR ARC 高速18Gbps テレビ カメラ GoPro Hero 7 6 5 Raspberry Pi 4 Sony Nikon Yoga 3 Pro等対応 2M | 1304 | 1 | 1304 | Amazon
+ | Cable Matters 5本セット Cat6 LANケーブル ウルトラスリム 短いLANケーブル 0.3m 最大550 MHz | 1099 | 1 | 1099 | Amazon
+ | TP-Link 8ポート 10/100/1000Mbps ギガビット イージー スマート スイッチ TL-SG108E | 3544 | 1 | 3544 | Amazon
+ | サンワサプライ 電源タップ 10個口・2P (1m) たくさん挿せるレイアウト 雷ガード 個別スイッチ(2個口ごと)・一括集中スイッチ 裏面マグネット スイングプラグ ホワイト TAP-SP2110SW-1 | 2427 | 1 | 2427 | Amazon
+ | 合計 | | | 42610 | 
+
+file:images/1011_01.jpg
+
+* 完成品
+
+組み合わせた結果は、ほぼイメージ通りでした。
+
+file:images/1011_02.jpg
+
+実際に設置した結果はこのようになりました。
+
+file:images/1011_03.jpg
+
+ちなみに、HDMI出力のUSBキャプチャ(CHD202)は手持ちであったので、これとラズパイを接続するmicroHDMIケーブルも購入しましたが、今のところ出番なしです。
+
+file:images/1011_04.jpg
+
+* ラズパイセットアップ
+
+** 手順
+
+過去にラズパイ3Bを使って以来、久しぶりにセットアップします。
+非常に簡単で驚きました！
+
+ - [[https://www.raspberrypi.com/software/][Raspberry Pi OS – Raspberry Pi]]
+https://www.raspberrypi.com/software/
+
+上記から Raspberry Pi Imager をダウンロード、インストールし、直接SDカードにイメージを書き込むことができます。
+
+Ubuntu Serer 22.04.3 LTS(64bit) を選びました。
+
+file:images/1011_05.jpg
+
+一旦、Wi-Fiでアクセスできるようにします。
+
+file:images/1011_08.jpg
+
+一旦、パスワード認証を使います。
+
+file:images/1011_07.jpg
+
+# images/1011_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_01.jpg
+# images/1011_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_02.jpg
+# images/1011_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_03.jpg
+# images/1011_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_04.jpg
+# images/1011_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_05.jpg
+
+# images/1011_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_07.jpg
+
+
+# images/1011_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_08.jpg
+
+起動したら、まずは sudo apt update を行います。
+
+** Could not get lock /var/lib/dpkg/lock-frontend エラー
+
+ - [[https://mebee.info/2021/05/26/post-34983/][Ubuntu20.10 「^Citing for cache lock: Could not get lock /var/lib/dpkg/lock-frontend」発生時の対処法 | mebee]]
+https://mebee.info/2021/05/26/post-34983/
+
+1台だけ、apt実行時、「^Citing for cache lock: Could not get lock /var/lib/dpkg/lock-frontend」 のエラーが発生しました。
+
+該当のプロセスをkillしました。
+
+#+begin_src bash
+sudo kill -9 プロセスID
+#+end_src
+
+** Which services should be restarted?
+
+ - [[https://askubuntu.com/questions/1486623/how-to-answer-which-services-should-be-restarted-after-running-apt-dist-upgr][command line - How to answer "Which services should be restarted?" after running `apt dist-upgrade` in console? - Ask Ubuntu]]
+https://askubuntu.com/questions/1486623/how-to-answer-which-services-should-be-restarted-after-running-apt-dist-upgr
+
+apt実行時に 「Which services should be restarted?」のようなことを聞かれ、1-15 までのサービスが列挙されました。
+
+とりあえず、
+
+#+begin_src bash
+1-15
+#+end_src
+
+のように入れてしまいましたが、
+
+#+begin_src 
+ 15. none of the above
+#+end_src
+
+なので、15は除外し、1-14 のような番号を入力すればOKでした。
+
+** ラズパイへsshログイン
+
+ラズパイの電源を入れます。
+DHCPが動いているルータにアクセスし、今回のマシンにIPアドレスが割り当てられているのを確認し、Wi-Fi経由で各マシンにsshログインできることを確認しました。
+
+* おわりに
+
+[[./?=1035][おうちKubernetesをはじめる(その2)]] に続きます。
