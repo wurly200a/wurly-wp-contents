@@ -138,18 +138,17 @@ file:images/1011_08.jpg
 
 file:images/1011_07.jpg
 
-# images/1011_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_01.jpg
-# images/1011_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_02.jpg
-# images/1011_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_03.jpg
-# images/1011_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_04.jpg
-# images/1011_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_05.jpg
+** ラズパイへsshログイン
 
-# images/1011_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_07.jpg
+ラズパイの電源を入れます。
+DHCPが動いているルータにアクセスし、今回のマシンにIPアドレスが割り当てられているのを確認します。
+(下記はWi-Fiルータとして使用しているDeco M5のWeb管理画面)
 
+file:images/1011_09.jpg
 
-# images/1011_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_08.jpg
+各マシンにsshログインできることを確認しました。
 
-起動したら、まずは sudo apt update を行います。
+まずは sudo apt update を行います。
 
 ** Could not get lock /var/lib/dpkg/lock-frontend エラー
 
@@ -185,11 +184,20 @@ apt実行時に 「Which services should be restarted?」のようなことを�
 
 なので、15は除外し、1-14 のような番号を入力すればOKでした。
 
-** ラズパイへsshログイン
-
-ラズパイの電源を入れます。
-DHCPが動いているルータにアクセスし、今回のマシンにIPアドレスが割り当てられているのを確認し、Wi-Fi経由で各マシンにsshログインできることを確認しました。
-
 * おわりに
 
 [[./?=1035][おうちKubernetesをはじめる(その2)]] に続きます。
+
+
+# images/1011_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_01.jpg
+# images/1011_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_02.jpg
+# images/1011_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_03.jpg
+# images/1011_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_04.jpg
+# images/1011_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_05.jpg
+
+# images/1011_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_07.jpg
+
+
+# images/1011_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_08.jpg
+
+# images/1011_09.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_09.jpg
