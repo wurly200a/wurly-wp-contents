@@ -1,0 +1,604 @@
+#+BLOG: wurly-blog
+#+POSTID: 1035
+#+ORG2BLOG:
+#+DATE: [2024-01-21 Sun 14:25]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetesをはじめる(その2)
+
+* はじめに
+
+[[./?p=1011][おうちKubernetesをはじめる(その1)]] からの続きです。
+
+まずは、下記を参考にkubeadmで構築します。
+
+https://github.com/CyberAgentHack/home-kubernetes-2020/tree/master/how-to-create-cluster-logical-kubeadm
+
+* ネットワーク構成
+
+ - 192.168.1.201 k8s1
+ - 192.168.1.202 k8s2
+ - 192.168.1.203 k8s3
+
+* 各ノードの設定(k8s1の例)
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.1.201/24 # k8s1
+      nameservers:
+        addresses: [192.168.1.1]
+      routes:
+        - to: default
+          via: 192.168.1.1
+_EOF_
+#+end_src
+
+#+begin_src bash
+sudo chmod 600 /etc/netplan/01-netcfg.yaml
+sudo netplan apply
+#+end_src
+
+#+begin_src bash
+hostnamectl set-hostname k8s1
+#+end_src
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/hosts
+192.168.1.201  k8s1
+192.168.1.202  k8s2
+192.168.1.203  k8s3
+_EOF_
+#+end_src
+
+* 作業の進め方
+
+複数のソースを見ながら作業を進めます。
+Webページに記載されている内容は数年経っているものも多く、Kubernetes や Ubuntu のバージョン依存で作業が異なる可能性を考慮します。
+
+ - [[https://hbayraktar.medium.com/how-to-install-kubernetes-cluster-on-ubuntu-22-04-step-by-step-guide-7dbf7e8f5f99][How to Install Kubernetes Cluster on Ubuntu 22.04 (Step-by-Step Guide) | by Hakan Bayraktar | Medium]]
+https://hbayraktar.medium.com/how-to-install-kubernetes-cluster-on-ubuntu-22-04-step-by-step-guide-7dbf7e8f5f99
+
+Ubuntu22.04については、上記が参考になりそうなのでこれを見ながら進めます。
+ただし、参考ページの方のarch は amd64 のようなのでその点の差異に注意します。
+
+ - [[https://qiita.com/t_ume/items/f0a1c1ae8f94add8f4ba][kubeadm / containerd で Kubernetes #kubernetes - Qiita]]
+https://qiita.com/t_ume/items/f0a1c1ae8f94add8f4ba
+
+ - [[https://blog.ebiiim.com/posts/homelab-kubernetes/][自宅Kubernetesクラスタはじめました – えびサブレ]]
+https://blog.ebiiim.com/posts/homelab-kubernetes/
+
+* スワップの無効化(全ノード)
+
+swapoff を実行し、かつ /etc/fstab に swap と記載されている行をコメントアウトします。
+
+#+begin_src bash
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+#+end_src
+
+ただし、元々 /etc/fstab にはこのような記載されていないようですし、Swapは使われていないようです。
+
+#+begin_src bash
+$ cat /etc/fstab
+LABEL=writable	/	ext4	discard,errors=remount-ro	0 1
+LABEL=system-boot       /boot/firmware  vfat    defaults        0       1
+#+end_src
+
+#+begin_src 
+$ sudo free -m
+               total        used        free      shared  buff/cache   available
+Mem:            7808         170        7306           3         331        7387
+Swap:              0           0           0
+#+end_src
+
+* containerd 向けのパラメータ設定1 (全ノード)
+
+containerd インストール前に行います。
+
+#+begin_src bash
+$ lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+#+begin_src bash
+sudo tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+#+end_src
+
+#+begin_src 
+$ cat /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+#+end_src
+
+#+begin_src bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+#+end_src
+
+#+begin_src bash
+$ lsmod | grep -e br_netfilter -e overlay
+br_netfilter           32768  0
+bridge                319488  1 br_netfilter
+overlay               155648  0
+#+end_src
+
+* containerd 向けのパラメータ設定2 (全ノード)
+
+こちらも containerd インストール前に行います。
+
+#+begin_src bash
+$ lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+#+begin_src bash
+sudo tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+#+end_src
+
+#+begin_src 
+$ cat /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+#+end_src
+
+#+begin_src bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+#+end_src
+
+#+begin_src bash
+$ lsmod | grep -e br_netfilter -e overlay
+br_netfilter           32768  0
+bridge                319488  1 br_netfilter
+overlay               155648  0
+#+end_src
+
+* containerd 向けのパラメータ設定3 (全ノード)
+
+** 設定
+
+/etc/sysctl.d/ 以下に下記の設定が必要です。
+
+#+begin_src conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+#+end_src
+
+現在の設定を確認します。
+
+今回の環境では、net.bridge.bridge-nf-call-iptables と net.bridge.bridge-nf-call-iptables は1になっているので、net.ipv4.ip_forward のみ設定を変更します。
+
+#+begin_src bash
+$ sysctl net.bridge.bridge-nf-call-ip6tables
+net.bridge.bridge-nf-call-ip6tables = 1
+$ sysctl net.bridge.bridge-nf-call-iptables
+net.bridge.bridge-nf-call-iptables = 1
+$ sysctl net.ipv4.ip_forward
+net.ipv4.ip_forward = 0
+#+end_src
+
+/etc/sysctl.d/ は下記のようなファイルが格納されています。
+
+#+begin_src bash
+$ ls -la /etc/sysctl.d/
+total 44
+drwxr-xr-x  2 root root 4096 Jan 13 15:42 .
+drwxr-xr-x 95 root root 4096 Jan 28 06:22 ..
+-rw-r--r--  1 root root   77 Feb 25  2022 10-console-messages.conf
+-rw-r--r--  1 root root  490 Feb 25  2022 10-ipv6-privacy.conf
+-rw-r--r--  1 root root 1229 Feb 25  2022 10-kernel-hardening.conf
+-rw-r--r--  1 root root 1184 Feb 25  2022 10-magic-sysrq.conf
+-rw-r--r--  1 root root  158 Feb 25  2022 10-network-security.conf
+-rw-r--r--  1 root root 1292 Feb 25  2022 10-ptrace.conf
+-rw-r--r--  1 root root  532 Feb 25  2022 10-zeropage.conf
+-rw-r--r--  1 root root  185 Aug  8 00:30 99-cloudimg-ipv6.conf
+lrwxrwxrwx  1 root root   14 Sep 20 01:57 99-sysctl.conf -> ../sysctl.conf
+-rw-r--r--  1 root root  798 Feb 25  2022 README.sysctl
+#+end_src
+
+このうち、シンボリックリンクとなっている /etc/sysctl.conf にコメントアウトされた行が存在しますので、こちらのコメントアウトを外すことにします。
+
+#+begin_src bash
+sudo sed -i 's/^#\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf
+#+end_src
+
+reloadします。
+
+#+begin_src bash
+sudo sysctl --system
+#+end_src
+
+(下記のようなメッセージが表示されましたがここでは無視します。)
+
+#+begin_src 
+net.ipv4.conf.default.accept_source_route = 0
+sysctl: setting key "net.ipv4.conf.all.accept_source_route": Invalid argument
+net.ipv4.conf.default.promote_secondaries = 1
+sysctl: setting key "net.ipv4.conf.all.promote_secondaries": Invalid argument
+#+end_src
+
+設定が変更されたことを確認します。
+
+#+begin_src bash
+$ sysctl net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+#+end_src
+
+** 参考
+ - [[https://qiita.com/mochizuki875/items/c69bb7fb2ef3a73dc1a9][Linux Bridgeを介した通信ができない #Docker - Qiita]]
+https://qiita.com/mochizuki875/items/c69bb7fb2ef3a73dc1a9
+
+
+* containerd の インストール (全ノード)
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y gnupg2
+#+end_src
+
+#+begin_src bash
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y containerd.io
+#+end_src
+
+(containerd.io arm64 1.6.27-1 がインストールされました)
+
+** 設定
+
+#+begin_src bash
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+cat /etc/containerd/config.toml
+#+end_src
+
+** (参考)元々の config.toml
+
+#+begin_src bash
+$ cat /etc/containerd/config.toml
+#+end_src
+
+#+begin_src toml
+#   Copyright 2018-2022 Docker Inc.
+
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+
+#       http://www.apache.org/licenses/LICENSE-2.0
+
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+disabled_plugins = ["cri"]
+
+#root = "/var/lib/containerd"
+#state = "/run/containerd"
+#subreaper = true
+#oom_score = 0
+
+#[grpc]
+#  address = "/run/containerd/containerd.sock"
+#  uid = 0
+#  gid = 0
+
+#[debug]
+#  address = "/run/containerd/debug.sock"
+#  uid = 0
+#  gid = 0
+#  level = "info"
+#+end_src
+
+** (参考)出力した config.toml
+
+#+begin_src bash
+$ containerd config default
+#+end_src
+
+#+begin_src toml
+$ containerd config default 
+disabled_plugins = []
+imports = []
+oom_score = 0
+plugin_dir = ""
+required_plugins = []
+root = "/var/lib/containerd"
+state = "/run/containerd"
+temp = ""
+version = 2
+
+[cgroup]
+  path = ""
+
+[debug]
+  address = ""
+  format = ""
+  gid = 0
+  level = ""
+  uid = 0
+
+[grpc]
+  address = "/run/containerd/containerd.sock"
+  gid = 0
+  max_recv_message_size = 16777216
+  max_send_message_size = 16777216
+  tcp_address = ""
+  tcp_tls_ca = ""
+  tcp_tls_cert = ""
+  tcp_tls_key = ""
+  uid = 0
+
+[metrics]
+  address = ""
+  grpc_histogram = false
+
+[plugins]
+
+  [plugins."io.containerd.gc.v1.scheduler"]
+    deletion_threshold = 0
+    mutation_threshold = 100
+    pause_threshold = 0.02
+    schedule_delay = "0s"
+    startup_delay = "100ms"
+
+  [plugins."io.containerd.grpc.v1.cri"]
+    device_ownership_from_security_context = false
+    disable_apparmor = false
+    disable_cgroup = false
+    disable_hugetlb_controller = true
+    disable_proc_mount = false
+    disable_tcp_service = true
+    enable_selinux = false
+    enable_tls_streaming = false
+    enable_unprivileged_icmp = false
+    enable_unprivileged_ports = false
+    ignore_image_defined_volumes = false
+    max_concurrent_downloads = 3
+    max_container_log_line_size = 16384
+    netns_mounts_under_state_dir = false
+    restrict_oom_score_adj = false
+    sandbox_image = "registry.k8s.io/pause:3.6"
+    selinux_category_range = 1024
+    stats_collect_period = 10
+    stream_idle_timeout = "4h0m0s"
+    stream_server_address = "127.0.0.1"
+    stream_server_port = "0"
+    systemd_cgroup = false
+    tolerate_missing_hugetlb_controller = true
+    unset_seccomp_profile = ""
+
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/cni/bin"
+      conf_dir = "/etc/cni/net.d"
+      conf_template = ""
+      ip_pref = ""
+      max_conf_num = 1
+
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      default_runtime_name = "runc"
+      disable_snapshot_annotations = true
+      discard_unpacked_layers = false
+      ignore_rdt_not_enabled_errors = false
+      no_pivot = false
+      snapshotter = "overlayfs"
+
+      [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
+        base_runtime_spec = ""
+        cni_conf_dir = ""
+        cni_max_conf_num = 0
+        container_annotations = []
+        pod_annotations = []
+        privileged_without_host_devices = false
+        runtime_engine = ""
+        runtime_path = ""
+        runtime_root = ""
+        runtime_type = ""
+
+        [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime.options]
+
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          base_runtime_spec = ""
+          cni_conf_dir = ""
+          cni_max_conf_num = 0
+          container_annotations = []
+          pod_annotations = []
+          privileged_without_host_devices = false
+          runtime_engine = ""
+          runtime_path = ""
+          runtime_root = ""
+          runtime_type = "io.containerd.runc.v2"
+
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            BinaryName = ""
+            CriuImagePath = ""
+            CriuPath = ""
+            CriuWorkPath = ""
+            IoGid = 0
+            IoUid = 0
+            NoNewKeyring = false
+            NoPivotRoot = false
+            Root = ""
+            ShimCgroup = ""
+            SystemdCgroup = false
+
+      [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
+        base_runtime_spec = ""
+        cni_conf_dir = ""
+        cni_max_conf_num = 0
+        container_annotations = []
+        pod_annotations = []
+        privileged_without_host_devices = false
+        runtime_engine = ""
+        runtime_path = ""
+        runtime_root = ""
+        runtime_type = ""
+
+        [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime.options]
+
+    [plugins."io.containerd.grpc.v1.cri".image_decryption]
+      key_model = "node"
+
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = ""
+
+      [plugins."io.containerd.grpc.v1.cri".registry.auths]
+
+      [plugins."io.containerd.grpc.v1.cri".registry.configs]
+
+      [plugins."io.containerd.grpc.v1.cri".registry.headers]
+
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+
+    [plugins."io.containerd.grpc.v1.cri".x509_key_pair_streaming]
+      tls_cert_file = ""
+      tls_key_file = ""
+
+  [plugins."io.containerd.internal.v1.opt"]
+    path = "/opt/containerd"
+
+  [plugins."io.containerd.internal.v1.restart"]
+    interval = "10s"
+
+  [plugins."io.containerd.internal.v1.tracing"]
+    sampling_ratio = 1.0
+    service_name = "containerd"
+
+  [plugins."io.containerd.metadata.v1.bolt"]
+    content_sharing_policy = "shared"
+
+  [plugins."io.containerd.monitor.v1.cgroups"]
+    no_prometheus = false
+
+  [plugins."io.containerd.runtime.v1.linux"]
+    no_shim = false
+    runtime = "runc"
+    runtime_root = ""
+    shim = "containerd-shim"
+    shim_debug = false
+
+  [plugins."io.containerd.runtime.v2.task"]
+    platforms = ["linux/arm64/v8"]
+    sched_core = false
+
+  [plugins."io.containerd.service.v1.diff-service"]
+    default = ["walking"]
+
+  [plugins."io.containerd.service.v1.tasks-service"]
+    rdt_config_file = ""
+
+  [plugins."io.containerd.snapshotter.v1.aufs"]
+    root_path = ""
+
+  [plugins."io.containerd.snapshotter.v1.btrfs"]
+    root_path = ""
+
+  [plugins."io.containerd.snapshotter.v1.devmapper"]
+    async_remove = false
+    base_image_size = ""
+    discard_blocks = false
+    fs_options = ""
+    fs_type = ""
+    pool_name = ""
+    root_path = ""
+
+  [plugins."io.containerd.snapshotter.v1.native"]
+    root_path = ""
+
+  [plugins."io.containerd.snapshotter.v1.overlayfs"]
+    mount_options = []
+    root_path = ""
+    sync_remove = false
+    upperdir_label = false
+
+  [plugins."io.containerd.snapshotter.v1.zfs"]
+    root_path = ""
+
+  [plugins."io.containerd.tracing.processor.v1.otlp"]
+    endpoint = ""
+    insecure = false
+    protocol = ""
+
+[proxy_plugins]
+
+[stream_processors]
+
+  [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
+    accepts = ["application/vnd.oci.image.layer.v1.tar+encrypted"]
+    args = ["--decryption-keys-path", "/etc/containerd/ocicrypt/keys"]
+    env = ["OCICRYPT_KEYPROVIDER_CONFIG=/etc/containerd/ocicrypt/ocicrypt_keyprovider.conf"]
+    path = "ctd-decoder"
+    returns = "application/vnd.oci.image.layer.v1.tar"
+
+  [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
+    accepts = ["application/vnd.oci.image.layer.v1.tar+gzip+encrypted"]
+    args = ["--decryption-keys-path", "/etc/containerd/ocicrypt/keys"]
+    env = ["OCICRYPT_KEYPROVIDER_CONFIG=/etc/containerd/ocicrypt/ocicrypt_keyprovider.conf"]
+    path = "ctd-decoder"
+    returns = "application/vnd.oci.image.layer.v1.tar+gzip"
+
+[timeouts]
+  "io.containerd.timeout.bolt.open" = "0s"
+  "io.containerd.timeout.shim.cleanup" = "5s"
+  "io.containerd.timeout.shim.load" = "5s"
+  "io.containerd.timeout.shim.shutdown" = "3s"
+  "io.containerd.timeout.task.state" = "2s"
+
+[ttrpc]
+  address = ""
+  gid = 0
+  uid = 0
+#+end_src
+
+
+** 再起動
+
+#+begin_src bash
+sudo systemctl restart containerd
+sudo systemctl status containerd
+#+end_src
+
+下記(loaded (/lib/systemd/system/containerd.service; enabled; vendor preset: enabled))のようになっていれば問題ありません。
+
+#+begin_src bash
+$ sudo systemctl status containerd
+● containerd.service - containerd container runtime
+     Loaded: loaded (/lib/systemd/system/containerd.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sun 2024-01-28 21:27:34 JST; 14s ago
+       Docs: https://containerd.io
+#+end_src
+
+* Kubernetes(kubelet kubeadm kubectl)のインストール (全ノード)
+
+#+begin_src bash
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/kubernetes-xenial.gpg
+sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+#+end_src
+
+1.28.2-00 がインストールされました。
