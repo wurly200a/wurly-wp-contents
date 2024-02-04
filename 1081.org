@@ -1,0 +1,51 @@
+#+BLOG: wurly-blog
+#+POSTID: 1081
+#+ORG2BLOG:
+#+DATE: [2024-02-04 Sun 20:29]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: kubectl でリモートクラスタに接続
+
+* 概要
+
+kubectl で(主にkubeadm等で構築を行った)リモートクラスタに接続する方法です。
+
+* 参考
+ - [[https://qiita.com/ytyng/items/0d9cbfda8ecb985d5858][kubectl でリモートクラスタに接続 #kubernetes - Qiita]]
+https://qiita.com/ytyng/items/0d9cbfda8ecb985d5858
+
+上記を参考にしました。
+
+* 手順
+
+マスターノードにて、下記を実行し出力されたものをクライアント側の ~/.kube/config に保存します。
+
+#+begin_src 
+kubectl config view --raw
+#+end_src
+
+#+begin_src yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tL...LS0K
+    server: https://192.168.1.201:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tL...LS0tCg==
+    client-key-data: LS0tL...LQo=
+#+end_src
+
+
