@@ -64,7 +64,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 #+end_src
 
-ここで、nodesの状態は下記のようになっており、ワーカーノードはまだ参加指定ない状態です。
+ここで、nodesの状態は下記のようになっており、ワーカーノードはまだ参加していない状態です。
 
 #+begin_src bash
 wurly@k8s1:~$ kubectl get nodes
@@ -74,13 +74,19 @@ k8s1   NotReady   control-plane   4m25s   v1.28.2
 
 ** Calico のインストール (マスターノードで実行)
 
-次に、下記のリストからいずれかの "Networking and Network Policy" をインストールする必要があるとのこと。
+#+begin_quote
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+#+end_quote
+
+次に、下記のリストからいずれかの "Networking and Network Policy" をインストールする必要があります。
 
 https://kubernetes.io/docs/concepts/cluster-administration/addons/
 
 数多くの選択肢がありますが、多くの手順書の内容を見習い、calico をインストールします。
 
-インストール前
+インストール前のpodの状態です。
 
 #+begin_src bash
 wurly@k8s1:~$ kubectl get pods -n kube-system
@@ -94,13 +100,13 @@ kube-proxy-kkv4r               1/1     Running   0          7m32s
 kube-scheduler-k8s1            1/1     Running   0          7m37s
 #+end_src
 
-実行するコマンド
+実行するコマンドは下記です。
 
 #+begin_src bash
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
 #+end_src
 
-実行結果
+実行結果は下記の通りです。
 
 #+begin_src bash
 wurly@k8s1:~$ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
@@ -167,6 +173,13 @@ kube-scheduler-k8s1                        1/1     Running   0          11m
 
 ** kubeadm join (ワーカーノードで実行)
 
+#+begin_quote
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx \
+	--discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960 
+#+end_quote
+
 マスターノードに出力されたメッセージに基づき、ワーカーノードとなるマシン側で kubeadm join を実行します。
 
 #+begin_src bash
@@ -184,7 +197,7 @@ To see the stack trace of this error execute with --v=5 or higher
 #+end_src
 
 よくわからないメッセージが表示されてしまいました。
-改行、タブが上手く制御されていないことを疑い、そちらを無くして実行しました。
+テキストのコピペの問題がありそうなので、改行部分を除去して実行しました。
 
 #+begin_src bash
 wurly@k8s2:~$ kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
@@ -195,11 +208,9 @@ error execution phase preflight: [preflight] Some fatal errors occurred:
 To see the stack trace of this error execute with --v=5 or higher
 #+end_src
 
-ルート権限が必要なようです。
+ルート権限が必要です。sudo を使います。
 
-他の手順書ではあまり sudo を使っている例が少ないのですが、一部そういったものもありましたので sudo を使って実行します。
-
-k8s2 での実行結果
+k8s2 での実行結果は下記の通りです。
 
 #+begin_src bash
 wurly@k8s2:~$ sudo kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
@@ -219,7 +230,7 @@ This node has joined the cluster:
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 #+end_src
 
-k8s3 での実行結果
+k8s3 での実行結果は下記の通りです。
 
 #+begin_src bash
 wurly@k8s3:~$ sudo kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
@@ -241,6 +252,7 @@ Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 
 ** クラスタが構成されていることを確認 (マスターノードで実行)
 
+kubectl get nodes にてノードの状態を確認します。
 直後に get nodes するとワーカーノードが追加されてReadyになる様子が見られました。
 
 #+begin_src bash
@@ -296,11 +308,46 @@ kube-proxy-llj5q                           1/1     Running   0          2m2s
 kube-scheduler-k8s1                        1/1     Running   0          17m
 #+end_src
 
+お試しで、kubectl run で nginxイメージでシェルを起動してみます。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl run --image=nginx:1.16 --restart=Never --rm -it sample-debug --command -- /bin/sh
+#+end_src
+
+podが立ち上がりました。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pod -A
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS        AGE
+default       sample-debug                               1/1     Running   0               75s
+kube-system   calico-kube-controllers-658d97c59c-gjb8r   1/1     Running   1 (3h48m ago)   20h
+kube-system   calico-node-2xp2w                          1/1     Running   2 (3h47m ago)   20h
+kube-system   calico-node-fhglf                          1/1     Running   1 (3h48m ago)   20h
+kube-system   calico-node-zdnm7                          1/1     Running   1 (3h48m ago)   20h
+kube-system   coredns-5dd5756b68-2dfmx                   1/1     Running   1 (3h48m ago)   21h
+kube-system   coredns-5dd5756b68-z2pxd                   1/1     Running   1 (3h48m ago)   21h
+kube-system   etcd-k8s1                                  1/1     Running   1 (3h48m ago)   21h
+kube-system   kube-apiserver-k8s1                        1/1     Running   1 (3h48m ago)   21h
+kube-system   kube-controller-manager-k8s1               1/1     Running   1 (3h48m ago)   21h
+kube-system   kube-proxy-6db5z                           1/1     Running   1 (3h48m ago)   20h
+kube-system   kube-proxy-kkv4r                           1/1     Running   1 (3h48m ago)   21h
+kube-system   kube-proxy-llj5q                           1/1     Running   1 (3h48m ago)   20h
+kube-system   kube-scheduler-k8s1                        1/1     Running   1 (3h48m ago)   21h
+#+end_src
+
 これで、Kubernetesクラスターの構築は完了です。
 
-* インストール中に行った調査、検証
+* (参考)Kubenetesの理解を深める
 
-** kubeadm init
+** 行ったこと
+
+最低限の作業で構築されたクラスターについてファイルを参照したり、kubectl を叩くことで学びを得ます。
+
+これらの情報を、Kubernetes完全ガイド 第2版 (青山 真也 著) 19章 「Kubenetes のアーキテクチャを知る」を読みながら参照することで非常に理解が深まりました。
+
+https://www.amazon.co.jp/dp/4295009792/
+
+** kubeadm init の実行結果
 
 コマンド実行後に出力されたテキストには、内部で実行されたログと、この後に行うべきアクションが含まれます。
 ログの内容から設定ファイルの場所等が読み取れます。
@@ -361,7 +408,9 @@ W0203 16:35:06.461263   23499 checks.go:835] detected that the sandbox image "re
 [addons] Applied essential addon: kube-proxy
 #+end_src
 
-まず設定ファイルは \slash{}etc/kubernetes に作成されます。
+** 設定ファイル(マスターノード)
+
+設定ファイルは \slash{}etc/kubernetes に作成されます。
 
 #+begin_src bash
 wurly@k8s1:~$ ls -la /etc/kubernetes
@@ -376,7 +425,7 @@ drwxr-xr-x  3 root root 4096 Feb  3 16:35 pki
 -rw-------  1 root root 5629 Feb  3 16:35 scheduler.conf
 #+end_src
 
-マニフェストファイル
+** マニフェストファイル(マスターノード)
 
 #+begin_src bash
 wurly@k8s1:~$ ls -la /etc/kubernetes/manifests
@@ -389,7 +438,7 @@ drwxr-xr-x 4 root root 4096 Feb  3 16:35 ..
 -rw------- 1 root root 1463 Feb  3 16:35 kube-scheduler.yaml
 #+end_src
 
-ルートCAを含む各種証明書、鍵
+** ルートCAを含む各種証明書、鍵(マスターノード)
 
 #+begin_src bash
 wurly@k8s1:~$ ls -la /etc/kubernetes/pki
@@ -412,6 +461,8 @@ drwxr-xr-x 2 root root 4096 Feb  3 16:35 etcd
 -rw------- 1 root root 1675 Feb  3 16:35 sa.key
 -rw------- 1 root root  451 Feb  3 16:35 sa.pub
 #+end_src
+
+** admin.conf(マスターノード)
 
 #+begin_src bash
 wurly@k8s1:~$ sudo cat /etc/kubernetes/admin.conf
@@ -436,4 +487,113 @@ users:
     client-key-data: LS0tL...LQo=
 #+end_src
 
+** 設定ファイル(ワーカーノード)
+
+設定ファイルは \slash{}etc/kubernetes に作成されます。
+
+#+begin_src bash
+wurly@k8s2:~$ ls -la /etc/kubernetes/
+total 20
+drwxr-xr-x  4 root root 4096 Feb  3 16:52 .
+drwxr-xr-x 98 root root 4096 Feb  3 16:30 ..
+-rw-------  1 root root 1962 Feb  3 16:51 kubelet.conf
+drwxr-xr-x  2 root root 4096 Jan 28 21:36 manifests
+drwxr-xr-x  2 root root 4096 Feb  3 16:51 pki
+#+end_src
+
+** マニフェストファイル(ワーカーノード)
+
+#+begin_src bash
+wurly@k8s2:~$ ls -la /etc/kubernetes/manifests
+total 8
+drwxr-xr-x 2 root root 4096 Jan 28 21:36 .
+drwxr-xr-x 4 root root 4096 Feb  3 16:52 ..
+#+end_src
+
+** ルートCAを含む各種証明書、鍵(ワーカーノード)
+
+#+begin_src bash
+wurly@k8s2:~$ ls -la /etc/kubernetes/pki
+total 12
+drwxr-xr-x 2 root root 4096 Feb  3 16:51 .
+drwxr-xr-x 4 root root 4096 Feb  3 16:52 ..
+-rw-r--r-- 1 root root 1107 Feb  3 16:51 ca.crt
+#+end_src
+
+** namespace、podの状態など
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get namespace
+NAME              STATUS   AGE
+default           Active   19h
+kube-node-lease   Active   19h
+kube-public       Active   19h
+kube-system       Active   19h
+#+end_src
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pod -A
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS       AGE
+kube-system   calico-kube-controllers-658d97c59c-gjb8r   1/1     Running   1 (128m ago)   19h
+kube-system   calico-node-2xp2w                          1/1     Running   2 (127m ago)   19h
+kube-system   calico-node-fhglf                          1/1     Running   1 (128m ago)   19h
+kube-system   calico-node-zdnm7                          1/1     Running   1 (128m ago)   19h
+kube-system   coredns-5dd5756b68-2dfmx                   1/1     Running   1 (128m ago)   19h
+kube-system   coredns-5dd5756b68-z2pxd                   1/1     Running   1 (128m ago)   19h
+kube-system   etcd-k8s1                                  1/1     Running   1 (128m ago)   19h
+kube-system   kube-apiserver-k8s1                        1/1     Running   1 (128m ago)   19h
+kube-system   kube-controller-manager-k8s1               1/1     Running   1 (128m ago)   19h
+kube-system   kube-proxy-6db5z                           1/1     Running   1 (128m ago)   19h
+kube-system   kube-proxy-kkv4r                           1/1     Running   1 (128m ago)   19h
+kube-system   kube-proxy-llj5q                           1/1     Running   1 (128m ago)   19h
+kube-system   kube-scheduler-k8s1                        1/1     Running   1 (128m ago)   19h
+#+end_src
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get ConfigMap -A
+NAMESPACE         NAME                                                   DATA   AGE
+default           kube-root-ca.crt                                       1      19h
+kube-node-lease   kube-root-ca.crt                                       1      19h
+kube-public       cluster-info                                           2      19h
+kube-public       kube-root-ca.crt                                       1      19h
+kube-system       calico-config                                          4      19h
+kube-system       coredns                                                1      19h
+kube-system       extension-apiserver-authentication                     6      19h
+kube-system       kube-apiserver-legacy-service-account-token-tracking   1      19h
+kube-system       kube-proxy                                             2      19h
+kube-system       kube-root-ca.crt                                       1      19h
+kube-system       kubeadm-config                                         1      19h
+kube-system       kubelet-config                                         1      19h
+#+end_src
+
+* 参考にしたサイト
+
+ - [[https://hbayraktar.medium.com/how-to-install-kubernetes-cluster-on-ubuntu-22-04-step-by-step-guide-7dbf7e8f5f99][How to Install Kubernetes Cluster on Ubuntu 22.04 (Step-by-Step Guide) | by Hakan Bayraktar | Medium]]
+ - [[https://zenn.dev/matoruru/scraps/97ad8c96a50c81][おうちKubernetes2024実況]]
+ - [[https://srad.jp/~mishima/journal/562670/][仮想化するときのブリッジにはフィルタリングを無効化しよう | mishimaの日記 | スラド]]
+ - [[https://github.com/CyberAgentHack/home-kubernetes-2020/tree/master/how-to-create-cluster-logical-kubeadm][home-kubernetes-2020/how-to-create-cluster-logical-kubeadm at master · CyberAgentHack/home-kubernetes-2020]]
+ - [[https://blog.ebiiim.com/posts/homelab-kubernetes/][自宅Kubernetesクラスタはじめました – えびサブレ]]
+ - [[https://qiita.com/t_ume/items/f0a1c1ae8f94add8f4ba][kubeadm / containerd で Kubernetes #kubernetes - Qiita]]
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin][Installing kubeadm | Kubernetes]]
+ - [[https://qiita.com/butterv/items/93bd5e46e4ce71e8e5f5][Raspberry Pi 4でKubernetesクラスターを構築する【ソフトウェア編】 #Docker - Qiita]]
+ - [[https://developers.cyberagent.co.jp/blog/archives/27443/][おうちで「おうち Kubernetes インターン」を実施しました | CyberAgent Developers Blog]]
+ - [[https://ubuntu.perlzemi.com/blog/20200324174004.html][net-toolsのインストール - 非推奨だがとりあえずifconfig、arp、route、netstatを使いたい場合 - Ubuntuサーバー構築入門 - Ubuntuサーバーでゼロから環境構築]]
+ - [[https://github.com/canonical/netplan/blob/main/examples/static.yaml][netplan/examples/static.yaml at main · canonical/netplan]]
+ - [[https://www.servernote.net/article.cgi?id=use-static-ip-on-ubuntu][【2023年最新版】Ubuntuで固定IPアドレスを使う設定をする]]
+ - [[https://rabbit-note.com/2022/08/09/build-kubernetes-home-cluster/][Ubuntu 22.04 に Kubernetes をインストールして自宅クラウド | Rabbit Note]]
+ - [[https://kubernetes.io/ja/docs/setup/production-environment/tools/kubeadm/install-kubeadm/][kubeadmのインストール | Kubernetes]]
+ - [[https://github.com/CyberAgentHack/home-kubernetes-2020/tree/master/how-to-create-cluster-logical-hardway][home-kubernetes-2020/how-to-create-cluster-logical-hardway at master · CyberAgentHack/home-kubernetes-2020]]
+
 * おわりに
+
+私の「おうちKubernetes」の目的は、まずは技術のキャッチアップであったので、逐次、作業の内容の意味を調べて確認し、その内容を記載しながら、進めました。
+
+このように作業したおかげで特に途中で躓くことはありませんでした。
+
+ほぼ週末しか作業できなかったので数週間かかりましたが、kubeadmを使った構築は実際のところ作業は平易でした。
+
+一方で、自分で手を動かしてやってみることで思っていた以上にかなりKubernetesに対する理解が深まりました。
+
+普段Kubernetesを使用しているが、実際のマシンを使って構築を行ったことが無い方には、おすすめできる内容です。(それなりにお金はかかりますが・・・)
+
+この後、この環境を使ってデプロイなどを試していきます。
