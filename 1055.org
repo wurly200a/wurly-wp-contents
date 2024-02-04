@@ -1,0 +1,439 @@
+#+BLOG: wurly-blog
+#+POSTID: 1055
+#+ORG2BLOG:
+#+DATE: [2024-01-28 Sun 23:02]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetesをはじめる(その3)
+
+* はじめに
+
+[[./?p=1035][おうちKubernetesをはじめる(その2)]] からの続きです。
+
+* クラスタ構築
+
+** kubeadm init (マスターノードで実行)
+
+コントロールプレーンの初期化をします。
+下記コマンドを実行します。
+
+#+begin_src bash
+sudo kubeadm init
+#+end_src
+
+下記が実行結果です。
+
+#+begin_src bash
+wurly@k8s1:~$ sudo kubeadm init
+I0203 16:34:26.708499   23499 version.go:256] remote version is much newer: v1.29.1; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.6
+
+(中略)
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx \
+	--discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960 
+#+end_src
+
+コマンド実行後に出力されたテキストには、内部で実行されたログと、この後に行うべきアクションが含まれます。
+
+まず、指示通りこちらを実行します。
+
+#+begin_src bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+#+end_src
+
+ここで、nodesの状態は下記のようになっており、ワーカーノードはまだ参加指定ない状態です。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get nodes
+NAME   STATUS     ROLES           AGE     VERSION
+k8s1   NotReady   control-plane   4m25s   v1.28.2
+#+end_src
+
+** Calico のインストール (マスターノードで実行)
+
+次に、下記のリストからいずれかの "Networking and Network Policy" をインストールする必要があるとのこと。
+
+https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+数多くの選択肢がありますが、多くの手順書の内容を見習い、calico をインストールします。
+
+インストール前
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pods -n kube-system
+NAME                           READY   STATUS    RESTARTS   AGE
+coredns-5dd5756b68-2dfmx       0/1     Pending   0          7m32s
+coredns-5dd5756b68-z2pxd       0/1     Pending   0          7m32s
+etcd-k8s1                      1/1     Running   0          7m37s
+kube-apiserver-k8s1            1/1     Running   0          7m36s
+kube-controller-manager-k8s1   1/1     Running   0          7m35s
+kube-proxy-kkv4r               1/1     Running   0          7m32s
+kube-scheduler-k8s1            1/1     Running   0          7m37s
+#+end_src
+
+実行するコマンド
+
+#+begin_src bash
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+#+end_src
+
+実行結果
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+poddisruptionbudget.policy/calico-kube-controllers created
+serviceaccount/calico-kube-controllers created
+serviceaccount/calico-node created
+configmap/calico-config created
+customresourcedefinition.apiextensions.k8s.io/bgpconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgppeers.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/blockaffinities.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/caliconodestatuses.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/clusterinformations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/felixconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworksets.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/hostendpoints.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamblocks.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamconfigs.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamhandles.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ippools.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipreservations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/kubecontrollersconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networksets.crd.projectcalico.org created
+clusterrole.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrole.rbac.authorization.k8s.io/calico-node created
+clusterrolebinding.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrolebinding.rbac.authorization.k8s.io/calico-node created
+daemonset.apps/calico-node created
+deployment.apps/calico-kube-controllers created
+#+end_src
+
+直後に確認したところ calico-node が生成中でした。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pods -n kube-system
+NAME                                       READY   STATUS     RESTARTS   AGE
+calico-kube-controllers-658d97c59c-gjb8r   0/1     Pending    0          30s
+calico-node-fhglf                          0/1     Init:1/3   0          30s
+coredns-5dd5756b68-2dfmx                   0/1     Pending    0          9m42s
+coredns-5dd5756b68-z2pxd                   0/1     Pending    0          9m42s
+etcd-k8s1                                  1/1     Running    0          9m47s
+kube-apiserver-k8s1                        1/1     Running    0          9m46s
+kube-controller-manager-k8s1               1/1     Running    0          9m45s
+kube-proxy-kkv4r                           1/1     Running    0          9m42s
+kube-scheduler-k8s1                        1/1     Running    0          9m47s
+#+end_src
+
+しばらく待つとpodが立ち上がります。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pods -n kube-system
+NAME                                       READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-658d97c59c-gjb8r   1/1     Running   0          115s
+calico-node-fhglf                          1/1     Running   0          115s
+coredns-5dd5756b68-2dfmx                   1/1     Running   0          11m
+coredns-5dd5756b68-z2pxd                   1/1     Running   0          11m
+etcd-k8s1                                  1/1     Running   0          11m
+kube-apiserver-k8s1                        1/1     Running   0          11m
+kube-controller-manager-k8s1               1/1     Running   0          11m
+kube-proxy-kkv4r                           1/1     Running   0          11m
+kube-scheduler-k8s1                        1/1     Running   0          11m
+#+end_src
+
+** kubeadm join (ワーカーノードで実行)
+
+マスターノードに出力されたメッセージに基づき、ワーカーノードとなるマシン側で kubeadm join を実行します。
+
+#+begin_src bash
+wurly@k8s2:~$ kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx \
+	--discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960 
+> accepts at most 1 arg(s), received 3
+To see the stack trace of this error execute with --v=5 or higher
+#+end_src
+
+#+begin_src bash
+wurly@k8s3:~$ kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx \
+	--discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960 
+> accepts at most 1 arg(s), received 3
+To see the stack trace of this error execute with --v=5 or higher
+#+end_src
+
+よくわからないメッセージが表示されてしまいました。
+改行、タブが上手く制御されていないことを疑い、そちらを無くして実行しました。
+
+#+begin_src bash
+wurly@k8s2:~$ kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
+[preflight] Running pre-flight checks
+error execution phase preflight: [preflight] Some fatal errors occurred:
+	[ERROR IsPrivilegedUser]: user is not running as root
+[preflight] If you know what you are doing, you can make a check non-fatal with `--ignore-preflight-errors=...`
+To see the stack trace of this error execute with --v=5 or higher
+#+end_src
+
+ルート権限が必要なようです。
+
+他の手順書ではあまり sudo を使っている例が少ないのですが、一部そういったものもありましたので sudo を使って実行します。
+
+k8s2 での実行結果
+
+#+begin_src bash
+wurly@k8s2:~$ sudo kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
+[sudo] password for wurly: 
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+,* Certificate signing request was sent to apiserver and a response was received.
+,* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+#+end_src
+
+k8s3 での実行結果
+
+#+begin_src bash
+wurly@k8s3:~$ sudo kubeadm join 192.168.1.201:6443 --token mu8v4r.5e7v4uibqkplwmxx --discovery-token-ca-cert-hash sha256:de9e4adece0fbdcbd04b0e21282b2cb30d8060bbb972777294489891100bf960
+[sudo] password for wurly: 
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+,* Certificate signing request was sent to apiserver and a response was received.
+,* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+#+end_src
+
+** クラスタが構成されていることを確認 (マスターノードで実行)
+
+直後に get nodes するとワーカーノードが追加されてReadyになる様子が見られました。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get nodes
+NAME   STATUS     ROLES           AGE   VERSION
+k8s1   Ready      control-plane   16m   v1.28.2
+k8s2   NotReady   <none>          31s   v1.28.2
+k8s3   NotReady   <none>          8s    v1.28.2
+wurly@k8s1:~$ kubectl get nodes
+NAME   STATUS     ROLES           AGE   VERSION
+k8s1   Ready      control-plane   16m   v1.28.2
+k8s2   Ready      <none>          54s   v1.28.2
+k8s3   NotReady   <none>          31s   v1.28.2
+wurly@k8s1:~$ kubectl get nodes
+NAME   STATUS   ROLES           AGE   VERSION
+k8s1   Ready    control-plane   17m   v1.28.2
+k8s2   Ready    <none>          72s   v1.28.2
+k8s3   Ready    <none>          49s   v1.28.2
+#+end_src
+
+また、ワーカーノード側のcalico-nodeが生成される様子も見られます。
+
+#+begin_src bash
+wurly@k8s1:~$ kubectl get pods -n kube-system
+NAME                                       READY   STATUS     RESTARTS   AGE
+calico-kube-controllers-658d97c59c-gjb8r   1/1     Running    0          7m55s
+calico-node-2xp2w                          0/1     Init:2/3   0          64s
+calico-node-fhglf                          1/1     Running    0          7m55s
+calico-node-zdnm7                          0/1     Running    0          87s
+coredns-5dd5756b68-2dfmx                   1/1     Running    0          17m
+coredns-5dd5756b68-z2pxd                   1/1     Running    0          17m
+etcd-k8s1                                  1/1     Running    0          17m
+kube-apiserver-k8s1                        1/1     Running    0          17m
+kube-controller-manager-k8s1               1/1     Running    0          17m
+kube-proxy-6db5z                           1/1     Running    0          64s
+kube-proxy-kkv4r                           1/1     Running    0          17m
+kube-proxy-llj5q                           1/1     Running    0          87s
+kube-scheduler-k8s1                        1/1     Running    0          17m
+wurly@k8s1:~$ kubectl get pods -n kube-system
+NAME                                       READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-658d97c59c-gjb8r   1/1     Running   0          8m30s
+calico-node-2xp2w                          1/1     Running   0          99s
+calico-node-fhglf                          1/1     Running   0          8m30s
+calico-node-zdnm7                          1/1     Running   0          2m2s
+coredns-5dd5756b68-2dfmx                   1/1     Running   0          17m
+coredns-5dd5756b68-z2pxd                   1/1     Running   0          17m
+etcd-k8s1                                  1/1     Running   0          17m
+kube-apiserver-k8s1                        1/1     Running   0          17m
+kube-controller-manager-k8s1               1/1     Running   0          17m
+kube-proxy-6db5z                           1/1     Running   0          99s
+kube-proxy-kkv4r                           1/1     Running   0          17m
+kube-proxy-llj5q                           1/1     Running   0          2m2s
+kube-scheduler-k8s1                        1/1     Running   0          17m
+#+end_src
+
+これで、Kubernetesクラスターの構築は完了です。
+
+* インストール中に行った調査、検証
+
+** kubeadm init
+
+コマンド実行後に出力されたテキストには、内部で実行されたログと、この後に行うべきアクションが含まれます。
+ログの内容から設定ファイルの場所等が読み取れます。
+
+#+begin_src bash
+wurly@k8s1:~$ sudo kubeadm init
+I0203 16:34:26.708499   23499 version.go:256] remote version is much newer: v1.29.1; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.6
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0203 16:35:06.461263   23499 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime is inconsistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.1.201]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s1 localhost] and IPs [192.168.1.201 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s1 localhost] and IPs [192.168.1.201 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 19.518434 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node k8s1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node k8s1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: mu8v4r.5e7v4uibqkplwmxx
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+#+end_src
+
+まず設定ファイルは \slash{}etc/kubernetes に作成されます。
+
+#+begin_src bash
+wurly@k8s1:~$ ls -la /etc/kubernetes
+total 44
+drwxr-xr-x  4 root root 4096 Feb  3 16:35 .
+drwxr-xr-x 98 root root 4096 Feb  3 16:30 ..
+-rw-------  1 root root 5649 Feb  3 16:35 admin.conf
+-rw-------  1 root root 5681 Feb  3 16:35 controller-manager.conf
+-rw-------  1 root root 1961 Feb  3 16:36 kubelet.conf
+drwxr-xr-x  2 root root 4096 Feb  3 16:35 manifests
+drwxr-xr-x  3 root root 4096 Feb  3 16:35 pki
+-rw-------  1 root root 5629 Feb  3 16:35 scheduler.conf
+#+end_src
+
+マニフェストファイル
+
+#+begin_src bash
+wurly@k8s1:~$ ls -la /etc/kubernetes/manifests
+total 24
+drwxr-xr-x 2 root root 4096 Feb  3 16:35 .
+drwxr-xr-x 4 root root 4096 Feb  3 16:35 ..
+-rw------- 1 root root 2395 Feb  3 16:35 etcd.yaml
+-rw------- 1 root root 3887 Feb  3 16:35 kube-apiserver.yaml
+-rw------- 1 root root 3279 Feb  3 16:35 kube-controller-manager.yaml
+-rw------- 1 root root 1463 Feb  3 16:35 kube-scheduler.yaml
+#+end_src
+
+ルートCAを含む各種証明書、鍵
+
+#+begin_src bash
+wurly@k8s1:~$ ls -la /etc/kubernetes/pki
+total 68
+drwxr-xr-x 3 root root 4096 Feb  3 16:35 .
+drwxr-xr-x 4 root root 4096 Feb  3 16:35 ..
+-rw-r--r-- 1 root root 1155 Feb  3 16:35 apiserver-etcd-client.crt
+-rw------- 1 root root 1679 Feb  3 16:35 apiserver-etcd-client.key
+-rw-r--r-- 1 root root 1164 Feb  3 16:35 apiserver-kubelet-client.crt
+-rw------- 1 root root 1679 Feb  3 16:35 apiserver-kubelet-client.key
+-rw-r--r-- 1 root root 1277 Feb  3 16:35 apiserver.crt
+-rw------- 1 root root 1679 Feb  3 16:35 apiserver.key
+-rw-r--r-- 1 root root 1107 Feb  3 16:35 ca.crt
+-rw------- 1 root root 1675 Feb  3 16:35 ca.key
+drwxr-xr-x 2 root root 4096 Feb  3 16:35 etcd
+-rw-r--r-- 1 root root 1123 Feb  3 16:35 front-proxy-ca.crt
+-rw------- 1 root root 1675 Feb  3 16:35 front-proxy-ca.key
+-rw-r--r-- 1 root root 1119 Feb  3 16:35 front-proxy-client.crt
+-rw------- 1 root root 1675 Feb  3 16:35 front-proxy-client.key
+-rw------- 1 root root 1675 Feb  3 16:35 sa.key
+-rw------- 1 root root  451 Feb  3 16:35 sa.pub
+#+end_src
+
+#+begin_src bash
+wurly@k8s1:~$ sudo cat /etc/kubernetes/admin.conf
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tL...LS0K
+    server: https://192.168.1.201:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tL...LS0tCg==
+    client-key-data: LS0tL...LQo=
+#+end_src
+
+* おわりに
