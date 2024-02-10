@@ -1,0 +1,127 @@
+#+BLOG: wurly-blog
+#+POSTID: 1086
+#+ORG2BLOG:
+#+DATE: [2024-02-10 Sat 17:20]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetesクラスターの観察
+
+* はじめに
+
+おうちKubernetesクラスターの観察です。
+
+* 参考
+ - [[https://qiita.com/dyoshiha/items/0e5a4e9ed7369e97f190#cnicalico%E3%81%AE-bgp-%E3%83%AB%E3%83%BC%E3%83%86%E3%82%A3%E3%83%B3%E3%82%B0%E3%83%86%E3%83%BC%E3%83%96%E3%83%AB%E3%82%92%E8%AA%BF%E3%81%B9%E3%82%8B][「Kubernetes → CNI → Linux ネットワーク」のつながりを実感するためのコマンド例 #Ubuntu - Qiita]]
+https://qiita.com/dyoshiha/items/0e5a4e9ed7369e97f190#cnicalico%E3%81%AE-bgp-%E3%83%AB%E3%83%BC%E3%83%86%E3%82%A3%E3%83%B3%E3%82%B0%E3%83%86%E3%83%BC%E3%83%96%E3%83%AB%E3%82%92%E8%AA%BF%E3%81%B9%E3%82%8B
+
+* 内容
+
+** クラスタを構成する各マシンのIPアドレス
+
+tunl0が存在している。
+
+*** k8s1
+
+#+begin_src 
+  IPv4 address for eth0:  192.168.1.201
+  IPv6 address for eth0:  240d:1a:1d8:a600:dea6:32ff:fef1:4d1f
+  IPv4 address for tunl0: 172.16.166.192
+  IPv4 address for wlan0: 192.168.68.111
+#+end_src
+
+*** k8s2
+
+#+begin_src 
+  IPv4 address for eth0:  192.168.1.202
+  IPv6 address for eth0:  240d:1a:1d8:a600:dea6:32ff:fef1:347e
+  IPv4 address for tunl0: 172.16.109.64
+  IPv4 address for wlan0: 192.168.68.107
+#+end_src
+
+*** k8s3
+
+#+begin_src 
+  IPv4 address for eth0:  192.168.1.203
+  IPv6 address for eth0:  240d:1a:1d8:a600:dea6:32ff:fef1:3397
+  IPv4 address for tunl0: 172.16.219.0
+  IPv4 address for wlan0: 192.168.68.113
+#+end_src
+
+** ip link
+
+*** k8s1
+
+#+begin_src 
+wurly@k8s1:~$ ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether dc:a6:32:f1:4d:1f brd ff:ff:ff:ff:ff:ff
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
+    link/ether dc:a6:32:f1:4d:20 brd ff:ff:ff:ff:ff:ff
+4: cali2d67c50ecdd@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default 
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns cni-afa93372-5be3-2dee-223f-959d89af1ab5
+5: cali5b7b022879c@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default 
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns cni-01b7b370-55bb-7055-172c-1f5555bf9007
+6: cali3dc86b53b34@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1480 qdisc noqueue state UP mode DEFAULT group default 
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netns cni-22fd9ba8-21b6-302b-7acd-9323dd0153a6
+7: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+#+end_src
+
+*** k8s2
+
+#+begin_src 
+wurly@k8s2:~$ ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether dc:a6:32:f1:34:7e brd ff:ff:ff:ff:ff:ff
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
+    link/ether dc:a6:32:f1:34:7f brd ff:ff:ff:ff:ff:ff
+4: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+#+end_src
+
+*** k8s3
+
+#+begin_src 
+wurly@k8s3:~$ ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether dc:a6:32:f1:33:97 brd ff:ff:ff:ff:ff:ff
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
+    link/ether dc:a6:32:f1:33:9a brd ff:ff:ff:ff:ff:ff
+4: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+#+end_src
+
+** ip netns list
+
+*** k8s1
+
+#+begin_src 
+wurly@k8s1:~$ ip netns list
+cni-01b7b370-55bb-7055-172c-1f5555bf9007 (id: 1)
+cni-22fd9ba8-21b6-302b-7acd-9323dd0153a6 (id: 2)
+cni-afa93372-5be3-2dee-223f-959d89af1ab5 (id: 0)
+#+end_src
+
+*** k8s2
+
+#+begin_src 
+wurly@k8s2:~$ ip netns list
+#+end_src
+
+*** k8s3
+
+#+begin_src 
+wurly@k8s3:~$ ip netns list
+#+end_src
+
+* おわりに
+
+以上です。
