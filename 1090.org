@@ -91,7 +91,7 @@ https://learn.microsoft.com/ja-jp/azure/aks/concepts-clusters-workloads
 このマネージド コントロール プレーンによって、コンポーネント (高可用性を備えた etcd ストアなど) を構成する必要はなくなりますが、コントロール プレーンには直接アクセスできません。
 #+end_quote
 
-AKSにおいては、高可用性を備えたetcdを備えていますので、前述の説明で言うところの External etcd topology を採用していることになります。
+AKSでは、高可用性を備えたetcdが使用されているということですので、前述の説明で言うところの External etcd topology を採用していることになります。
 
 一方で、前述の通り、Kubernetesの公式ドキュメントでは、HAトポロジーに関係なく、コントロールプレーンには最低3台のマシンを用意すべきとありますので、いずれにしてもコントロールプレーンには3台必要となります。
 
@@ -100,6 +100,9 @@ AKSにおいては、高可用性を備えたetcdを備えていますので、�
 * 参考
  - [[https://www.techscore.com/blog/2019/03/28/raft-consensus-algorithm/][Raft - Kubernetes(etcd)のHA構成はなぜ3台以上？ | TECHSCORE BLOG]]
 https://www.techscore.com/blog/2019/03/28/raft-consensus-algorithm/
+
+ - [[https://qiita.com/KentOhwada_AlibabaCloudJapan/items/8fcf7925e8df48ab5625][Kubernetes etcd：歴史、進化、使い方について #kubernetes - Qiita]]
+https://qiita.com/KentOhwada_AlibabaCloudJapan/items/8fcf7925e8df48ab5625
 
 * おわりに
 
