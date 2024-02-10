@@ -1,0 +1,106 @@
+#+BLOG: wurly-blog
+#+POSTID: 1090
+#+ORG2BLOG:
+#+DATE: [2024-02-10 Sat 20:45]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: KubernetesのHA構成(コントロールプレーン、etcd、ワーカー)
+
+* はじめに
+
+KubernetesをHA(High Availability)構成とする場合、コントロールプレーン(etcd含む)、ワーカーに対して、ホストとなるマシンはどれだけ必要なのか？という話題です。
+
+* 内容
+
+** etcd
+
+下記は、Kubernetesからは独立して開発されているetcdについての公式ドキュメントです。
+
+ - [[https://github.com/etcd-io/etcd][GitHub - etcd-io/etcd: Distributed reliable key-value store for the most critical data of a distributed system]]
+https://github.com/etcd-io/etcd
+
+#+begin_quote
+etcd is written in Go and uses the Raft consensus algorithm to manage a highly-available replicated log.
+#+end_quote
+
+Raft consensus algorithmを使用しているので、奇数個でクラスタ化する必要があります。
+
+** コントロールプレーン
+
+まず、Kubernetesの公式ドキュメントにHA構成の選択肢の説明があります。
+
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/][Options for Highly Available Topology | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/
+
+ここでは、コントロールプレーン全体を冗長化することで、etcdも同時に冗長化することに対してのリスクについて説明しており、できればetcdは独立してクラスタ化した方がよい、ということを説明しています。
+
+Stacked etcd topology の項には下記の記載があります。
+コントロールプレーンは最低3台必要とのことです。
+
+#+begin_quote
+You should therefore run a minimum of three stacked control plane nodes for an HA cluster.
+#+end_quote
+
+また、External etcd topology の項には下記の記載があります。
+これは、コントロールプレーンは最低マシンが3台必要であることに加え、etcdは独立してクラスタ化する場合、更に3台マシンが必要(!)という説明になっています。
+
+#+begin_quote
+A minimum of three hosts for control plane nodes and three hosts for etcd nodes are required for an HA cluster with this topology.
+#+end_quote
+
+etcdは奇数個でクラスタ化が必要であるという制約があるため、まとめると下記が要件となると考えられます。
+
+ - Stacked etcd topology
+  - コントロールプレーンは3台以上、奇数個(3,5,7...)
+ - External etcd topology
+  - コントロールプレーンは3台以上(3,4,5...)
+  - etcdは3台以上、奇数個(3,5,7...)
+  - 上記を合わせて6台以上
+
+** ワーカー
+
+ワーカーのHA構成についての説明は下記にあります。
+
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+
+
+#+begin_quote
+You need:
+
+ - Three or more machines that meet kubeadm's minimum requirements for the control-plane nodes. Having an odd number of control plane nodes can help with leader selection in the case of machine or zone failure.
+ - Three or more machines that meet kubeadm's minimum requirements for the workers
+#+end_quote
+
+ワーカーについても最低3台必要とのことです。
+また、結局コントロールプレーンについてもマシンまたはゾーンの障害時のリーダー選出には、奇数台が望ましいとのこと。。
+
+** AKS(Azure Kubernetes Service)におけるetcd
+
+AKSのpodを見ると、(Kubernetesの根幹であるはずの)etcdのpodが存在しない為、不思議に思っていたのですが、下記ドキュメントを読んで理由を理解しました。
+
+ - [[https://learn.microsoft.com/ja-jp/azure/aks/concepts-clusters-workloads][Azure Kubernetes Services (AKS) の主要な基本概念 - Azure Kubernetes Service | Microsoft Learn]]
+https://learn.microsoft.com/ja-jp/azure/aks/concepts-clusters-workloads
+
+| コンポーネント	| 説明
+| etcd	| お使いの Kubernetes クラスターと構成の状態を維持するために、高可用性を備えた etcd が Kubernetes 内のキー値ストアとなります。
+
+#+begin_quote
+このマネージド コントロール プレーンによって、コンポーネント (高可用性を備えた etcd ストアなど) を構成する必要はなくなりますが、コントロール プレーンには直接アクセスできません。
+#+end_quote
+
+AKSにおいては、高可用性を備えたetcdを備えていますので、前述の説明で言うところの External etcd topology を採用していることになります。
+
+一方で、前述の通り、Kubernetesの公式ドキュメントでは、HAトポロジーに関係なく、コントロールプレーンには最低3台のマシンを用意すべきとありますので、いずれにしてもコントロールプレーンには3台必要となります。
+
+ただし、AKS上のマシンは独立したVMとして管理されているはずですので、2台でもよいのかもしれません。Production向けにAKSクラスタを構成する際の規定は2台だった気がします。
+
+* 参考
+ - [[https://www.techscore.com/blog/2019/03/28/raft-consensus-algorithm/][Raft - Kubernetes(etcd)のHA構成はなぜ3台以上？ | TECHSCORE BLOG]]
+https://www.techscore.com/blog/2019/03/28/raft-consensus-algorithm/
+
+* おわりに
+
+以上です。
