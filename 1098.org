@@ -1,0 +1,69 @@
+#+BLOG: wurly-blog
+#+POSTID: 1098
+#+ORG2BLOG:
+#+DATE: [2024-02-11 Sun 09:44]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: emacs-libvterm (vterm)
+
+* はじめに
+
+長年、Emacsのshell-modeで色付けが正しくされないことに不満を持っていました。
+何度か、eshell や ansi-term を試用したことはあるのですが、ある程度色付けはされるものの、他の使い勝手が悪かったり(具体的にどういうことだったかは忘れてしまいました)して、諦めてshell-modeを使い続けていました。
+
+この度、kubensコマンドを使う際に色付けがされず困ってしまったので、再度解決策を探しました。
+
+ - [[https://www.reddit.com/r/emacs/comments/mxf7v6/how_to_display_colors_in_mx_shell/][How to display colors in M-x shell? : r/emacs]]
+https://www.reddit.com/r/emacs/comments/mxf7v6/how_to_display_colors_in_mx_shell/
+
+上記 reddit を参照し、emacs-libvterm がこれに対しての完全な解決策になりそうです。
+
+* 概要およびインストール方法
+
+ - [[https://github.com/akermu/emacs-libvterm][akermu/emacs-libvterm: Emacs libvterm integration]]
+https://github.com/akermu/emacs-libvterm
+
+#+begin_quote
+Emacs-libvterm (vterm) is fully-fledged terminal emulator inside GNU Emacs based on libvterm, a C library. As a result of using compiled code (instead of elisp), emacs-libvterm is fully capable, fast, and it can seamlessly handle large outputs.
+#+end_quote
+
+emacs-libvterm(vterm) は、elispでなくC言語で書かれたlibvtermをベースとし、各環境に合わせてビルドするターミナルエミュレータであり、これによりフル機能と高速化を実現したものとなります。
+
+上記をインストールします。
+
+事前に cmake と libtool-bin をインストールしておけば、自動でビルドが行われます。
+
+#+begin_src emacs-lisp
+; To build this, you need to install "cmake" and "libtool-bin" first
+(use-package vterm
+  :ensure t
+  )
+#+end_src
+
+* 使い勝手
+
+色付け以外にも通常のshellと同様の機能が使用できるというところが非常に便利です。
+
+shell-modeではインタラクティブな動作について制約がありました。例えば、vi(!)などは実行できてもカーソル移動等が正しく行われず、実際には使用することはできませんでした。
+
+vterm上ではvi(!!)も使用することができます。
+
+一方、shell-modeのメリットとして、shellのバッファ中を自由に移動してテキストをコピーしたりできることがありました。
+そのため、shell中で過去に実行したコマンドを呼び出すためには、↑でなく、Ctrl + ↑ を使うなどの操作の違いがありました。
+
+vtermでは通常のshellと同じ動作を実現しているため、shell中で過去に実行したコマンドを呼び出すためには、Ctrl + ↑ を使うことができます。
+もし、バッファ中のテキストをコピーしたい場合(もしくはカーソル操作で移動したい場合)は、vterm-copy-mode (C-c C-t) に入ることでこれを行うことができます。
+Enterキーで元の位置に戻ります。
+
+emacs-libvtermの開発者はEmacs上でshellを使うことのメリットをよく理解していますね！！
+今のところ、vtermは私にとって完璧な解決策です。
+
+なお、今回は Ubuntu22.04(WSL) で使用した結果となります。 公式ドキュメントの記載によるとWindowsネイティブEmacs(NTEmacs)では使用できないように見えます。
+
+* おわりに
+
+Emacs上でshellを使いたい場合は vterm を使いましょう！
+
+以上です。
