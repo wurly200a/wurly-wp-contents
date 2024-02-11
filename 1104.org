@@ -15,8 +15,13 @@ kind のバージョンは 0.20.0 を使用しています。
 * クラスターの生成と破棄
 
 ** 規定(default)パラメータでの生成
+
+*** 参考
+
  - [[https://kind.sigs.k8s.io/docs/user/quick-start/][kind – Quick Start]]
 https://kind.sigs.k8s.io/docs/user/quick-start/
+
+*** 生成
 
 #+begin_src bash
 kind create cluster
@@ -39,16 +44,22 @@ kubectl cluster-info --context kind-kind
 Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 #+end_src
 
+*** context
+
 #+begin_src bash
 $ kubectx
 kind-kind
 #+end_src
+
+*** node
 
 #+begin_src bash
 $ kubectl get nodes
 NAME                 STATUS   ROLES           AGE   VERSION
 kind-control-plane   Ready    control-plane   85s   v1.27.3
 #+end_src
+
+*** pod
 
 #+begin_src bash
 $ kubectl get pod -A
@@ -64,6 +75,8 @@ kube-system          kube-scheduler-kind-control-plane            1/1     Runnin
 local-path-storage   local-path-provisioner-6bc4bddd6b-6gqg6      1/1     Running   0          104s
 #+end_src
 
+*** 破棄
+
 #+begin_src bash
 kind delete cluster
 #+end_src
@@ -75,11 +88,13 @@ Deleted nodes: ["kind-control-plane"]
 
 ** コントロールプレーン3台、ワーカー3台
 
+*** 参考
+
  - https://github.com/MasayaAoyama/kubernetes-perfect-guide/blob/2nd-edition/samples/chapter03/kind.yaml
 
 上記を用いて試してみましたが、v1.18.2 ではエラーになったため、v1.27.3 としたところ生成できました。
 
-kind.yaml
+*** kind.yaml
 
 #+begin_src yaml
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -98,6 +113,8 @@ nodes:
 - role: worker
   image: kindest/node:v1.27.3
 #+end_src
+
+*** 生成
 
 #+begin_src bash
 $ kind create cluster --config kind.yaml --name kindcluster
@@ -122,6 +139,8 @@ kubectl cluster-info --context kind-kindcluster
 Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 #+end_src
 
+*** node
+
 
 #+begin_src 
 $ k get nodes
@@ -133,6 +152,8 @@ kindcluster-worker           Ready    <none>          112s    v1.27.3
 kindcluster-worker2          Ready    <none>          112s    v1.27.3
 kindcluster-worker3          Ready    <none>          114s    v1.27.3
 #+end_src
+
+*** pod
 
 #+begin_src bash
 $ k get pod -A
@@ -164,6 +185,17 @@ kube-system          kube-scheduler-kindcluster-control-plane             1/1   
 kube-system          kube-scheduler-kindcluster-control-plane2            1/1     Running   0       
 kube-system          kube-scheduler-kindcluster-control-plane3            1/1     Running   0       
 local-path-storage   local-path-provisioner-6bc4bddd6b-jxksg              1/1     Running   0       
+#+end_src
+
+*** 破棄
+
+#+begin_src bash
+$ kind delete cluster --name kindcluster
+#+end_src
+
+#+begin_src bash
+Deleting cluster "kindcluster" ...
+Deleted nodes: ["kindcluster-control-plane3" "kindcluster-worker" "kindcluster-worker3" "kindcluster-control-plane" "kindcluster-external-load-balancer" "kindcluster-control-plane2" "kindcluster-worker2"]
 #+end_src
 
 * おわりに
