@@ -1,0 +1,172 @@
+#+BLOG: wurly-blog
+#+POSTID: 1104
+#+ORG2BLOG:
+#+DATE: [2024-02-11 Sun 18:04]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: kind (Kubernetes in Docker) でクラスターを作成
+
+* はじめに
+
+kind のバージョンは 0.20.0 を使用しています。
+
+* クラスターの生成と破棄
+
+** 規定(default)パラメータでの生成
+ - [[https://kind.sigs.k8s.io/docs/user/quick-start/][kind – Quick Start]]
+https://kind.sigs.k8s.io/docs/user/quick-start/
+
+#+begin_src bash
+kind create cluster
+#+end_src
+
+#+begin_src bash
+$ kind create cluster
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.27.3) 🖼
+ ✓ Preparing nodes 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+#+end_src
+
+#+begin_src bash
+$ kubectx
+kind-kind
+#+end_src
+
+#+begin_src bash
+$ kubectl get nodes
+NAME                 STATUS   ROLES           AGE   VERSION
+kind-control-plane   Ready    control-plane   85s   v1.27.3
+#+end_src
+
+#+begin_src bash
+$ kubectl get pod -A
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE
+kube-system          coredns-5d78c9869d-rzkp5                     1/1     Running   0          104s
+kube-system          coredns-5d78c9869d-z7hzw                     1/1     Running   0          104s
+kube-system          etcd-kind-control-plane                      1/1     Running   0          118s
+kube-system          kindnet-hczpj                                1/1     Running   0          105s
+kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          2m
+kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          119s
+kube-system          kube-proxy-hgfdd                             1/1     Running   0          105s
+kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          118s
+local-path-storage   local-path-provisioner-6bc4bddd6b-6gqg6      1/1     Running   0          104s
+#+end_src
+
+#+begin_src bash
+kind delete cluster
+#+end_src
+
+#+begin_src bash
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane"]
+#+end_src
+
+** コントロールプレーン3台、ワーカー3台
+
+ - https://github.com/MasayaAoyama/kubernetes-perfect-guide/blob/2nd-edition/samples/chapter03/kind.yaml
+
+上記を用いて試してみましたが、v1.18.2 ではエラーになったため、v1.27.3 としたところ生成できました。
+
+kind.yaml
+
+#+begin_src yaml
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+nodes:
+- role: control-plane
+  image: kindest/node:v1.27.3
+- role: control-plane
+  image: kindest/node:v1.27.3
+- role: control-plane
+  image: kindest/node:v1.27.3
+- role: worker
+  image: kindest/node:v1.27.3
+- role: worker
+  image: kindest/node:v1.27.3
+- role: worker
+  image: kindest/node:v1.27.3
+#+end_src
+
+#+begin_src bash
+$ kind create cluster --config kind.yaml --name kindcluster
+#+end_src
+
+#+begin_src bash
+Creating cluster "kindcluster" ...
+ ✓ Ensuring node image (kindest/node:v1.27.3) 🖼
+ ✓ Preparing nodes 📦 📦 📦 📦 📦 📦  
+ ✓ Configuring the external load balancer ⚖️ 
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+ ✓ Joining more control-plane nodes 🎮 
+ ✓ Joining worker nodes 🚜 
+Set kubectl context to "kind-kindcluster"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kindcluster
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+#+end_src
+
+
+#+begin_src 
+$ k get nodes
+NAME                         STATUS   ROLES           AGE     VERSION
+kindcluster-control-plane    Ready    control-plane   3m      v1.27.3
+kindcluster-control-plane2   Ready    control-plane   2m48s   v1.27.3
+kindcluster-control-plane3   Ready    control-plane   117s    v1.27.3
+kindcluster-worker           Ready    <none>          112s    v1.27.3
+kindcluster-worker2          Ready    <none>          112s    v1.27.3
+kindcluster-worker3          Ready    <none>          114s    v1.27.3
+#+end_src
+
+#+begin_src bash
+$ k get pod -A
+NAMESPACE            NAME                                                 READY   STATUS    RESTARTS
+kube-system          coredns-5d78c9869d-89g8s                             1/1     Running   0       
+kube-system          coredns-5d78c9869d-sgtr5                             1/1     Running   0       
+kube-system          etcd-kindcluster-control-plane                       1/1     Running   0       
+kube-system          etcd-kindcluster-control-plane2                      1/1     Running   0       
+kube-system          etcd-kindcluster-control-plane3                      1/1     Running   0       
+kube-system          kindnet-4trxn                                        1/1     Running   0       
+kube-system          kindnet-9x6lf                                        1/1     Running   0       
+kube-system          kindnet-fqkzc                                        1/1     Running   0       
+kube-system          kindnet-m687n                                        1/1     Running   0       
+kube-system          kindnet-sjm4s                                        1/1     Running   0       
+kube-system          kindnet-wn67h                                        1/1     Running   0       
+kube-system          kube-apiserver-kindcluster-control-plane             1/1     Running   0       
+kube-system          kube-apiserver-kindcluster-control-plane2            1/1     Running   0       
+kube-system          kube-apiserver-kindcluster-control-plane3            1/1     Running   1 (2m34s
+kube-system          kube-controller-manager-kindcluster-control-plane    1/1     Running   1 (3m8s 
+kube-system          kube-controller-manager-kindcluster-control-plane2   1/1     Running   0       
+kube-system          kube-controller-manager-kindcluster-control-plane3   1/1     Running   0       
+kube-system          kube-proxy-89vbv                                     1/1     Running   0       
+kube-system          kube-proxy-cp8rv                                     1/1     Running   0       
+kube-system          kube-proxy-h68wd                                     1/1     Running   0       
+kube-system          kube-proxy-mnlm6                                     1/1     Running   0       
+kube-system          kube-proxy-ms45k                                     1/1     Running   0       
+kube-system          kube-proxy-msvbd                                     1/1     Running   0       
+kube-system          kube-scheduler-kindcluster-control-plane             1/1     Running   1 (3m3s 
+kube-system          kube-scheduler-kindcluster-control-plane2            1/1     Running   0       
+kube-system          kube-scheduler-kindcluster-control-plane3            1/1     Running   0       
+local-path-storage   local-path-provisioner-6bc4bddd6b-jxksg              1/1     Running   0       
+#+end_src
+
+* おわりに
+
+以上です。
+
