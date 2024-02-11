@@ -1,0 +1,60 @@
+#+BLOG: wurly-blog
+#+POSTID: 1096
+#+ORG2BLOG:
+#+DATE: [2024-02-10 Sat 21:43]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Kubernetesをはじめる
+
+* はじめに
+
+* 便利な設定(はじめる前に)
+
+** kubectl の alias 設定
+
+業務でKubernetesに携わっているエンジニアは、常に kubectl を叩くことになりますので、'k' で実行できるようにしている人が多いようです。
+
+念の為、設定方法です。
+.bashrc または .bash_aliases に下記を設定します。
+
+#+begin_src sh
+alias k='kubectl'
+#+end_src
+
+** kubectx/kubens
+
+複数のKubernetesクラスターを扱う場合、その都度コンテキストの切り替えを行う必要があります。
+
+また、namespaceの切り替え(またはコマンドごとに指定)も頻繁に発生します。
+
+下記のツールをインストールすると非常に便利です。
+
+ - [[https://github.com/ahmetb/kubectx?tab=readme-ov-file#manual-installation-macos-and-linux][ahmetb/kubectx: Faster way to switch between clusters and namespaces in kubectl]]
+https://github.com/ahmetb/kubectx?tab=readme-ov-file#manual-installation-macos-and-linux
+
+kubectx/kubensは補完機能があってこそ、その真価を発揮します。
+公式ドキュメントによると、補完を行う場合には手動でインストールする必要があるとのことで、Gitのプロジェクトをクローンしてaliasを設定する方法が記載されています。
+
+私は下記のように、直接コピーしてインストールしました。
+
+bashを使用する場合の例となります。
+
+#+begin_src bash
+git clone https://github.com/ahmetb/kubectx.git ./kubectx-temp
+sudo cp ./kubectx-temp/kubens /usr/local/bin/kubens
+sudo cp ./kubectx-temp/kubectx /usr/local/bin/kubectx
+COMPDIR=$(pkg-config --variable=completionsdir bash-completion)
+sudo cp ./kubectx-temp/completion/kubens.bash $COMPDIR/kubens
+sudo cp ./kubectx-temp/completion/kubectx.bash $COMPDIR/kubectx
+rm -Rf ./kubectx-temp
+#+end_src
+
+* 参考
+ - [[https://dev.classmethod.jp/articles/kubectx-and-kubens/][kubectlのcontextとnamespace周りの操作をkubectxとkubensでちょっと楽する | DevelopersIO]]
+https://dev.classmethod.jp/articles/kubectx-and-kubens/
+
+* おわりに
+
+以上です。
