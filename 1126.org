@@ -1,0 +1,55 @@
+#+BLOG: wurly-blog
+#+POSTID: 1126
+#+ORG2BLOG:
+#+DATE: [2024-02-12 Mon 22:43]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetes amd64 ワーカー用マシンの候補
+
+* はじめに
+
+おうちKubernetes をはじめましたが、参考書の内容を試そうとすると amd64 の Docker Image しかなく、早くもラズパイのワーカーでは厳しいと思い始めました。
+
+まずは1台でもいいので Intel x86-64(amd64) のワーカーを仕立てたいと思いました。
+
+* 内容
+
+Amazon で Intel N100 や N95 、 N4000 等の搭載のコンパクトPCを候補として、いろいろな機種を見ていました。
+
+値段は15,000円/1台くらいが希望です。
+メモリーサイズで見たときには 8G + 8G + 16G (3台) のような形で組めないかと考えていました。
+しかし、4コア・4スレッド/1台 は欲しいところで(ラズパイが4コアですし)、N100搭載PC、また、これらのPCのほとんどはメモリーの増設ができないので、最初から8Gや16Gのモデルを選ぼうとすると、価格が3万近くなってきます。
+
+中古を検討していたところ、ASUS Chromebox 3 が最適ではないかと思い始めました。
+
+Core i7-8550U (4コア8スレッド)、Pass Mark 値 8289 (参考)、メモリー 4G - 16G(変更可能)、ストレージ M.2 32GB - 256G(変更可能) とすると扱いやすそうです。
+
+また、中古市場にはi7モデルが多く出回っているようで、価格もヤフオクで15,000円くらいで入手できそうです。
+
+ - [[https://www.asus.com/in/commercial-desktop/asus-chromebox-3/specifications/][ASUS Chromebox 3 Specifications]]
+https://www.asus.com/in/commercial-desktop/asus-chromebox-3/specifications/
+
+ - [[https://btopc-minikan.com/note-cpu-hikaku.html?resetButton.x=25&resetButton.y=29][ノートパソコンのCPUベンチマークと性能比較【2024年最新版】 | BTOパソコンミニ館]]
+https://btopc-minikan.com/note-cpu-hikaku.html?resetButton.x=25&resetButton.y=29
+
+ASUS Chromebox 3
+
+| CPU | Intel® Core™ i7-8550U Processor / Intel® Core™ i5-8250U Processor, Intel® Core™ i3-7100U Processor / Intel® Celeron 3865U Processor
+| Memory | 4 GB Up to 16 GB
+| Storage | M.2 32GB Up to 256GB
+| Dimensions | 148.5 x 148.5 x 40 mm (WxDxH)
+
+一方、ASUS Chromebox 2 では不足になりそうです。
+メモリーが最大4GB、また、i7-5500U では1台でワーカーとするにはスペック不足です。
+
+ - [[https://www.asus.com/commercial-mini-pcs/asus_chromebox_cn62_commercial/specifications/][ASUS Chromebox 2 Specifications]]
+https://www.asus.com/commercial-mini-pcs/asus_chromebox_cn62_commercial/specifications/
+
+
+まずは、ASUS Chromebox 3 を1台入手し、ワーカーとすることにします。
+
+* おわりに
+
+有望な候補が見つかって良かったです。
