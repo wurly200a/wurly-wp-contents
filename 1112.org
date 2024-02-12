@@ -1,0 +1,150 @@
+#+BLOG: wurly-blog
+#+POSTID: 1112
+#+ORG2BLOG:
+#+DATE: [2024-02-12 Mon 14:23]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: セキュアMP3への長い道のり(Windows10でSD-Jukeboxを使う)
+
+* お知らせ
+
+(2018.9.15)
+
+下記ページにより、
+
+「先日より、ご案内してますとおり、2018年3月末をもって、SD-Jukeboxの新規インストール（再インストールを含む）時に必要な著作権保護のためのセキュリティプログラムの配布を終了いたしました。」
+
+とある。
+
+ - [[https://av.jpn.support.panasonic.com/support/software/info/sdjb_notice3.html][SD-Jukeboxをご利用のお客様への重要なお知らせ | ソフトウェア | お客様サポート | Panasonic]]
+https://av.jpn.support.panasonic.com/support/software/info/sdjb_notice3.html
+
+新規でSD-Jukeboxをインストールして使用するすることは不可能なので、このページを見てこれから新たにSD-Jukeboxを使おうと考えている方はきっぱり諦めた方がよさそうです。
+
+一方、現在Windows7やWindowsXPでSD-Jukeboxが動作している環境がある方で、Windows10で継続して使用したい、と考えている方は、実機PC(物理マシン)をVirtualBoxに仮想化すれば実現できる可能性があります。
+
+下記ページは参考の為に残します。
+
+* 概要
+
+2016年5月、5年前のモデルの中古車を購入。
+SDカードでmp3が聴けず。
+マニュアルによると、セキュアMP3なるフォーマットでないと聴けないとのこと。
+
+結局のところ、SD-Jukeboxというソフトと、著作権保護対応のSDカードリーダ(／ライタ)があればいいらしい。
+
+SD-JukeboxがWindows10非対応であることと、SDカードリーダライタの用意が課題であり、いくらか出費が必要であるところに迷いつつも、検討を始めた。
+
+* 結論
+
+結論から言うと、下記があれば セキュアMP3に対応ができる。
+
+ - Panasonic SD-Jukebox (確認したものは Ver6.95)
+ - 著作権保護対応の SDカードリーダライタ (確認したものは Panasonic BN-SDCMP3)
+ - 使用バージョンの SD-Jukebox が対応した Windows (確認したものは Windows7)
+
+さらに、仮想PC環境である VirtualBox を使用すれば、Windows10(64bit)環境でも上記環境が構築できる。(2017年7月1日現在で使用中)
+
+ただし、既に SD-Jukebox は 2016年9月30日に販売中止、ユーザサポートも2017年末頃に終了予定、著作権保護対応の SDカードリーダライタ (最後の製品はおそらくBN-SDCMP3) も生産終了なので注意！
+(できれば、こんなものを使用しないくてもよい再生環境にするのが一番よいと思う)
+
+* 経緯
+
+2016年5月時点で、我が家で稼働中のWindowsマシン(3台)は全てWindows10となっており、まずは、完全に眠っていたノートPCを専用マシンとして使用することにした。
+
+マシンは Panasonic Let'snote CF-R4 (CF-R4GW5AXS)。プレインストールOSは、Windows XP Professional SP2 である。
+
+ここで、このPCのSDカードスロットにSDカードを挿してみると、なんと、「著作権保護された」と表示されるではないか。
+
+カードリーダを購入しなくてもよさそう、ということで若干敷居が低くなり、SD-Jukebox をダウンロード購入してみたところ、2GBまでのSDカードでセキュアmp3が使用できた。
+
+その後、SDカードリーダライタ(Panasonic BN-SDCMP3)を購入し、SDHCでもセキュアmp3が使用できるようになり、
+
+最終的に VirtualBox を使用して、Windows10環境でも使用できるようになった。
+
+* SD-Jukeboxについて
+
+** SD-Jukebox
+ - [[https://av.jpn.support.panasonic.com/support/software/sdjb/][SD-Jukebox | ソフトウェア | お客様サポート | Panasonic]]
+https://av.jpn.support.panasonic.com/support/software/sdjb/
+
+** サポートについて
+このソフトは、Windows10非対応で、今後の対応予定も無し。
+さらに、2016年9月末に販売終了、ユーザーサポートは2017年末頃に終了予定とのこと。
+
+ - [[http://av.jpn.support.panasonic.com/support/software/info/sdjb_info.html][SD-Jukebox ダウンロード版販売、ならびにサポート終了のお知らせ]] 
+http://av.jpn.support.panasonic.com/support/software/info/sdjb_info.html
+
+** SD-Jukebox購入
+
+CLUB Panasonic にユーザ登録し、Panasonic Store (https://ec-club.panasonic.jp/) から購入。(バージョン6.95)
+
+ - [[http://ec-club.panasonic.jp/ITEM/CNS-SJ61JD_1__][SD-Jukebox Ver.6 SE DL CNS-SJ61JD]] 
+http://ec-club.panasonic.jp/ITEM/CNS-SJ61JD_1__
+
+** データ移行方法
+
+ - [[http://av.jpn.support.panasonic.com/support/software/sdjb/faq/illustration/e_2.html][他のパソコンに曲データを移す方法　【曲のバックアップ、リストアについて】－Ver.4.1SE の場合－]] 
+http://av.jpn.support.panasonic.com/support/software/sdjb/faq/illustration/e_2.html
+
+* 前提条件
+
+音楽ライブラリ(mp3)はメインPCの D:\music\mp3 に置き、iTunes で管理している。
+
+SD-Jukeboxでは、格納されたファイル構成そのままで使うようにする。
+
+* SD-Jukebox環境構築
+
+最終的には、次の3つの環境にてSD-Jukeboxを使用することができた。
+
+** Let'snote CF-R4 内蔵SDカードリーダライタ
+ - [[http://cha.la.coocan.jp/doc/SDjukeboxWithCF-R4.html][Let'snote CF-R4 で SD-Jukebox を動かす]]
+  - Let'snote CF-R4 + Windows XP Professional + SD-Jukebox 6.95 にてSDカード(SDHCでない、2GBまでのもの)にセキュアMP3を作成
+ - この段階では、メインPCの音楽ライブラリ D:\music\mp3 をそのままの階層で USB接続ハードディスクにコピーし、CF-R4 ではこれを Mドライブにマウントし、M:\music\mp3 として SD-Jukebox から参照するようにした。
+  - MSYS2の rsync を使って同期していたはず
+
+** Let'snote CF-R4 + BN-SDCMP3
+ - Let'snote CF-R4 + Windows XP Professional + SD-Jukebox 6.95 + SDカードリーダライタ BN-SDCMP3
+  - 容量的に、SDHCが使用できないと困るので、その後、結局、最新の Panasonic のSDカードリーダライタ BN-SDCMP3 を購入。
+ - 基本は上記環境と同じで、内蔵SDカードリーダライタでなく、BN-SDCMP3を使用することで、SDカード(SDHC含む)にセキュアMP3を作成
+
+** Windows10 PC + BN-SDCMP3
+ - [[http://cha.la.coocan.jp/doc/OracleVirtualBox.html][Oracle VirtualBox]] を参照
+  - Oracle VirtualBox を使用し、Windows7の仮想マシンを仕立てることで、Windows10 PCでもmp3を扱えるようになった。
+  - Windows 10 Professional 64bit マシン + Oracle VirtualBox + SD-Jukebox 6.95(購入) + SDカードリーダライタ BN-SDCMP3 (購入)にて、SDカード(SDHC含む)にセキュアMP3を作成
+  - 一応、上記(CF-R4)の環境で使用した SD-Jukebox の管理データを移行して使用できるようにした
+
+* 参考
+
+** Windows10 で SD-Jukebox を使用する
+ - IT・技術開発その他いろいろ活用ブログ
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/bae3236b4a85f55b7bbe2f85e9808fc7][Windows10でSD-Jukebox V6を使用する－１０]]
+   - SD-Jukeboxのインストール、USBデバイスの使い方
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/58e34ea32aad35f9c705e985af0d7bde][Windows10でSD-Jukebox V6を使用する－９]]
+   - Guest Additionsのインストール
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/1d4865c95e46376104883c2a501388d0][Windows10でSD-Jukebox V6を使用する－８]]
+   - OSのインストール
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/5662866492444ea55f2a389a219207da][Windows10でSD-Jukebox V6を使用する－７]]
+   - 仮想マシンの作成
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/f280deef2d3b10c3222eed2c195d10f3][Windows10でSD-Jukebox V6を使用する－６]]
+   - 拡張パックのインストール
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/aeeba4af3bd1fe7ae0cb2d82810dce53][Windows10でSD-Jukebox V6を使用する－５]]
+   - インストーラのダウンロード 及び VirtualBox 自体のダウンロード
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/a325e017cac2ee878065a52bfa1fb8bf][Windows10でSD-Jukebox V6を使用する－４]]
+   - VirtualBox 使用時の注意点
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/9f8a80a5cadffee114b2d55bd79cb267][Windows10でSD-Jukebox V6を使用する－３]]
+   - SDリーダライタのデバイスの話 と 仮想PC環境の選択の話
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/b377c651c34d34790f7af194e1182193][Windows10でSD-Jukebox V6を使用する－２]]
+   - SDリーダライタのデバイスの話
+  - [[http://blog.goo.ne.jp/m-suzugatake/e/ed589bc7aa9d1d1e232de9bb3669760b][Windows10でSD-Jukebox V6を使用する－１]]
+   - SD-Jukebox の概要説明
+
+** SDカード関連
+ - [[https://www.sdcard.org/jp/index.html][SD Association]] 
+  - [[https://www.sdcard.org/jp/downloads/formatter_4/][SDカードフォーマッター]] 
+
+** シンボリックリンク関連
+ - [[http://www.atmarkit.co.jp/ait/articles/1306/07/news111.html][Windowsのシンボリックリンクとジャンクションとハードリンクの違い]]
+ - [[http://calkinos.hatenablog.com/entry/2015/11/18/104745][mklinkでシンボリックリンク(管理者権限いらず)]]
