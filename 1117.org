@@ -20,6 +20,7 @@
 
 ファイル名は client_クライアント名.ovpn とする。
 
+ - _先頭に client と記載する_ (2024.02.12追記しました。2023年12月頃にiPhoneのOpenVPNクライアントのバージョンアップにより接続できなくなる現象が発生しましたが、この対応を行うことで接続できるようになりました。)
  - remote は DDNSサービスより
  - port は 1194
  - proto は tcp-client
@@ -36,6 +37,7 @@
  - <key>～ｐ</key> に、クライアントの秘密鍵 (client_xxx.key) の中身から必要な部分を記述する
 
 #+BEGIN_EXAMPLE
+client
 remote hogehoge.dip.jp
 port 1194
 proto tcp-client
