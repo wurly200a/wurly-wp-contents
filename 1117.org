@@ -1,0 +1,222 @@
+#+BLOG: wurly-blog
+#+POSTID: 1117
+#+ORG2BLOG:
+#+DATE: [2024-02-12 Mon 15:15]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: OpenVPN クライアント用 .ovpn ファイルの作成
+
+* 用意するもの
+
+[[http://cha.la.coocan.jp/doc/OpenVPN_PKI_Manage.html][OpenVPN 認証局の設置]] の手順に従って生成した、下記ファイルが必要。
+
+ - ca.crt
+ - client_クライアント名.crt
+ - client_クライアント名.key
+
+* 作成したファイル
+
+ファイル名は client_クライアント名.ovpn とする。
+
+ - remote は DDNSサービスより
+ - port は 1194
+ - proto は tcp-client
+ - サンプルファイルでは コメントが 'dev tap' or 'dev tun' となっており、記述は tap となっているが、tun0 とする。tun0 という定義らしい。サーバ側の設定と合わせる
+ - persist-tun は記述する
+ - persist-key は記述する
+ - サンプルファイルでは resolv-retry は 86400 となっているのを、infinite とする
+ - ping は記述する
+ - comp-lzo は記述する
+ - verb は記述する
+ - mute は記述する
+ - <ca>～</ca> に、CA証明書 (ca.crt) の中身を記述する
+ - <cert>～</cert> に、クライアントの証明書 (client_xxx.crt) の中身から必要な部分を記述する
+ - <key>～ｐ</key> に、クライアントの秘密鍵 (client_xxx.key) の中身から必要な部分を記述する
+
+#+BEGIN_EXAMPLE
+remote hogehoge.dip.jp
+port 1194
+proto tcp-client
+dev tun0
+persist-tun
+persist-key
+resolv-retry infinite
+ping 10
+comp-lzo
+verb 4
+mute 10
+
+<ca>
+-----BEGIN CERTIFICATE-----
+...(省略)...
+-----END CERTIFICATE-----
+</ca>
+
+<cert>
+-----BEGIN CERTIFICATE-----
+...(省略)...
+-----END CERTIFICATE-----
+</cert>
+
+<key>
+-----BEGIN RSA PRIVATE KEY-----
+...(省略)...
+-----END RSA PRIVATE KEY-----
+</key>
+#+END_EXAMPLE
+
+* 設定ファイルの作成プロセス(参考)
+
+** サンプルファイル
+
+openvpn-2.4.3.zip の openvpn-2.4.3/sample/sample-windows/sample.ovpn
+
+#+BEGIN_EXAMPLE
+# Edit this file, and save to a .ovpn extension
+# so that OpenVPN will activate it when run
+# as a service.
+
+# Change 'myremote' to be your remote host,
+# or comment out to enter a listening
+# server mode.
+remote myremote
+
+# Uncomment this line to use a different
+# port number than the default of 1194.
+; port 1194
+
+# Choose one of three protocols supported by
+# OpenVPN.  If left commented out, defaults
+# to udp.
+; proto [tcp-server | tcp-client | udp]
+
+# You must specify one of two possible network
+# protocols, 'dev tap' or 'dev tun' to be used
+# on both sides of the connection.  'tap' creates
+# a VPN using the ethernet protocol while 'tun'
+# uses the IP protocol.  You must use 'tap'
+# if you are ethernet bridging or want to route
+# broadcasts.  'tun' is somewhat more efficient
+# but requires configuration of client software
+# to not depend on broadcasts.  Some platforms
+# such as Solaris, OpenBSD, and Mac OS X only
+# support 'tun' interfaces, so if you are
+# connecting to such a platform, you must also
+# use a 'tun' interface on the Windows side.
+
+# Enable 'dev tap' or 'dev tun' but not both!
+dev tap
+
+# This is a 'dev tap' ifconfig that creates
+# a virtual ethernet subnet.
+# 10.3.0.1 is the local VPN IP address
+# and 255.255.255.0 is the VPN subnet.
+# Only define this option for 'dev tap'.
+ifconfig 10.3.0.1 255.255.255.0
+
+# This is a 'dev tun' ifconfig that creates
+# a point-to-point IP link.
+# 10.3.0.1 is the local VPN IP address and
+# 10.3.0.2 is the remote VPN IP address. 
+# Only define this option for 'dev tun'.
+# Make sure to include the "tun-mtu" option
+# on the remote machine, but swap the order
+# of the ifconfig addresses.
+;tun-mtu 1500
+;ifconfig 10.3.0.1 10.3.0.2
+
+# If you have fragmentation issues or misconfigured
+# routers in the path which block Path MTU discovery,
+# lower the TCP MSS and internally fragment non-TCP
+# protocols.
+;fragment 1300
+;mssfix
+
+# If you have set up more than one TAP-Win32 adapter
+# on your system, you must refer to it by name.
+;dev-node my-tap
+
+# You can generate a static OpenVPN key
+# by selecting the Generate Key option
+# in the start menu.
+#
+# You can also generate key.txt manually
+# with the following command:
+#   openvpn --genkey --secret key.txt
+#
+# key must match on both ends of the connection,
+# so you should generate it on one machine and
+# copy it to the other over a secure medium.
+# Place key.txt in the same directory as this
+# config file.
+secret key.txt
+
+# Uncomment this section for a more reliable
+# detection when a system loses its connection.
+# For example, dial-ups or laptops that travel
+# to other locations.
+#
+# If this section is enabled and "myremote"
+# above is a dynamic DNS name (i.e. dyndns.org),
+# OpenVPN will dynamically "follow" the IP
+# address of "myremote" if it changes.
+; ping-restart 60
+; ping-timer-rem
+; persist-tun
+; persist-key
+; resolv-retry 86400
+
+# keep-alive ping
+ping 10
+
+# enable LZO compression
+comp-lzo
+
+# moderate verbosity
+verb 4
+mute 10
+#+END_EXAMPLE
+
+** 設定らしきところを抽出
+
+#+BEGIN_EXAMPLE
+remote myremote
+; port 1194
+; proto [tcp-server | tcp-client | udp]
+dev tap
+ifconfig 10.3.0.1 255.255.255.0
+;tun-mtu 1500
+;ifconfig 10.3.0.1 10.3.0.2
+;fragment 1300
+;mssfix
+;dev-node my-tap
+secret key.txt
+; ping-restart 60
+; ping-timer-rem
+; persist-tun
+; persist-key
+; resolv-retry 86400
+ping 10
+comp-lzo
+verb 4
+mute 10
+#+END_EXAMPLE
+
+** 削除したところ
+
+ - ifconfig は削除。Only define this option for 'dev tap' とあるので
+ - tun-mtu は削除。
+ - fragment は削除。
+ - mssfix は削除。
+ - dev-node は削除。
+ - secret key.txt は削除。直接記述する為。
+ - ping-restart は削除
+ - ping-timer-rem は削除
+
+* 参考
+ - [[http://d.hatena.ne.jp/yutamoty/20100221/1266724617][openvpn 立てた 続]]
+  - tap とか tun とかの解説 あり
+ - [[https://www.openvpn.jp/document/ios-openvpn/][iPhoneやiPad (iOS) でOpenVPNを使ってみよう！]] (OpenVPN.JP)
+  - CA証明書、クライアントの秘密鍵/証明書は別ファイルにするのではなく、設定ファイルに埋め込んでしまう方法の説明があり
