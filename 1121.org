@@ -1,0 +1,259 @@
+#+BLOG: wurly-blog
+#+POSTID: 1121
+#+ORG2BLOG:
+#+DATE: [2024-02-12 Mon 17:44]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 (WSL) に Emacs 29.2 をインストール
+
+* はじめに
+
+Ubuntu 22.04 (WSL) に Emacs 29.2 をインストールしました。
+
+file:images/1121_01.jpg
+
+下記のコンフィギュレーションとなります。
+
+ - pgtk(Pure GTK)
+ - native-compilation
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src 
+$ git clone --depth 1 --branch emacs-29.2 git://git.savannah.gnu.org/emacs.git emacs-29.2
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+#+begin_src 
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libm17n-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev
+#+end_src
+
+** Makefileの生成
+
+#+begin_src bash
+cd emacs-29.2
+./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils
+#+end_src
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 -lz
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  no
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             no
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes -lglibc (inotify)
+  Does Emacs use access control lists?                    yes -lacl
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ljansson?                               yes
+  Does Emacs use -ltree-sitter?                           no
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            no
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+#+end_src
+
+** make
+
+数字は nproc を実行した数を基に設定します。
+
+#+begin_src 
+make -j8
+#+end_src
+
+# 17:55-18:00
+(参考)Core i5-1235U, 32GB Memory, NVMe SSD 環境で8コア並列ビルドで、約5分でビルドできました。
+
+** make install
+
+#+begin_src 
+sudo make install
+#+end_src
+
+* 設定
+
+** (pgtk向け)WSL上のEmacsからWindowsへコピー＆ペーストを可能にする
+
+#+begin_src bash
+$ sudo apt install wl-clipboard
+#+end_src
+
+ここでは、featurep で pgtk が有効であることを確認し、wl-copy 及び wl-paste が実行可能であることを確認してから設定するようにしています。
+
+#+begin_src emacs-lisp
+(if (featurep 'pgtk)
+    ; you need to install "wl-clipboard" first
+    (if (and (zerop (call-process "which" nil nil nil "wl-copy"))
+             (zerop (call-process "which" nil nil nil "wl-paste")))
+        ;; credit: yorickvP on Github
+        (progn
+          (setq wl-copy-process nil)
+          (defun wl-copy (text)
+            (setq wl-copy-process (make-process :name "wl-copy"
+                                                :buffe*r nil
+                                                :command '("wl-copy" "-f" "-n")
+                                                :connection-type 'pipe))
+            (process-send-string wl-copy-process text)
+            (process-send-eof wl-copy-process))
+          (defun wl-paste ()
+            (if (and wl-copy-process (process-live-p wl-copy-process))
+                nil ; should return nil if we're the current paste owner
+              (shell-command-to-string "wl-paste -n | tr -d \r")))
+          (setq interprogram-cut-function 'wl-copy)
+          (setq interprogram-paste-function 'wl-paste)
+          )
+      ))
+#+end_src
+
+** (pgtk向け)アイコンテーマのインストールとテーマの設定
+
+インストールしていないとEmacsの起動時にWarningが発生します。
+
+#+begin_src bash
+$ sudo apt install adwaita-icon-theme-full
+#+end_src
+
+#+begin_src bash
+export GTK_THEME=Adwaita:dark
+#+end_src
+
+** (pgtk向け)アイコンの適正化
+
+*** 行うこと
+
+pgtkビルドの場合、タスクバーやスタートメニューのアイコンがペンギンのアイコンとなってしまうので、Emacsのものとなるようにします。
+
+\slash{}usr/local/share/applications/emacs.desktop の "Icon=emacs" を "Icon=emacs29" に書き換え、/usr/share/icons/hicolor/ 以下の各サイズの apps/ ディレクトリに emacs.png を emacs29.png としてコピーします。
+
+*** emacs.desktop の変更
+
+#+begin_src 
+sudo sed -i 's/Icon=emacs$/Icon=emacs29/' /usr/local/share/applications/emacs.desktop
+#+end_src
+
+#+begin_src 
+$ cd ~/source/emacs-29.2/etc/images/icons/hicolor/
+#+end_src
+
+#+begin_src bash
+$ ls -la
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 128x128
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 16x16
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 24x24
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 32x32
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 48x48
+drwxr-xr-x 4 wurly wurly 4096 Dec  2 16:21 scalable
+#+end_src
+
+*** アイコンコピースクリプトの作成
+
+#+begin_src bash
+cat << 'EOS' > copy_emacs_icons.sh
+#!/bin/bash
+
+for d in *
+do
+    sudo cp "$d/apps/emacs.png" "/usr/share/icons/hicolor/$d/apps/emacs29.png"
+done
+EOS
+#+end_src
+
+*** スクリプトの実行
+
+#+begin_src bash
+$ chmod +x copy_emacs_icons.sh
+$ ./copy_emacs_icons.sh
+#+end_src
+
+スクリプトの都合上、下記メッセージが表示されてしまいますが想定通りです。
+
+#+begin_src bash
+cp: cannot stat 'copy_emacs_icons.sh/apps/emacs.png': Not a directory
+cp: cannot stat 'scalable/apps/emacs.png': No such file or directory
+#+end_src
+
+*** コピー結果確認
+
+#+begin_src bash
+$ find /usr/share/icons/hicolor/ | grep emacs29.png
+/usr/share/icons/hicolor/128x128/apps/emacs29.png
+/usr/share/icons/hicolor/16x16/apps/emacs29.png
+/usr/share/icons/hicolor/32x32/apps/emacs29.png
+/usr/share/icons/hicolor/48x48/apps/emacs29.png
+/usr/share/icons/hicolor/24x24/apps/emacs29.png
+#+end_src
+
+*** 設定の反映
+
+アイコンが変わらない場合には、wslを再起動 (PowerShell から wsl --shutdown)すると反映されます。
+
+* おわりに
+
+以上です。
+
+# images/1121_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/02/1121_01.jpg
