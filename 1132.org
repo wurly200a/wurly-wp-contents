@@ -10,13 +10,21 @@
 
 * はじめに
 
+[[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補)]] での検討に基づき、ASUS Chromebox 3 を入手しました。
+
+Chromebox、Chromebookも通常のPCのようにUEFI Firmwareから起動すると思い込んでいたのですが、起動してみてからそうでは無いことに気付きました。。
+
+ただ、最終的には Ubuntu 22.04 が UEFI Firmware から起動するマシンに仕立てることができました。
+
 * 内容
+
+ - [[https://mrchromebox.tech/#fwscript][MrChromebox.tech]]
+ - [[https://mrchromebox.tech/#devices][MrChromebox.tech]]
+
 
 * 参考
 
  - [[https://www.asus.com/in/commercial-desktop/asus-chromebox-3/specifications/][ASUS India]]
- - [[https://mrchromebox.tech/#fwscript][MrChromebox.tech]]
- - [[https://mrchromebox.tech/#devices][MrChromebox.tech]]
  - [[https://kodi.wiki/view/Archive:Chromebox#Disable_Firmware_Write_Protect][Archive:Chromebox - Official Kodi Wiki]]
  - [[https://wiki.mrchromebox.tech/Firmware_Write_Protect][Firmware Write Protect - MrChromebox Wiki]]
  - [[https://www.quora.com/How-do-I-remove-enrollment-enterprise-in-chromebooks][How to remove enrollment enterprise in chromebooks - Quora]]
