@@ -257,3 +257,14 @@ $ find /usr/share/icons/hicolor/ | grep emacs29.png
 以上です。
 
 # images/1121_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/02/1121_01.jpg
+
+* その他
+ - [[https://batsov.com/articles/2021/12/19/building-emacs-from-source-with-pgtk/][Building Emacs from Source with pgtk - (think)]]
+
+#+begin_quote
+Out of the available optional features I think that the two most useful for the majority of people are probably native JSON support (--with-json) e...
+#+end_quote
+
+とあるのだが (json-available-p) を評価すると t なので、JSON support はされているような気がします。別途確認。
+
+ - [[https://emacs.stackexchange.com/questions/74759/emacs-with-json-support][compile - Emacs with JSON support - Emacs Stack Exchange]]

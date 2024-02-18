@@ -72,3 +72,8 @@ Direct3D バージョン: 1.611.1-81528511
 DXCore バージョン: 10.0.25131.1002-220531-1700.rs-onecore-base2-hyp
 Windows バージョン: 10.0.22621.2428
 #+end_src
+
+* その他の参考ページ
+ - [[https://ascii.jp/elem/000/004/124/4124450/][ASCII.jp：ストア版WSLをアップデートまたはダウングレードする]]
+ - [[https://forest.watch.impress.co.jp/docs/news/1532311.html][「Windows Subsystem for Linux」がv2.0.0に、多数の試験機能を追加 - 窓の杜]]
+
