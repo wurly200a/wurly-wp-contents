@@ -1,0 +1,31 @@
+#+BLOG: wurly-blog
+#+POSTID: 1132
+#+ORG2BLOG:
+#+DATE: [2024-02-17 Sat 16:32]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ASUS Chromebox 3 に Ubuntu 22.04 をインストール
+
+* はじめに
+
+* 内容
+
+* 参考
+
+ - [[https://www.asus.com/in/commercial-desktop/asus-chromebox-3/specifications/][ASUS India]]
+ - [[https://mrchromebox.tech/#fwscript][MrChromebox.tech]]
+ - [[https://mrchromebox.tech/#devices][MrChromebox.tech]]
+ - [[https://kodi.wiki/view/Archive:Chromebox#Disable_Firmware_Write_Protect][Archive:Chromebox - Official Kodi Wiki]]
+ - [[https://wiki.mrchromebox.tech/Firmware_Write_Protect][Firmware Write Protect - MrChromebox Wiki]]
+ - [[https://www.quora.com/How-do-I-remove-enrollment-enterprise-in-chromebooks][How to remove enrollment enterprise in chromebooks - Quora]]
+ - [[https://www.chromium.org/chromium-os/developer-information-for-chrome-os-devices/asus-chromebox/#entering][Asus Chromebox]]
+ - [[https://eizone.info/chromebook-boot-from-usb/#toc6][Chromebook でブータブルUSB を起動する方法 | E.i.Z]]
+ - [[https://qiita.com/tsuemura/items/e797d4278873651ae27e][ChromeOSでsudoのパスワードがわからないときの対応 #Chromebook - Qiita]]
+ - [[https://github.com/dnschneid/crouton][dnschneid/crouton: Chromium OS Universal Chroot Environment]]
+ - [[https://github.com/MrChromebox/firmware/issues/442][coreboot BIOS rom file for Asus chromebox 3 (CN65) with i3-7130U · Issue #442 · MrChromebox/firmware]]
+ - [[https://support.google.com/chromebook/thread/87235488/what-is-my-sudo-password?hl=en][What is my sudo password? - Chromebook Community]]
+
+* おわりに
+

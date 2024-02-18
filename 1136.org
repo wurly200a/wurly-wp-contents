@@ -1,0 +1,30 @@
+#+BLOG: wurly-blog
+#+POSTID: 1136
+#+ORG2BLOG:
+#+DATE: [2024-02-18 Sun 14:59]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: iPhoneでIIJmioの音声eSIMと他社またはIIJmioのSIMカードもしくはeSIMを併用
+
+* はじめに
+
+* 内容
+
+#+begin_quote
+​​【注意事項】​​
+​​・APN構成プロファイルは、iPhone端末1台につき1つしかインストールできません。​​そのため、モバイルデータ通信に利用するSIMを切り替える際、​都度APN構成プロファイルの削除とインストールが必要​です。
+#+end_quote
+
+上記の通り、その都度、都度APN構成プロファイルの削除とインストールが必要​となります。
+
+出発前に iPhone アプリの「ファイル」に保存しておけば、オフラインでAPN構成プロファイルがインストールできます。
+実際、帰国時に「ファイル」アプリからAPN構成プロファイルをインストールすることで帰国してすぐにIIJmioを使うことができました。
+
+ですが、今回の私のケースでは、海外において使用する間、併用するSIMカードのみを使い、IIJmioの方は使わないので特に問題にはなりませんでした。
+
+* 参考
+ - [[https://help.iijmio.jp/answer/634f990456218b7e2cb795bb/][［iPhone］IIJmioの音声eSIMと他社またはIIJmioのSIMカードもしくはeSIMを併用することは出来ますか？【eSIM】 : IIJmio Q&A]]
+
+* おわりに

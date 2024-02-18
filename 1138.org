@@ -1,0 +1,17 @@
+#+BLOG: wurly-blog
+#+POSTID: 1138
+#+ORG2BLOG:
+#+DATE: [2024-02-18 Sun 15:07]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: lm_sensors など
+
+
+* 参考
+ - [[https://wiki.archlinux.jp/index.php/Lm_sensors][lm_sensors - ArchWiki]]
+ - [[https://blog.amedama.jp/entry/stress-command][stress コマンドを使ってマシンに負荷をかける - CUBE SUGAR CONTAINER]]
+ - [[https://qiita.com/koara-local/items/1fac13704123717f5cc8][LinuxでCPUの温度を取得する #Linux - Qiita]]
+ - [[https://github.com/dominiksalvet/asus-fan-control][dominiksalvet/asus-fan-control: Fan control for ASUS devices running Linux]]
+ - [[https://kledgeb.blogspot.com/2013/01/ubuntu-pwm-1.html#google_vignette][Ubuntu PWMファン制御 その1 - 概要とインストール・設定ファイルを作成する - kledgeb]]

@@ -1,0 +1,19 @@
+#+BLOG: wurly-blog
+#+POSTID: 1134
+#+ORG2BLOG:
+#+DATE: [2024-02-18 Sun 14:50]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: HA Kubernetes クラスターの構築
+
+* 参考
+ - [[http://cha.la.coocan.jp/wp/2024/01/20/post-1011/][おうちKubernetesをはじめる(その1) | Wurly's blog]]
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
+ - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
+ - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
+ - [[https://www.unitasglobal.co.jp/english/news/?p=258][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part II – Unitas Global]]
+ - [[https://www.unitasglobal.co.jp/english/news/?p=256][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part I – Unitas Global]]
+ - [[https://knowledge.sakura.ad.jp/8084/][多機能プロクシサーバー「HAProxy」のさまざまな設定例 | さくらのナレッジ]]
+ - [[https://zenn.dev/f110/articles/cab6590c4d4bc8][Managed Kubernetesサービス開発者の自宅k8sクラスタ全容]]
