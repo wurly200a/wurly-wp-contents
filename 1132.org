@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2024-02-17 Sat 16:32]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: ASUS Chromebox 3 に Ubuntu 22.04 をインストール
@@ -18,9 +18,20 @@ Chromebox、Chromebookも通常のPCのようにUEFI Firmwareから起動する�
 
 * 内容
 
- - [[https://mrchromebox.tech/#fwscript][MrChromebox.tech]]
- - [[https://mrchromebox.tech/#devices][MrChromebox.tech]]
+ - [[https://mrchromebox.tech/][MrChromebox.tech]]
+https://mrchromebox.tech/
 
+MrChromebox.tech (Custom coreboot firmware and firmware utilities for your Chromebook/Chromebox) にある情報、その他を参照し、下記の通り行いました。
+
+ - Developer Mode に入る
+ - シェルに入る
+ - ChromeOS Firmware Utility Script を実行して UEFI Firmware を書き込む
+ - USBブートにてUSBメモリーからUbuntuをインストール
+
+こう見ると非常に簡単ですが、いろいろと試行錯誤して何度もやり直して最終的にここにたどり着きました。
+なお、そのままではWrite Protectが設定されているため、これを解除する必要があります。
+
+(上記を実行する際にはあくまで自己責任でお願いします。)
 
 * 参考
 
@@ -37,3 +48,4 @@ Chromebox、Chromebookも通常のPCのようにUEFI Firmwareから起動する�
 
 * おわりに
 
+せっかくかったマシンが文鎮化することにならなくて良かったです。
