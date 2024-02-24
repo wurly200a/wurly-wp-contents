@@ -1,0 +1,131 @@
+#+BLOG: wurly-blog
+#+POSTID: 1160
+#+ORG2BLOG:
+#+DATE: [2024-02-23 Fri 18:13]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: RaspberryPi
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Raspberry Pi 3B で tftpサーバー
+
+* はじめに
+
+OpenWRTのファームウェア書き込みを行う為、tftpサーバーを使います。
+
+今回は Ubuntu 22.04 をインストールした Raspberry Pi 3B を使用しました。
+
+Wi-Fiアクセスは通常のホームネットワークにつないでおき、有線LAN側をtftp用に開けておくことができるので非常に使いやすいです。
+
+* 内容
+
+** Raspberry Pi へ Ubuntu 22.024 をインストール
+
+イメージャーを使って書き込みました。
+ここであらかじめWi-Fiが使えるように設定しておきます。
+
+** ホスト名、IPアドレスの設定
+
+ホスト名、IPアドレスを設定します。
+
+#+begin_src bash
+sudo hostnamectl set-hostname rp3b
+#+end_src
+
+ここでは、アドレスは 192.168.11.168 を指定しています。"optional: true" を設定することでLANケーブルが未接続でも早く起動できるようにします。
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.11.168/24
+      nameservers:
+        addresses: [192.168.11.1]
+      routes:
+        - to: default
+          via: 192.168.11.1
+      optional: true
+_EOF_
+#+end_src
+
+** tftpd-hpa のインストール
+
+#+begin_src bash
+wurly@rp3b:~$ sudo apt install tftpd-hpa
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Suggested packages:
+  pxelinux
+The following NEW packages will be installed:
+  tftpd-hpa
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 40.4 kB of archives.
+After this operation, 113 kB of additional disk space will be used.
+Get:1 http://ports.ubuntu.com/ubuntu-ports jammy/main arm64 tftpd-hpa arm64 5.2+20150808-1.2build2 [40.4 kB]
+Fetched 40.4 kB in 2s (17.6 kB/s)                   
+Preconfiguring packages ...
+Selecting previously unselected package tftpd-hpa.
+(Reading database ... 102225 files and directories currently installed.)
+Preparing to unpack .../tftpd-hpa_5.2+20150808-1.2build2_arm64.deb ...
+Unpacking tftpd-hpa (5.2+20150808-1.2build2) ...
+Setting up tftpd-hpa (5.2+20150808-1.2build2) ...
+Processing triggers for man-db (2.10.2-1) ...
+Scanning processes...                                                                                                  Scanning processor microcode...                                                                                        Scanning linux images...                                                                                               
+Running kernel seems to be up-to-date.
+
+Failed to check for processor microcode upgrades.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+#+end_src
+
+** 現在の設定の確認
+
+#+begin_src bash
+$ cat /etc/default/tftpd-hpa 
+# /etc/default/tftpd-hpa
+
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/srv/tftp"
+TFTP_ADDRESS=":69"
+TFTP_OPTIONS="--secure"
+#+end_src
+
+** 設定変更
+
+#+begin_src bash
+# /etc/default/tftpd-hpa
+
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/srv/tftp"
+TFTP_ADDRESS=":69"
+TFTP_OPTIONS="--secure --create"
+#+end_src
+
+** ディレクトリのパーミッション変更
+
+#+begin_src bash
+sudo chown -R tftp:tftp /srv/tftp
+#+end_src
+
+** サービス再起動
+
+#+begin_src bash
+sudo service tftpd-hpa restart
+#+end_src
+
+* 参考
+
+ - [[https://server-network-note.net/2022/07/tftp-ubuntu22-04/][tftpサーバーをUbuntu 22.04 LTS Serverへのインストールおよび設定手順 - インフラエンジニアのメモ帳]]
+
+* おわりに
+
+以上です。
