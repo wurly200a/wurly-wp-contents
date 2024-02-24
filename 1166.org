@@ -1,0 +1,58 @@
+#+BLOG: wurly-blog
+#+POSTID: 1166
+#+ORG2BLOG:
+#+DATE: [2024-02-24 Sat 11:21]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: RaspberryPi, Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Raspberry Pi 3B に Ubuntu 22.04 をインストール
+
+* はじめに
+
+Raspberry Pi 3B に Ubuntu 22.04 をインストールしました。
+
+メモリー1GB、SDカードは16GBというスペックに対し、どの程度使えるのか未知数でしたが、アプリケーションのインストール等のノウハウが得やすいと考え、Ubuntu Server 22.04.4 LTS (64-bit) をインストールしました。
+
+* 内容
+
+** editor
+
+設定変更を行う際にエディタが起動する場面で、環境変数 EDITOR を変更しても、nano が起動してしまうケースがありました。
+
+下記で設定しておくのが良いようです。
+
+#+begin_src bash
+$ sudo update-alternatives --config editor
+There are 4 choices for the alternative editor (providing /usr/bin/editor).
+
+  Selection    Path                Priority   Status
+------------------------------------------------------------
+\star{} 0            /bin/nano            40        auto mode
+  1            /bin/ed             -100       manual mode
+  2            /bin/nano            40        manual mode
+  3            /usr/bin/vim.basic   30        manual mode
+  4            /usr/bin/vim.tiny    15        manual mode
+
+Press <enter> to keep the current choice[*], or type selection number: 3
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/editor (editor) in manual mode
+#+end_src
+
+** A start job is runnig for Wait for Network to be Configured
+
+#+begin_src 
+A start job is runnig for Wait for Network to be Configured
+#+end_src
+
+インストール後、上記のメッセージが表示され、Ubuntuの起動が2分以上待たされる事象がありました。
+
+netplan にて各イーサネットアダプタ(eth0、wlan0等)に対して optional: true を設定しておくと良いようです。
+
+事実、wlan0側が接続されており、eth0にnetplan未設定だった時には事象が発生しましたが、設定後は発生しなくなりました。
+
+* 参考
+ - [[https://qiita.com/NoIshii/items/fcc860394ace35f434d4][Ubuntu 18.04 ネットワーク接続の完了待ちのために起動が遅い問題の対処 #ubuntu18.04 - Qiita]]
+
+* おわりに
+
+以上です。
