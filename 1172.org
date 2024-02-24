@@ -1,0 +1,306 @@
+#+BLOG: wurly-blog
+#+POSTID: 1172
+#+ORG2BLOG:
+#+DATE: [2024-02-24 Sat 14:19]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WHR-1166DHP に OpenWrt をインストール
+
+* はじめに
+
+OpenVPNサーバーとして長らく(約6年)DD-WRTを使用しているのですが、最近はリリースが行われていません。
+一方で、最近、私の自宅のネットワーク環境を使用していろいろと学習を行っており、今後ルーターを活用するケースが増えそうになってきた為、最新のOpenWrtを導入することにしました。
+
+最終的には現在DD-WRTを使用している BUFFALO WZR-1750DHP を置き換えたいですが、OpenVPNのサービスをできるだけ止めたくないので、まずは別のルーターを使用して構築を行い、そちらで代替ができるようにしたいと思います。
+
+未使用の WHR-1166DHPがあるので、こちらを利用します。
+
+* 要約
+
+下記の手順でファームウェアを書き換えることができました。
+
+ - Raspberry Pi にtftpサーバーをセットアップ
+
+ - RAM上からOpenWrtを起動
+  - PCからtftpサーバーにinitramfsを転送
+   - OpenWrt snapshot Install URL:https://downloads.openwrt.org/snapshots/targets/ramips/mt7620/openwrt-ramips-mt7620-buffalo_whr-1166d-initramfs-kernel.binFirmware
+  - AOSSボタンを押しながらルーターを起動することで、tftpを使用してRAM上からOpenWrtを起動(initramfs)
+
+ - squashfsの書き込み、起動
+  - PCからscpでOpenWrtに下記ファイル(squashfs)をコピー
+   - OpenWrt snapshot Upgrade URL:https://downloads.openwrt.org/snapshots/targets/ramips/mt7620/openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin
+  - sshでOpenWrtにログイン
+  - OpenWrtからsysupgradeで上記を書き込み
+  - 書き込まれたファームウェアからOpenWrtが起動
+
+ - 最新ファームウェアの書き込み、起動
+  - PCからscpでOpenWrtに下記ファイル(最新のOpenWrtファームウェア)をコピー
+   - Firmware OpenWrt Upgrade URL:https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.binFirmware
+  - OpenWrtからsysupgradeで上記を書き込み
+  - 書き込まれたファームウェアからOpenWrtが起動(完了)
+
+* 参考
+
+ - [[https://openwrt.org/start][[OpenWrt Wiki] Welcome to the OpenWrt Project]]
+  - 最新リリースなど
+ - [[https://openwrt.org/toh/buffalo/whr-1166d][[OpenWrt Wiki] Buffalo WHR-1166D]]
+  - 基本的な方法が記載されているがイメージへのリンクが欠けており十分ではない
+ - [[https://openwrt.org/toh/hwdata/buffalo/buffalo_whr-1166d][[OpenWrt Wiki] Techdata: Buffalo WHR-1166D]]
+  - 必要な3種のファームウェアイメージが取得できる。
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/101.html][WHR-1166DHP - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+  - 最終更新が2020年であり少し古い情報だが日本語の情報
+ - [[https://openwrt.org/docs/guide-quick-start/sshadministration][[OpenWrt Wiki] SSH access for newcomers]]
+  - ssh でアクセスする方法について。ssh root@192.168.1.1 でアクセスできる。
+ - [[https://openwrt.org/docs/guide-user/installation/sysupgrade.cli][[OpenWrt Wiki] Upgrading OpenWrt firmware using CLI]]
+  - sysupgrade コマンドの使い方等
+ - [[https://openwrt.org/docs/guide-quick-start/sysupgrade.luci][[OpenWrt Wiki] Upgrading OpenWrt firmware using LuCI]]
+  - こちらのやり方が推奨とのことです
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
+  - OpenWrtでOpenVPN
+
+* 詳細手順
+
+** Raspberry Pi にtftpサーバーをセットアップ
+
+tftpサーバーのセットアップ方法については [[./?p=1160][Raspberry Pi 3B で tftpサーバー]] を参照。
+
+tftpサーバーのIPアドレスは192.168.11.168 を設定します。
+
+** RAM上からOpenWrtを起動
+
+*** PCからtftpサーバーにinitramfsを転送
+
+https://downloads.openwrt.org/snapshots/targets/ramips/mt7620/openwrt-ramips-mt7620-buffalo_whr-1166d-initramfs-kernel.binFirmware を作業用PCにダウンロードし、ラズパイにscp。/srv/tftp に firmware_WHR-1166DHP.ram という名前で格納する。
+
+*** AOSSボタンを押しながらルーターを起動することで、tftpを使用してRAM上からOpenWrtを起動(initramfs)
+
+ラズパイとルーターをネットワークケーブルで接続し、AOSSボタンを押しながらルーターを起動します。
+tftpによりinitramfsイメージがダウンロードされ、RAM上からOpenWrtが起動します。
+LED点滅が終了し点灯した状態で、作業用PCとルーターをネットワークケーブルで接続します。
+sshでログインします。
+
+#+begin_src bash
+ssh root@192.168.1.1
+#+end_src
+
+#+begin_src bash
+
+
+BusyBox v1.36.1 (2024-02-22 08:17:25 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt SNAPSHOT, r25279-62acd9a2f9
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+root@OpenWrt:~#
+#+end_src
+
+一旦ログアウトします。
+
+** squashfsの書き込み、起動
+
+*** PCからscpでOpenWrtに下記ファイル(squashfs)をコピー
+
+OpenWrt snapshot https://downloads.openwrt.org/snapshots/targets/ramips/mt7620/openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin をダウンロードし、ルーターにscpします。
+
+#+begin_src bash
+$ scp openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin root@192.168.1.1:/root/
+openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin                                          100% 5696KB   3.6MB/s   00:01
+#+end_src
+
+*** sshでOpenWrtにログイン
+
+再度ログインします。
+
+#+begin_src bash
+$ ssh root@192.168.1.1
+
+
+BusyBox v1.36.1 (2024-02-22 08:17:25 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt SNAPSHOT, r25279-62acd9a2f9
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+#+end_src
+
+ファイルがコピーされていることを確認します。
+
+#+begin_src bash
+root@OpenWrt:~# ls -la
+drwxr-x---    2 root     root            60 Feb 22 08:41 .
+drwxrwxrwt   16 root     root           360 Jan  1  1970 ..
+-rw-r--r--    1 root     root       5833026 Feb 22 08:41 openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin
+#+end_src
+
+手順にしたがい、メモリーの空き容量を確認します。
+
+#+begin_src bash
+root@OpenWrt:~# free
+              total        used        free      shared  buff/cache   available
+Mem:         121612       13948       86576       19988       21088       62552
+Swap:             0           0           0
+#+end_src
+
+\slash{}tmp/ にコピーします。
+
+#+begin_src bash
+root@OpenWrt:~# mv openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin /tmp/
+#+end_src
+
+*** OpenWrtからsysupgradeで上記を書き込み
+
+sysupgrade コマンドで書き込みを行います。
+書き込みが開始されると即座に切断されます。
+
+#+begin_src bash
+root@OpenWrt:~# sysupgrade -v /tmp/openwrt-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin
+Cannot save config while running from ramdisk.
+Thu Feb 22 08:42:50 UTC 2024 upgrade: Commencing upgrade. Closing all shell sessions.
+Command failed: Connection failed
+root@OpenWrt:~# Connection to 192.168.1.1 closed by remote host.
+Connection to 192.168.1.1 closed.
+#+end_src
+
+*** 書き込まれたファームウェアからOpenWrtが起動
+
+LEDの点滅が終了し、しばらく点灯状態が継続する状態になったことを確認します。
+
+** 最新ファームウェアの書き込み、起動
+
+*** PCからscpでOpenWrtに下記ファイル(最新のOpenWrtファームウェア)をコピー
+
+Firmware OpenWrt Upgrade https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.binFirmware をダウンロードします。
+
+ルーター側にコピーします。
+
+#+begin_src bash
+$ scp openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin  root@192.168.1.1:/root/
+openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin                                          100% 5824KB 133.5KB/s   00:43
+#+end_src
+
+*** OpenWrtからsysupgradeで上記を書き込み
+
+sshで接続します。
+
+#+begin_src bash
+$ ssh root@192.168.1.1
+
+
+BusyBox v1.36.1 (2024-02-22 08:17:25 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt SNAPSHOT, r25279-62acd9a2f9
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+#+end_src
+
+ファイルを確認します。
+
+#+begin_src bash
+root@OpenWrt:~# ls -la
+drwxr-x---    1 root     root             0 Feb 22 08:27 .
+drwxr-xr-x    1 root     root             0 Jan  1  1970 ..
+-rw-r--r--    1 root     root       5964097 Feb 22 08:28 openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin
+#+end_src
+
+sysupgradeコマンドで書き込みます。( /tmp/ にコピーするのを端折りましたが、その場合自動でやってくれるようです。)
+
+#+begin_src bash
+root@OpenWrt:~# sysupgrade -v openwrt-23.05.0-ramips-mt7620-buffalo_whr-1166d-squashfs-sysupgrade.bin
+Thu Feb 22 08:29:30 UTC 2024 upgrade: Image not in /tmp, copying...
+Thu Feb 22 08:29:34 UTC 2024 upgrade: Saving config files...
+etc/config/dhcp
+etc/config/dropbear
+etc/config/firewall
+etc/config/network
+etc/config/system
+etc/config/wireless
+etc/dropbear/dropbear_ed25519_host_key
+etc/dropbear/dropbear_rsa_host_key
+etc/group
+etc/hosts
+etc/inittab
+etc/nftables.d/10-custom-filter-chains.nft
+etc/nftables.d/README
+etc/opkg/keys/b5043e70f9a75cde
+etc/passwd
+etc/profile
+etc/rc.local
+etc/shadow
+etc/shells
+etc/shinit
+etc/sysctl.conf
+etc/uci-defaults/10_disable_services
+Thu Feb 22 08:29:35 UTC 2024 upgrade: Commencing upgrade. Closing all shell sessions.
+Command failed: Connection failed
+root@OpenWrt:~# Connection to 192.168.1.1 closed by remote host.
+Connection to 192.168.1.1
+#+end_src
+
+書き込みが開始されると即座に切断されます。
+
+*** 書き込まれたファームウェアからOpenWrtが起動(完了)
+
+#+begin_src bash
+$ ssh root@192.168.1.1
+
+
+BusyBox v1.36.1 (2023-10-09 21:45:35 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 23.05.0, r23497-6637af95aa
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+#+end_src
+
+** WebUI
+
+192.168.1.1 にブラウザでアクセスするとWebUIを確認できます。
+
+file:images/1172_01.jpg
+
+* おわりに
+
+以上です。
+
+
+# images/1172_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/02/1172_01.jpg
