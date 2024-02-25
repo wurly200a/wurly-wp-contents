@@ -1,0 +1,203 @@
+#+BLOG: wurly-blog
+#+POSTID: 1182
+#+ORG2BLOG:
+#+DATE: [2024-02-25 Sun 12:30]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, Org2Blog
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs org-mode で Mermaidの図を描く (ob-mermaid)
+
+* はじめに
+
+ネットワーク構成図があると説明しやすいような記事が増えてきましたので、org-mode (org2blog) で図が描けるツールを検討しました。
+
+* 結論
+
+CLIツールとして mermaid-js/mermaid-cli をインストールし、emacsからは ob-mermaid をインストールすることで、orgから直接図を描くことができます！！
+
+* 参考
+ - [[https://blog.ecofirm.com/post/orgmermaid/][Org-babelでMermaid.js - ときどきエコ]]
+https://blog.ecofirm.com/post/orgmermaid/
+
+* 使用するソフトウェア
+
+ - [[https://github.com/arnm/ob-mermaid?tab=readme-ov-file][arnm/ob-mermaid: Generate mermaid diagrams within Emacs org-mode babel]]
+ - [[https://github.com/mermaid-js/mermaid-cli][mermaid-js/mermaid-cli: Command line tool for the Mermaid library]]
+
+* mermaid-js/mermaid-cli のインストール
+
+公式のインストール方法は下記です。
+
+#+begin_src bash
+sudo npm install -g @mermaid-js/mermaid-cli
+#+end_src
+
+#+begin_src bash
+$ sudo npm install -g @mermaid-js/mermaid-cli
+npm WARN deprecated puppeteer@19.11.1: < 21.5.0 is no longer supported
+
+added 94 packages in 8s
+
+11 packages are looking for funding
+  run `npm fund` for details
+#+end_src
+
+Ubuntu 22.04 / nodejs 18 の環境にイントールしたのですが、mmdc を実行するとエラーになりました。
+
+メカニズムはよくわかりませんが、下記を実行すると解消しました。
+
+#+begin_src bash
+$ npx -p @mermaid-js/mermaid-cli mmdc --help
+Need to install the following packages:
+@mermaid-js/mermaid-cli@10.8.0
+Ok to proceed? (y) y
+npm WARN deprecated puppeteer@19.11.1: < 21.5.0 is no longer supported
+Usage: mmdc [options]
+
+Options:
+  -V, --version                                   output the version number
+  -t, --theme [theme]                             Theme of the chart (choices: "default", "forest", "dark",
+                                                  "neutral", default: "default")
+  -w, --width [width]                             Width of the page (default: 800)
+  -H, --height [height]                           Height of the page (default: 600)
+  -i, --input <input>                             Input mermaid file. Files ending in .md will be treated as
+                                                  Markdown and all charts (e.g. ```mermaid (...)```) will be
+                                                  extracted and generated. Use `-` to read from stdin.
+  -o, --output [output]                           Output file. It should be either md, svg, png or pdf. Optional.
+                                                  Default: input + ".svg"
+  -e, --outputFormat [format]                     Output format for the generated image. (choices: "svg", "png",
+                                                  "pdf", default: Loaded from the output file extension)
+  -b, --backgroundColor [backgroundColor]         Background color for pngs/svgs (not pdfs). Example: transparent,
+                                                  red, '#F0F0F0'. (default: "white")
+  -c, --configFile [configFile]                   JSON configuration file for mermaid.
+  -C, --cssFile [cssFile]                         CSS file for the page.
+  -s, --scale [scale]                             Puppeteer scale factor (default: 1)
+  -f, --pdfFit                                    Scale PDF to fit chart
+  -q, --quiet                                     Suppress log output
+  -p --puppeteerConfigFile [puppeteerConfigFile]  JSON configuration file for puppeteer.
+  -h, --help                                      display help for command
+#+end_src
+
+* ob-mermaid のインストール・設定方法
+
+#+begin_src emacs-lisp
+(use-package ob-mermaid
+  :ensure t
+  :config
+  (setq ob-mermaid-cli-path "/usr/bin/mmdc")
+  )
+#+end_src
+
+* 書き方の参考
+ - [[https://qiita.com/b-mente/items/b17275090176d63d1d69][テキストから図が生成できるMermaidでAWS構成図をつくる #AWS - Qiita]]
+ - [[https://github.com/mermaid-js/mermaid/issues/1227][New diagram type: network topology · Issue #1227 · mermaid-js/mermaid]]
+
+* お試し
+
+#+begin_src
+flowchart LR
+
+subgraph LAN0[192.168.1.0]
+  ONU1("ONU<br>192.168.1.1")
+  HUB1("TL-SG108E<br>192.168.1.5")
+  SERVER1("SERVER1<br>192.168.1.101")
+  RP1("RaspberryPi4<br>192.168.1.201")
+  RP2("RaspberryPi4<br>192.168.1.202")
+  RP3("RaspberryPi4<br>192.168.1.203")
+  CHROMEBOX3("Chromebox3<br>192.168.1.211")
+end
+
+%% relation
+ONU1---HUB1
+HUB1---SERVER1
+HUB1---RP1
+HUB1---RP2
+HUB1---RP3
+HUB1---CHROMEBOX3
+
+%%style
+classDef HUB fill:#e83,color:#fff,stroke:none
+class HUB1 HUB
+
+classDef SERVER fill:#46d,color:#fff,stroke:#fff
+class SERVER1 SERVER
+class RP1 SERVER
+class RP2 SERVER
+class RP3 SERVER
+class CHROMEBOX3 SERVER
+
+classDef ONU fill:#84d,color:#fff,stroke:none
+class ONU1 ONU
+#+end_src
+
+#+begin_src mermaid :file images/1182_01.png
+flowchart LR
+
+subgraph LAN0[192.168.1.0]
+  ONU1("ONU<br>192.168.1.1")
+  HUB1("TL-SG108E<br>192.168.1.5")
+  SERVER1("SERVER1<br>192.168.1.101")
+  RP1("RaspberryPi4<br>192.168.1.201")
+  RP2("RaspberryPi4<br>192.168.1.202")
+  RP3("RaspberryPi4<br>192.168.1.203")
+  CHROMEBOX3("Chromebox3<br>192.168.1.211")
+end
+
+%% relation
+ONU1---HUB1
+HUB1---SERVER1
+HUB1---RP1
+HUB1---RP2
+HUB1---RP3
+HUB1---CHROMEBOX3
+
+%%style
+classDef HUB fill:#e83,color:#fff,stroke:none
+class HUB1 HUB
+
+classDef SERVER fill:#46d,color:#fff,stroke:#fff
+class SERVER1 SERVER
+class RP1 SERVER
+class RP2 SERVER
+class RP3 SERVER
+class CHROMEBOX3 SERVER
+
+classDef ONU fill:#84d,color:#fff,stroke:none
+class ONU1 ONU
+#+end_src
+
+#+results:
+
+* 参考
+
+** インストール時に発生したエラー
+
+#+begin_src bash
+$ /usr/bin/mmdc
+
+No input file specified, reading from stdin. If you want to specify an input file, please use `-i <input>.` You can use `-i -` to read from stdin and to suppress this warning.
+
+
+Error: Could not find Chromium (rev. 1108766). This can occur if either
+ 1. you did not perform an installation before running the script (e.g. `npm install`) or
+ 2. your cache path is incorrectly configured (which is: /home/wurly/.cache/puppeteer).
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+    at ChromeLauncher.resolveExecutablePath (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/puppeteer-core/lib/esm/puppeteer/node/ProductLauncher.js:263:27)
+    at ChromeLauncher.executablePath (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/puppeteer-core/lib/esm/puppeteer/node/ChromeLauncher.js:176:25)
+    at ChromeLauncher.computeLaunchArguments (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/puppeteer-core/lib/esm/puppeteer/node/ChromeLauncher.js:93:37)
+    at async ChromeLauncher.launch (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/puppeteer-core/lib/esm/puppeteer/node/ProductLauncher.js:57:28)
+    at async run (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/src/index.js:404:19)
+    at async cli (file:///usr/lib/node_modules/@mermaid-js/mermaid-cli/src/index.js:184:3)
+#+end_src
+
+** 解決方法
+ - [[https://github.com/mermaid-js/mermaid-cli/issues/595#issuecomment-1728251093][Installation failure when using Snap version of Node.JS · Issue #595 · mermaid-js/mermaid-cli]]
+
+* おわりに
+
+以上です。
+
+# ./images/1182_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/02/1182_01.png
+
+# images/1182_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/02/1182_01.png
