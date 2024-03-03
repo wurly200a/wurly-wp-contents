@@ -1,0 +1,92 @@
+#+BLOG: wurly-blog
+#+POSTID: 1179
+#+ORG2BLOG:
+#+DATE: [2024-02-24 Sat 23:38]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: OpenWrt
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: OpenWrtの接続方法(ルーターモード)
+
+* はじめに
+
+Nuro光の自宅ネットワーク内にOpenWrtルーターを接続してみます。
+
+私の想定している使い方としては、(いわゆる)ブリッジモードで接続したいのですが、DD-WRTのように簡単に設定できる機能は無いようでした。
+まずはOpenWrtルーターをLANに接続し、LAN内のPCからアクセスできるようにした上で、こちらの設定に取り組むことにします。
+
+前提として、Nuro光のONUはLAN側のIPアドレスが192.168.1.1となっています。
+また、OpenWrtルーターのLAN側の規定のIPアドレスも192.168.1.1となっています。
+
+* ルーターとして接続
+
+OpenWrtルーターを機能的にルーターとして接続する場合、LAN側を192.168.2.1などに設定し、WAN側(INTERNET)ポート介してONUと接続すればOKです。
+
+下記の図に示す構成となります。
+
+#+begin_src mermaid :file images/1179_51.png
+flowchart LR
+
+subgraph LAN0[192.168.1.0]
+  ONU1("ONU<br>WAN X.X.X.X<br>LAN 192.168.1.1")
+end
+
+subgraph LAN2[192.168.2.0]
+  ROUTER3("OpenWrt<br>WAN 192.168.1.6<br>LAN 192.168.2.1")
+end
+
+MODEM---ONU1---ROUTER3
+
+#+end_src
+
+#+results:
+[[file:images/1179_51.png]]
+
+下記のように設定します。
+
+file:images/1179_02.jpg
+
+設定変更後、下記のようになります。
+
+file:images/1179_01.jpg
+
+OpenWrtルーターに有線でPCを接続し、PCからインターネットに接続できることが確認できました。
+
+#+begin_src mermaid :file images/1179_52.png
+flowchart LR
+
+subgraph LAN0[192.168.1.0]
+  ONU1("ONU<br>WAN X.X.X.X<br>LAN 192.168.1.1")
+end
+
+subgraph LAN2[192.168.2.0]
+  ROUTER3("OpenWrt<br>WAN 192.168.1.6<br>LAN 192.168.2.1")
+  PC("PC<br>192.168.2.104")
+end
+
+MODEM---ONU1---ROUTER3---PC
+
+#+end_src
+
+#+results:
+
+192.168.2.0内のPCについては、OpenWrtルーターに対して192.168.2.1でアクセスできます。
+
+なお、192.168.2.0以外のLANから192.168.1.6に接続する場合には、下記のようにFirewallを解除します。
+
+file:images/1179_03.jpg
+
+* おわりに
+
+OpenWrtルーターをLANに接続し、LAN内のPCからアクセスできるようになりました。
+
+# images/1179_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_51.png
+# images/1179_02.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_02.png
+# images/1179_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_01.png
+# images/1179_03.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_03.png
+
+# images/1179_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_02-1.jpg
+# images/1179_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_01-1.jpg
+# images/1179_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_03-1.jpg
+
+# images/1179_52.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1179_52.png
