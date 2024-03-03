@@ -69,6 +69,7 @@ MODEM---ONU1---ROUTER3---PC
 #+end_src
 
 #+results:
+[[file:images/1179_52.png]]
 
 192.168.2.0内のPCについては、OpenWrtルーターに対して192.168.2.1でアクセスできます。
 
