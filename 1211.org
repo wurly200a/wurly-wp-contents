@@ -86,6 +86,10 @@ DNSの設定も行います。
 
 file:images/1211_06.jpg
 
+DHCPを無効にします。
+
+file:images/1211_07.jpg
+
 * おわりに
 
 Nuro光の自宅ネットワーク内にOpenWrtルーターを有線ブリッジとして接続できました。
@@ -392,3 +396,5 @@ config rule
 # images/1211_06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1211_06.jpg
 
 # images/1211_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1211_51.png
+
+# images/1211_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1211_07.jpg
