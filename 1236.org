@@ -1,0 +1,602 @@
+#+BLOG: wurly-blog
+#+POSTID: 1236
+#+ORG2BLOG:
+#+DATE: [2024-03-17 Sun 14:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: OpenWrtにOpenVPNをセットアップ
+
+* はじめに
+
+こちらを参考にします。
+
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
+https://openwrt.org/docs/guide-user/services/vpn/openvpn/server
+
+* Setup OpenVPN
+
+** Preparation
+
+#+begin_src bash
+opkg update
+#+end_src
+
+#+begin_src bash
+opkg install openvpn-openssl
+#+end_src
+
+#+begin_src bash
+opkg install openvpn-easy-rsa
+#+end_src
+
+NET_FQDN は環境に合わせて書き換えます。
+
+VPN_PROTO="tcp" にしました。
+
+#+begin_src 
+# Configuration parameters
+VPN_DIR="/etc/openvpn"
+VPN_PKI="/etc/easy-rsa/pki"
+VPN_PORT="1194"
+VPN_PROTO="tcp"
+VPN_POOL="192.168.9.0 255.255.255.0"
+VPN_DNS="${VPN_POOL%.* *}.1"
+VPN_DN="$(uci -q get dhcp.@dnsmasq[0].domain)"
+ 
+# Fetch server address
+#NET_FQDN="$(uci -q get ddns.@service[0].lookup_host)"
+NET_FQDN=hoge.dip.jp
+. /lib/functions/network.sh
+network_flush_cache
+network_find_wan NET_IF
+network_get_ipaddr NET_ADDR "${NET_IF}"
+if [ -n "${NET_FQDN}" ]
+then VPN_SERV="${NET_FQDN}"
+else VPN_SERV="${NET_ADDR}"
+fi
+#+end_src
+
+** Key management
+
+#+begin_src bash
+wget -U "" -O /tmp/easyrsa.tar.gz https://github.com/OpenVPN/easy-rsa/releases/download/v3.1.7/EasyRSA-3.1.7.tgz
+tar -z -x -f /tmp/easyrsa.tar.gz
+#+end_src
+
+#+begin_src bash
+# Configuration parameters
+cat << EOF > /etc/profile.d/easy-rsa.sh
+export EASYRSA_PKI="${VPN_PKI}"
+export EASYRSA_TEMP_DIR="/tmp"
+export EASYRSA_CERT_EXPIRE="3650"
+export EASYRSA_BATCH="1"
+alias easyrsa="/root/EasyRSA-3.1.7/easyrsa"
+EOF
+#+end_src
+
+#+begin_src bash
+. /etc/profile.d/easy-rsa.sh
+#+end_src
+
+#+begin_src bash
+easyrsa init-pki
+#+end_src
+
+下記は環境によっては非常に時間がかかります。(17:13-18:13,1h)
+
+#+begin_src 
+easyrsa gen-dh
+#+end_src
+
+#+begin_src bash
+easyrsa build-ca nopass
+#+end_src
+
+#+begin_src bash
+easyrsa build-server-full server nopass
+openvpn --genkey tls-crypt-v2-server ${EASYRSA_PKI}/private/server.pem
+#+end_src
+
+#+begin_src bash
+easyrsa build-client-full client nopass
+openvpn --tls-crypt-v2 ${EASYRSA_PKI}/private/server.pem --genkey tls-crypt-v2-client ${EASYRSA_PKI}/private/client.pem
+#+end_src
+
+** Firewall
+
+# #+begin_src bash
+# # Configure firewall
+# uci rename firewall.@zone[0]="lan"
+# uci rename firewall.@zone[1]="wan"
+# uci del_list firewall.lan.device="tun+"
+# uci add_list firewall.lan.device="tun+"
+# uci -q delete firewall.ovpn
+# uci set firewall.ovpn="rule"
+# uci set firewall.ovpn.name="Allow-OpenVPN"
+# uci set firewall.ovpn.src="wan"
+# uci set firewall.ovpn.dest_port="${VPN_PORT}"
+# uci set firewall.ovpn.proto="${VPN_PROTO}"
+# uci set firewall.ovpn.target="ACCEPT"
+# uci commit firewall
+# service firewall restart
+# #+end_src
+
+** VPN service
+
+#+begin_src bash
+# Configure VPN service and generate client profiles
+umask go=
+VPN_DH="$(cat ${VPN_PKI}/dh.pem)"
+VPN_CA="$(openssl x509 -in ${VPN_PKI}/ca.crt)"
+ls ${VPN_PKI}/issued \
+| sed -e "s/\.\w*$//" \
+| while read -r VPN_ID
+do
+VPN_TC="$(cat ${VPN_PKI}/private/${VPN_ID}.pem)"
+VPN_KEY="$(cat ${VPN_PKI}/private/${VPN_ID}.key)"
+VPN_CERT="$(openssl x509 -in ${VPN_PKI}/issued/${VPN_ID}.crt)"
+VPN_EKU="$(echo "${VPN_CERT}" | openssl x509 -noout -purpose)"
+case ${VPN_EKU} in
+(*"SSL server : Yes"*)
+VPN_CONF="${VPN_DIR}/${VPN_ID}.conf"
+cat << EOF > ${VPN_CONF} ;;
+user nobody
+group nogroup
+dev tun
+port ${VPN_PORT}
+proto ${VPN_PROTO}
+server ${VPN_POOL}
+topology subnet
+client-to-client
+keepalive 10 60
+persist-tun
+persist-key
+push "dhcp-option DNS ${VPN_DNS}"
+push "dhcp-option DOMAIN ${VPN_DN}"
+push "redirect-gateway def1"
+push "persist-tun"
+push "persist-key"
+<dh>
+${VPN_DH}
+</dh>
+EOF
+(*"SSL client : Yes"*)
+VPN_CONF="${VPN_DIR}/${VPN_ID}.ovpn"
+cat << EOF > ${VPN_CONF} ;;
+user nobody
+group nogroup
+dev tun
+nobind
+client
+remote ${VPN_SERV} ${VPN_PORT} ${VPN_PROTO}
+auth-nocache
+remote-cert-tls server
+EOF
+esac
+cat << EOF >> ${VPN_CONF}
+<tls-crypt-v2>
+${VPN_TC}
+</tls-crypt-v2>
+<key>
+${VPN_KEY}
+</key>
+<cert>
+${VPN_CERT}
+</cert>
+<ca>
+${VPN_CA}
+</ca>
+EOF
+done
+#+end_src
+
+#+begin_src bash
+service openvpn restart
+#+end_src
+
+#+begin_src bash
+ls ${VPN_DIR}/*.ovpn
+#+end_src
+
+* server.conf の変更
+
+#+begin_src bash
+root@OpenWrt:~# cat /etc/openvpn/server.conf
+user nobody
+group nogroup
+dev tun
+port 1194
+proto tcp
+server 192.168.9.0 255.255.255.0
+topology subnet
+client-to-client
+keepalive 10 60
+persist-tun
+persist-key
+push "dhcp-option DNS 192.168.9.1"
+push "dhcp-option DOMAIN lan"
+push "redirect-gateway def1"
+push "persist-tun"
+push "persist-key"
+#+end_src
+
+下記を追加して再起動する。
+
+#+begin_src bash
+push "redirect-gateway def1"
+push "route 192.168.1.0 255.255.255.0"
+status /tmp/openvpn-status.log
+#+end_src
+
+#+begin_src bash
+service openvpn restart
+#+end_src
+
+# * VPN
+# 
+# file:images/1236_01.jpg
+# 
+# 設定したら Save&Apply
+# 
+# 
+# * (参考)実際の作業
+# 
+# 
+# ** Preparation
+# 
+# #+begin_src bash
+# root@OpenWrt:~# opkg update
+# Downloading https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/packages/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_core
+# Downloading https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/packages/Packages.sig
+# Signature check passed.
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/base/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_base
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/base/Packages.sig
+# Signature check passed.
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/luci/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_luci
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/luci/Packages.sig
+# Signature check passed.
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/packages/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_packages
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/packages/Packages.sig
+# Signature check passed.
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/routing/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_routing
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/routing/Packages.sig
+# Signature check passed.
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/telephony/Packages.gz
+# Updated list of available packages in /var/opkg-lists/openwrt_telephony
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/telephony/Packages.sig
+# Signature check passed.
+# #+end_src
+# 
+# #+begin_src bash
+# root@OpenWrt:~# opkg install openvpn-openssl
+# Installing openvpn-openssl (2.5.8-5) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/packages/openvpn-openssl_2.5.8-5_mipsel_24kc.ipk
+# Installing kmod-tun (5.15.134-1) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/packages/kmod-tun_5.15.134-1_mipsel_24kc.ipk
+# Installing liblzo2 (2.10-4) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/packages/liblzo2_2.10-4_mipsel_24kc.ipk
+# Installing libatomic1 (12.3.0-4) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7620/packages/libatomic1_12.3.0-4_mipsel_24kc.ipk
+# Installing libopenssl3 (3.0.13-1) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/base/libopenssl3_3.0.13-1_mipsel_24kc.ipk
+# Configuring libatomic1.
+# Configuring libopenssl3.
+# Configuring kmod-tun.
+# Configuring liblzo2.
+# Configuring openvpn-openssl.
+# #+end_src
+# 
+# #+begin_src bash
+# root@OpenWrt:~# opkg install openvpn-easy-rsa
+# Installing openvpn-easy-rsa (3.0.8-4) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/packages/openvpn-easy-rsa_3.0.8-4_all.ipk
+# Installing libopenssl-conf (3.0.13-1) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/base/libopenssl-conf_3.0.13-1_mipsel_24kc.ipk
+# Installing openssl-util (3.0.13-1) to root...
+# Downloading https://downloads.openwrt.org/releases/23.05.0/packages/mipsel_24kc/base/openssl-util_3.0.13-1_mipsel_24kc.ipk
+# Configuring libopenssl-conf.
+# Generating engines.cnf
+# Generating providers.cnf
+# Configuring openssl-util.
+# Configuring openvpn-easy-rsa.
+# #+end_src
+# 
+# 
+# #+begin_src 
+# # Configuration parameters
+# VPN_DIR="/etc/openvpn"
+# VPN_PKI="/etc/easy-rsa/pki"
+# VPN_PORT="1194"
+# VPN_PROTO="udp"
+# VPN_POOL="192.168.9.0 255.255.255.0"
+# VPN_DNS="${VPN_POOL%.* *}.1"
+# VPN_DN="$(uci -q get dhcp.@dnsmasq[0].domain)"
+#  
+# # Fetch server address
+# #NET_FQDN="$(uci -q get ddns.@service[0].lookup_host)"
+# NET_FQDN=hoge.dip.jp
+# . /lib/functions/network.sh
+# network_flush_cache
+# network_find_wan NET_IF
+# network_get_ipaddr NET_ADDR "${NET_IF}"
+# if [ -n "${NET_FQDN}" ]
+# then VPN_SERV="${NET_FQDN}"
+# else VPN_SERV="${NET_ADDR}"
+# fi
+# #+end_src
+# 
+# ** Key management
+# 
+# #+begin_src bash
+# # Work around EasyRSA issues
+# wget -U "" -O /tmp/easyrsa.tar.gz https://github.com/OpenVPN/easy-rsa/releases/download/v3.1.7/EasyRSA-3.1.7.tgz
+# tar -z -x -f /tmp/easyrsa.tar.gz
+#  
+# # Configuration parameters
+# cat << EOF > /etc/profile.d/easy-rsa.sh
+# export EASYRSA_PKI="${VPN_PKI}"
+# export EASYRSA_TEMP_DIR="/tmp"
+# export EASYRSA_CERT_EXPIRE="3650"
+# export EASYRSA_BATCH="1"
+# alias easyrsa="/root/EasyRSA-3.1.7/easyrsa"
+# EOF
+# . /etc/profile.d/easy-rsa.sh
+#  
+# # Remove and re-initialize PKI directory
+# easyrsa init-pki
+# #+end_src
+# 
+# #+begin_src bash
+# root@OpenWrt:~# easyrsa init-pki
+# 
+# Notice
+# ------
+# 'init-pki' complete; you may now create a CA or requests.
+# 
+# Your newly created PKI dir is:
+# * /etc/easy-rsa/pki
+# 
+# Using Easy-RSA configuration:
+# * undefined
+# #+end_src
+# 
+# #+begin_src 
+# # Generate DH parameters
+# easyrsa gen-dh
+# #+end_src
+# 
+# 数10分かかりました。
+# 
+# #+begin_src bash
+# root@OpenWrt:~# easyrsa gen-dh
+# No Easy-RSA 'vars' configuration file exists!
+# 
+# Using SSL:
+# * openssl OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+# Generating DH parameters, 2048 bit long safe prime
+# ....+........+*++*++*++*++*++*++*++*++*++*
+# DH parameters appear to be ok.
+# 
+# Notice
+# ------
+# 
+# DH parameters of size 2048 created at:
+# * /etc/easy-rsa/pki/dh.pem
+# #+end_src
+# 
+# 
+# #+begin_src bash
+# # Create a new CA
+# easyrsa build-ca nopass
+# #+end_src
+# 
+# #+begin_src bash
+# root@OpenWrt:~# easyrsa build-ca nopass
+# No Easy-RSA 'vars' configuration file exists!
+# 
+# Using SSL:
+# * openssl OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+# ..........+...+....+..............+......+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*...........+.....+.+..............+....+.....................+...+.....+......+.+...+...+..............+.........+.......+.........+.....+.+...+...........+.+...+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.+...+.+.....+......+.........+.....................+....+..+....+...+..+...+.+..............+.+..+....+......+..+............+.+..+...+...+.+...+...........+.......+...............+.....+.......+...............+......+...............+.....+.......+...+..+............+...........................+...+...............+...+...+.........+.......+...+..+.+..+......+......+....+.....+............+..........+............+......+..+.........+......+....+...+......+.....+...............+.+...........+...+....+........+....+...+...+...+.........+......+.........+..+....+......+......+........+......+.+..+.+.....+.........+...+...+.......+..+...+....+......+...+.........+.....+.+..+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# .+....+...+...+.....+.......+......+.........+........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.....+.+.....+.......+...+.....+....+..+.+.........+...+........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*....+......+.....+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# -----
+# 
+# Notice
+# ------
+# CA creation complete. Your new CA certificate is at:
+# * /etc/easy-rsa/pki/ca.crt
+# #+end_src
+# 
+# 
+# #+begin_src 
+# # Generate server keys and certificate
+# easyrsa build-server-full server nopass
+# openvpn --genkey tls-crypt-v2-server ${EASYRSA_PKI}/private/server.pem
+# #+end_src
+# 
+# #+begin_src bash
+# root@OpenWrt:~# easyrsa build-server-full server nopass
+# No Easy-RSA 'vars' configuration file exists!
+# 
+# Using SSL:
+# * openssl OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+# .+.........+..............+....+..+.+..+.....................+.......+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*..+...+...+..+....+........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*..+..+.......+...+.....+......+............+....+...+.....+............+...+.+.....+....+.....+......+.......+.....+.......+......+......+..............+.+..............+....+...+..+............+.+...+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# .....+......+...............+.+.........+..+.........+..........+.......................+.+...........+...+.+.....+.+..................+.....+.+.....+.........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*............+.......+........+.+..+...+......+....+.....+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.+..+......+.+...+..+......+..........+.....+....+...+.....+...+...+.......+...+..+....+........+.....................+.+...+..+...+...+...+..........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# -----
+# 
+# Notice
+# ------
+# Private-Key and Public-Certificate-Request files created.
+# Your files are:
+# * req: /etc/easy-rsa/pki/reqs/server.req
+# * key: /etc/easy-rsa/pki/private/server.key 
+# 
+# Using configuration from /etc/easy-rsa/pki/openssl-easyrsa.cnf
+# Check that the request matches the signature
+# Signature ok
+# The Subject's Distinguished Name is as follows
+# commonName            :ASN.1 12:'server'
+# Certificate is to be certified until Mar 15 07:09:00 2034 GMT (3650 days)
+# 
+# Write out database with 1 new entries
+# Database updated
+# 
+# Notice
+# ------
+# Certificate created at:
+# * /etc/easy-rsa/pki/issued/server.crt
+# 
+# Notice
+# ------
+# Inline file created:
+# * /etc/easy-rsa/pki/inline/server.inline
+# 
+# root@OpenWrt:~# openvpn --genkey tls-crypt-v2-server ${EASYRSA_PKI}/private/server.pem
+# #+end_src
+# 
+# 
+# #+begin_src bash
+# # Generate client keys and certificate
+# easyrsa build-client-full client nopass
+# openvpn --tls-crypt-v2 ${EASYRSA_PKI}/private/server.pem --genkey tls-crypt-v2-client ${EASYRSA_PKI}/private/client.pem
+# #+end_src
+# 
+# 
+# #+begin_src bash
+# root@OpenWrt:~# easyrsa build-client-full client nopass
+# No Easy-RSA 'vars' configuration file exists!
+# 
+# Using SSL:
+# * openssl OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+# ......+...++++++++++++++++
+# -----
+# 
+# Notice
+# ------
+# Private-Key and Public-Certificate-Request files created.
+# Your files are:
+# * req: /etc/easy-rsa/pki/reqs/client.req
+# * key: /etc/easy-rsa/pki/private/client.key 
+# 
+# Using configuration from /etc/easy-rsa/pki/openssl-easyrsa.cnf
+# Check that the request matches the signature
+# Signature ok
+# The Subject's Distinguished Name is as follows
+# commonName            :ASN.1 12:'client'
+# Certificate is to be certified until Mar 15 07:12:09 2034 GMT (3650 days)
+# 
+# Write out database with 1 new entries
+# Database updated
+# 
+# Notice
+# ------
+# Certificate created at:
+# * /etc/easy-rsa/pki/issued/client.crt
+# 
+# Notice
+# ------
+# Inline file created:
+# * /etc/easy-rsa/pki/inline/client.inline
+# 
+# root@OpenWrt:~# openvpn --tls-crypt-v2 ${EASYRSA_PKI}/private/server.pem --genkey tls-crypt-v2-client ${EASYRSA_PKI}/private/client.pem
+# #+end_src
+# 
+# ** Firewall
+# 
+# #+begin_src bash
+# # Configure firewall
+# uci rename firewall.@zone[0]="lan"
+# uci rename firewall.@zone[1]="wan"
+# uci del_list firewall.lan.device="tun+"
+# uci add_list firewall.lan.device="tun+"
+# uci -q delete firewall.ovpn
+# uci set firewall.ovpn="rule"
+# uci set firewall.ovpn.name="Allow-OpenVPN"
+# uci set firewall.ovpn.src="wan"
+# uci set firewall.ovpn.dest_port="${VPN_PORT}"
+# uci set firewall.ovpn.proto="${VPN_PROTO}"
+# uci set firewall.ovpn.target="ACCEPT"
+# uci commit firewall
+# service firewall restart
+# #+end_src
+# 
+# 
+# ** VPN service
+# 
+# #+begin_src bash
+# # Configure VPN service and generate client profiles
+# umask go=
+# VPN_DH="$(cat ${VPN_PKI}/dh.pem)"
+# VPN_CA="$(openssl x509 -in ${VPN_PKI}/ca.crt)"
+# ls ${VPN_PKI}/issued \
+# | sed -e "s/\.\w*$//" \
+# | while read -r VPN_ID
+# do
+# VPN_TC="$(cat ${VPN_PKI}/private/${VPN_ID}.pem)"
+# VPN_KEY="$(cat ${VPN_PKI}/private/${VPN_ID}.key)"
+# VPN_CERT="$(openssl x509 -in ${VPN_PKI}/issued/${VPN_ID}.crt)"
+# VPN_EKU="$(echo "${VPN_CERT}" | openssl x509 -noout -purpose)"
+# case ${VPN_EKU} in
+# (*"SSL server : Yes"*)
+# VPN_CONF="${VPN_DIR}/${VPN_ID}.conf"
+# cat << EOF > ${VPN_CONF} ;;
+# user nobody
+# group nogroup
+# dev tun
+# port ${VPN_PORT}
+# proto ${VPN_PROTO}
+# server ${VPN_POOL}
+# topology subnet
+# client-to-client
+# keepalive 10 60
+# persist-tun
+# persist-key
+# push "dhcp-option DNS ${VPN_DNS}"
+# push "dhcp-option DOMAIN ${VPN_DN}"
+# push "redirect-gateway def1"
+# push "persist-tun"
+# push "persist-key"
+# <dh>
+# ${VPN_DH}
+# </dh>
+# EOF
+# (*"SSL client : Yes"*)
+# VPN_CONF="${VPN_DIR}/${VPN_ID}.ovpn"
+# cat << EOF > ${VPN_CONF} ;;
+# user nobody
+# group nogroup
+# dev tun
+# nobind
+# client
+# remote ${VPN_SERV} ${VPN_PORT} ${VPN_PROTO}
+# auth-nocache
+# remote-cert-tls server
+# EOF
+# esac
+# cat << EOF >> ${VPN_CONF}
+# <tls-crypt-v2>
+# ${VPN_TC}
+# </tls-crypt-v2>
+# <key>
+# ${VPN_KEY}
+# </key>
+# <cert>
+# ${VPN_CERT}
+# </cert>
+# <ca>
+# ${VPN_CA}
+# </ca>
+# EOF
+# done
+# service openvpn restart
+# ls ${VPN_DIR}/*.ovpn
+# #+end_src
+
+
+# images/1236_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1236_01.jpg
