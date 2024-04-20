@@ -1,0 +1,27 @@
+#+BLOG: wurly-blog
+#+POSTID: 1238
+#+ORG2BLOG:
+#+DATE: [2024-04-08 Mon 00:38]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: MarkdownをPDFに変換する
+
+* 参考
+
+ - [[https://qiita.com/pirotan628/items/1978b215c15beec2f0f6][【メモ】MarkdownをPDFに変換する #Ubuntu - Qiita]]
+
+* 手順
+
+インストールはかなり時間がかかります。
+
+#+begin_src bash
+sudo apt-get install -y texlive-full pandoc ruby rake
+#+end_src
+
+実行例
+
+#+begin_src bash
+pandoc article.md -o article.pdf -V documentclass=ltjarticle --pdf-engine=lualatex -V geometry:a4paper -V geometry:margin=2.5cm -V geometry:nohead
+#+end_src
