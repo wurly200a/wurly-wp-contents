@@ -11,6 +11,7 @@
 * 参考
 
  - [[https://qiita.com/pirotan628/items/1978b215c15beec2f0f6][【メモ】MarkdownをPDFに変換する #Ubuntu - Qiita]]
+ - [[https://unk-pizza.hatenadiary.org/entry/20151013/p1][PandocでMarkdownをPDFに変換 - おっさんプログラマの戯れ言]]
 
 * 手順
 
