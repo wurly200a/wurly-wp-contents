@@ -598,5 +598,17 @@ service openvpn restart
 # ls ${VPN_DIR}/*.ovpn
 # #+end_src
 
+* OpenVPN関連
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/43.html][OpenWrtで OpenVPN(4) Firewallの設定 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+ - [[https://forum.openwrt.org/t/i-want-to-disable-ipv6-from-lan-interface-using-luci/129902][I want to disable IPV6 from LAN Interface using Luci - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
+ - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029#TUN-%E3%83%A2%E3%83%BC%E3%83%89%E3%81%A8-TAP-%E3%83%A2%E3%83%BC%E3%83%89][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
+ - [[https://forum.openwrt.org/t/ip-masquerading/125130/6][IP Masquerading - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
+ - [[https://openwrt.org/docs/guide-user/services/ddns/client][[OpenWrt Wiki] DDNS client]]
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
+ - [[https://qiita.com/YasuhiroABE/items/806a0947abdb828eef1f][Easy-RSA3を利用したOpenVPNサーバーの構築とクライアント証明書の配布 #OpenVPN - Qiita]]
+ - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/client][[OpenWrt Wiki] OpenVPN client]]
+ - [[https://qiita.com/shibataka000/items/cd77176f4f938dafa251][OpenVPNを使ってVPNサーバを構築する #Ubuntu - Qiita]]
 
 # images/1236_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1236_01.jpg
