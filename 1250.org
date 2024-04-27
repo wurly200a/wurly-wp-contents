@@ -1,0 +1,45 @@
+#+BLOG: wurly-blog
+#+POSTID: 1250
+#+ORG2BLOG:
+#+DATE: [2024-04-27 土 10:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 で Wayland を有効にする
+
+* 概要
+
+久しぶりに Native の Ubuntu 22.04 を起動したところ(普段は専らWSLから使っているため)、Emacs起動時に下記のメッセージが表示されました。
+
+#+begin_quote
+You are trying to run Emacs configured with the "pure-GTK" interface under the X Window System. That configuration is unsupported and will lead to sporadic crashes during transfer of large selection data. It will also lead to various problems with keyboard input.
+#+end_quote
+
+これまでWayland下で使用していると思っていましたが、実際にはそうではなかったようです。
+
+ - [[https://emacs.stackexchange.com/questions/76202/how-to-install-emacs29-with-x11-support][linux - How to install emacs29 with X11 support? - Emacs Stack Exchange]]
+https://emacs.stackexchange.com/questions/76202/how-to-install-emacs29-with-x11-support
+
+
+下記を参考に、Waylandを有効にしてみます。
+
+ - [[https://linuxconfig.org/how-to-enable-disable-wayland-on-ubuntu-22-04-desktop][How to enable/disable wayland on Ubuntu Desktop - Linux Tutorials - Learn Linux Configuration]]
+https://linuxconfig.org/how-to-enable-disable-wayland-on-ubuntu-22-04-desktop
+
+
+* 行ったこと
+
+/etc/gdm3/custom.conf を編集し、コメントアウトを外し、下記の設定を行いました。
+
+#+begin_src
+WaylandEnable=true
+#+end_src
+
+下記を実行したところディスプレイに何も表示されなくなってしまいました。
+
+#+begin_src 
+$ sudo systemctl restart gdm3
+#+end_src
+
+Ubuntuを再起動し、ログイン時に Wayland を選んでログインしました。
