@@ -1,0 +1,45 @@
+#+BLOG: wurly-blog
+#+POSTID: 1256
+#+ORG2BLOG:
+#+DATE: [2024-04-27 土 13:12]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: markdown-preview-mode
+
+* 概要
+
+markdownで作成し、review後にQiitaにアップロードするワークフローにおいて、プレビューしながら執筆したいと思いました。
+
+このような状況では、markdown-preview-mode が便利であることがわかりました。
+
+ - [[https://moonstruckdrops.github.io/blog/2013/03/24/markdown-mode/][Emacsでmarkdown-modeを使用する - kurobaraのブログ]]
+https://moonstruckdrops.github.io/blog/2013/03/24/markdown-mode/
+
+ - [[https://qiita.com/kkuzu/items/5d7df340a8b4d6cafafb][Emacs + markdownで快適なリアルタイムプレビューを！(コードハイライト編) #Markdown - Qiita]]
+https://qiita.com/kkuzu/items/5d7df340a8b4d6cafafb
+
+ - [[https://qiita.com/No_217/items/afd39b0828b444a160da][Emacsでmarkdownをリアルタイムにプレビューしながら編集する #Markdown - Qiita]]
+https://qiita.com/No_217/items/afd39b0828b444a160da
+
+* markdown-preview-mode
+
+ - [[https://github.com/ancane/markdown-preview-mode][ancane/markdown-preview-mode: Minor mode to preview markdown output as you save]]
+https://github.com/ancane/markdown-preview-mode
+
+モードに入ると、ブラウザが開きプレビューされるだけでなく、変更内容やリアルタイムに反映されます。
+実際に編集している部分に合わせて自動でスクロールされるので非常に便利です。
+
+* 設定
+
+下記のように設定しました。
+
+#+begin_src emacs-lisp
+; you need to install "markdown" first
+(use-package markdown-preview-mode
+  :ensure t
+  :config
+  (setq markdown-preview-stylesheets (list "http://thomasf.github.io/solarized-css/solarized-light.min.css"))
+  )
+#+end_src
