@@ -3,17 +3,32 @@
 #+ORG2BLOG:
 #+DATE: [2024-03-17 Sun 14:52]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: OpenWrt, OpenVPN
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: OpenWrtにOpenVPNをセットアップ
 
-* はじめに
+* 概要
 
-こちらを参考にします。
+OpenWrtにOpenVPNをセットアップする方法です。
+下記が参考になります。
 
  - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
 https://openwrt.org/docs/guide-user/services/vpn/openvpn/server
+
+こちらの手順では、openvpn-easy-rsa を使うことで、コマンドを実行するだけで簡単にセットアップすることができます。
+鍵や証明書についてほとんど意識する必要はありません。
+
+私の場合、主に iPhone から接続するため、TUNモードで接続するようにセットアップしました。
+ここでは、実際にセットアップした内容について共有します。
+
+実際にiPhoneからVPN接続することができました。
+
+ただし、後述の「TUNモードで接続する場合の課題」の通り、LAN上のクライアントにアクセスするためには、IPマスカレードなど、ネットワークセグメントを超える設定が必要になります。
+
+現状、私はOpenWrtでのやり方がわかっていません。
+
+よって、現在のところはDD-WRTにてOpenVPNを使用しています。
 
 * Setup OpenVPN
 
@@ -33,7 +48,7 @@ opkg install openvpn-easy-rsa
 
 NET_FQDN は環境に合わせて書き換えます。
 
-VPN_PROTO="tcp" にしました。
+VPN_PROTO="tcp" にしました。(注：udpでも接続できました)
 
 #+begin_src 
 # Configuration parameters
@@ -233,6 +248,115 @@ status /tmp/openvpn-status.log
 #+begin_src bash
 service openvpn restart
 #+end_src
+
+
+* OpenVPNクライアントの設定(iPhone)
+
+OpenVPNクライアントの設定ファイルも自動生成されます。
+
+/etc/openvpn/client.ovpn を使用します。
+
+下記の手順にてiPhoneに設定ファイルを転送することで、VPN接続自体はできました。
+(下記のページはかなり古いですが、現在もやり方としては基本的に同じです)
+
+ - [[http://cha.la.coocan.jp/doc/OpenVPN_iTunes_regist.html][OpenVPN .ovpn ファイルをiPhoneへ転送]]
+http://cha.la.coocan.jp/doc/OpenVPN_iTunes_regist.html
+
+* TUNモードで接続する場合の課題
+
+私の場合、主に iPhone から接続するため、TUNモードで接続するようにセットアップしました。
+TUN/TAPモードについては下記で詳細が解説されています。
+
+ - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029#TUN-%E3%83%A2%E3%83%BC%E3%83%89%E3%81%A8-TAP-%E3%83%A2%E3%83%BC%E3%83%89][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
+https://cube309b.hatenablog.com/entry/2023/04/30/123029#TUN-%E3%83%A2%E3%83%BC%E3%83%89%E3%81%A8-TAP-%E3%83%A2%E3%83%BC%E3%83%89]
+
+ただ、TUNモードで接続する場合、ネットワークセグメントが異なるため、そのままではLAN上のPCなどにアクセスできません。
+ネットワークに接続できても、LAN上のクライアントにアクセスできないのであれば意味がありません。
+
+このあたりについては下記に詳細が記載されています。こちらはDD-WRTの場合ですが、考え方は同じと思われます。
+
+ - [[https://ameblo.jp/chocoball-muroi/entry-11788301407.html][DD-WRTとiPhone5sでVPNの構築（OpenVPN） | チョコボール室井の報告書]]
+https://ameblo.jp/chocoball-muroi/entry-11788301407.html
+
+下記、引用します。
+
+#+begin_quote
+しか～し！！
+
+
+そのネットワーク内にアクセスできたのはいいけど、iPhoneに割り当てられているipアドレス(10.8.0.x)が目的のネットワーク内のアドレス(192.168.10.x)と違うため個々のパソコンFireWallに引っかかってリモートデスクトップなどができないという問題が発生・・・
+
+
+FireWallの許可設定をすればいいだけなんだけどなんかスッキリしない。
+
+
+iPhoneに割り当てられるipアドレスを目的のネットワーク内のアドレスと同じにするためにはVPNのモードをBridge(TAP)モードにすればいいんだけど、残念ながらiPhoneは対応していないらしい。
+
+
+そこでいろいろ調べた結果ipマスカレードを使用することにした。これは通常はローカルからグローバルにアクセスするときに使用されるものなんだけど、それをこんな使い方していいのか・・・よくわからないけどとにかくこれで解決できたので良しとしよう！
+ってことで設定してみる。
+
+
+
+管理　→　コマンド実行　とたどって以下の内容を起動時スクリプトとして保存する
+
+↓↓↓↓↓↓この下から↓↓↓↓↓↓
+
+iptables -t nat -A POSTROUTING -o br0 -s 10.8.0.0/255.255.255.0 -j MASQUERADE
+
+↑↑↑↑↑↑この上まで↑↑↑↑↑↑
+
+設定したらルーターを再起動。
+#+end_quote
+
+OpenWrtにおいても、上記の iptablesコマンドでのIPマスカレードの設定と同等のことを行えばよいはずですが、私は現状はやり方がわかっていません。
+
+* 参考ページ
+
+** OpenWrt公式(OpenVPN)
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
+ - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/client][[OpenWrt Wiki] OpenVPN client]]
+
+** OpenWrt公式(その他)
+ - [[https://openwrt.org/docs/guide-user/services/ddns/client][[OpenWrt Wiki] DDNS client]]
+ - [[https://forum.openwrt.org/t/i-want-to-disable-ipv6-from-lan-interface-using-luci/129902][I want to disable IPV6 from LAN Interface using Luci - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
+ - [[https://forum.openwrt.org/t/ip-masquerading/125130/6][IP Masquerading - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
+
+** OpenWrtで OpenVPN (DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ)
+
+こちら、参考になりますが、前述の通り、openvpn-easy-rsa を使う場合は鍵や証明書についてほとんど意識することなく、簡単にセットアップできます。
+
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/40.html][OpenWrtで OpenVPN(1) 動作環境 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/41.html][OpenWrtで OpenVPN(2) 証明書などの準備 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/42.html][OpenWrtで OpenVPN(3) OpenVPNのインストールと環境設定 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/43.html][OpenWrtで OpenVPN(4) Firewallの設定 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+ - [[https://w.atwiki.jp/ddwrt_openwrt/pages/55.html][OpenWrtで OpenVPN(5) VPNクライアントの設定 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
+
+** OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する
+
+図示して詳細に説明されており、TUN/TAPモードについても解説されています。
+
+ - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
+
+** easy-rsa3 について
+ - [[https://qiita.com/YasuhiroABE/items/806a0947abdb828eef1f][Easy-RSA3を利用したOpenVPNサーバーの構築とクライアント証明書の配布 #OpenVPN - Qiita]]
+
+** サーバー CentOS、クライアント Ubuntu での事例
+
+TUNモードで設定されているようなので、下記の記載がありますね。
+
+#+begin_quote
+10.8.0.0/24 宛のパケットを 192.168.11.10 へ転送する。
+#+end_quote
+
+ - [[https://qiita.com/shibataka000/items/cd77176f4f938dafa251][OpenVPNを使ってVPNサーバを構築する #Ubuntu - Qiita]]
+
+** その他
+
+参考になりそうに見えたのですが、有効な手段は見つかっていません。
+
+ - [[https://forums.openvpn.net/viewtopic.php?t=25528][Routed LAN setup issue with NAT or masquerading - OpenVPN Support Forum]]
+ - [[https://community.openvpn.net/openvpn/wiki/RoutedLans][RoutedLans – OpenVPN Community]]
 
 # * VPN
 # 
@@ -597,18 +721,5 @@ service openvpn restart
 # service openvpn restart
 # ls ${VPN_DIR}/*.ovpn
 # #+end_src
-
-* OpenVPN関連
- - [[https://w.atwiki.jp/ddwrt_openwrt/pages/43.html][OpenWrtで OpenVPN(4) Firewallの設定 - DD-WRT OpenWrt 適材適所で両方使いたい人向け @ ウィキ - atwiki（アットウィキ）]]
- - [[https://forum.openwrt.org/t/i-want-to-disable-ipv6-from-lan-interface-using-luci/129902][I want to disable IPV6 from LAN Interface using Luci - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
- - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
- - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029#TUN-%E3%83%A2%E3%83%BC%E3%83%89%E3%81%A8-TAP-%E3%83%A2%E3%83%BC%E3%83%89][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
- - [[https://forum.openwrt.org/t/ip-masquerading/125130/6][IP Masquerading - Installing and Using OpenWrt / Network and Wireless Configuration - OpenWrt Forum]]
- - [[https://openwrt.org/docs/guide-user/services/ddns/client][[OpenWrt Wiki] DDNS client]]
- - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/server][[OpenWrt Wiki] OpenVPN server]]
- - [[https://qiita.com/YasuhiroABE/items/806a0947abdb828eef1f][Easy-RSA3を利用したOpenVPNサーバーの構築とクライアント証明書の配布 #OpenVPN - Qiita]]
- - [[https://cube309b.hatenablog.com/entry/2023/04/30/123029][OpenWrt で OpenVPN (トンネル/ブリッジ/クライアント) を設定する - Tech Note Plus]]
- - [[https://openwrt.org/docs/guide-user/services/vpn/openvpn/client][[OpenWrt Wiki] OpenVPN client]]
- - [[https://qiita.com/shibataka000/items/cd77176f4f938dafa251][OpenVPNを使ってVPNサーバを構築する #Ubuntu - Qiita]]
 
 # images/1236_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1236_01.jpg
