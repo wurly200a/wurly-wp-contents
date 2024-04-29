@@ -1,0 +1,54 @@
+#+BLOG: wurly-blog
+#+POSTID: 1279
+#+ORG2BLOG:
+#+DATE: [2024-04-29 Mon 12:11]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: OpenWrt
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WHR-1166DHP に DD-WRT をインストール
+
+* 概要
+
+2024年現在、DD-WRTは開発が盛んではないので、一般的に言ってあまり使用する理由はありませんが、事情があり、新規にDD-WRTをインストールしたい状況になりました。
+
+私の場合、これまでDD-WRTでOpenVPNを使用しており、これをOpenWrtに置き換えようとしたのですが、まだ上手く行っていません。
+ですが、別用途で、これまで使用していたルーター(WZR-1750DHP)でOpenWrtを使用したいです。
+
+よって、一旦、別ルーター(WHR-1166DHP)にDD-WRTをインストールし、OpenVPN機能のみこちらに持たせることにしました。
+
+* インストール方法
+
+仕立てたいルーター(WHR-1166DHP)ですが、WebUIにアクセスできない状態でした。
+
+ただ、tftpによって OpenWrt で立ち上げることはできていました。
+
+そこで、OpenWrt の状態から DD-WRT を書き込むというやり方を採用しました。
+
+下記の通り、先頭28byteがDD-WRT用のヘッダーであるということで、ddコマンドで先頭を取り除いたものをmtdコマンドで書き込めば良いようです。
+
+ - [[https://forum.archive.openwrt.org/viewtopic.php?id=30111][OpenWrt Forum Archive]]
+https://forum.archive.openwrt.org/viewtopic.php?id=30111
+
+#+begin_quote
+If you'd like to revert to DD-WRT, just strip 28 bytes DD-WRT header off from wzr-hp-g300nh-dd-wrt-webupgrade-MULTI.bin and override the "firmware" partition.
+#+end_quote
+
+#+begin_src bash
+dd bs=28 skip=1 if=/tmp/wzr-hp-g300nh-dd-wrt-webupgrade-MULTI.bin of=/tmp/firmware.bin
+mtd -r write /tmp/firmware.bin firmware
+#+end_src
+
+実際に、書き込むつもりの buffalo_whr_1166d-webflash-09-09-2017-r33342.bin ファイルについても、48 44 から始まり、29byte目から 27 05 となっているので、合っているようです。
+
+#+begin_src 
+00000000: 4844 5230 1ca0 7d00 ca1e 20ce 0100 0100  HDR0..}... .....
+00000010: 1c00 0000 0000 0000 0000 0000 2705 1956  ............'..V
+#+end_src
+
+同様の方法で書き込み、成功しました。
+
+#+begin_src bash
+dd bs=28 skip=1 if=buffalo_whr_1166d-webflash-09-09-2017-r33342.bin of=firmware.bin
+mtd -r write firmware.bin firmware
+#+end_src
