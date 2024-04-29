@@ -3,13 +3,42 @@
 #+ORG2BLOG:
 #+DATE: [2024-02-18 Sun 14:50]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: HA Kubernetes クラスターの構築
 
+* はじめに
+
+下記では、ラズパイ3台でコントロールプレーン・ワーカーノードを含めたクラスタを構成するやり方を学びました。
+
+ - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
+ - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
+ - [[./?p=1055][おうちKubernetesをはじめる(その3)]]
+
+また、下記でHA(High Availability)構成について少し理解を深めました。
+
+ - [[./?p=1090][KubernetesのHA構成(コントロールプレーン、etcd、ワーカー)]]
+
+次のステップとして、ラズパイ3台でコントロールプレーンを構成、ワーカーをamd64のPC1台で構成する、半HA構成に取り組みます。
+
+ワーカー用マシンについては、下記で確保しました。
+
+ - [[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補]]
+ - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
+
+そして実はHA構成に対してはもう一つ構成要素が必要となります。
+それはロードバランサー(load balancer:LB)です。
+
+LBをコントロールプレーンを構成するマシンに配置する例もありますが、個人的にはこれはしっくり来ません。
+LBが稼働しているマシンが落ちたら終わってしまうのでHA構成の意味がありません。(私の知識が足りないだけで意味があるのかもしれませんが)
+
+よって別のマシンにLBを立てたいと思いますが、できるだけ少電力なものが望ましいです。
+OpenWrtのパッケージに haproxy、keepalived が含まれることがわかりましたので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
+
+ - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
+
 * 参考
- - [[http://cha.la.coocan.jp/wp/2024/01/20/post-1011/][おうちKubernetesをはじめる(その1) | Wurly's blog]]
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
  - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
  - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
