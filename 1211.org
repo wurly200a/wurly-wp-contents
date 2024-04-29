@@ -33,7 +33,7 @@ Webページ等を参考にしながらWebUIもしくはssh経由で設定を試
 
 * 有線ブリッジとして接続
 
-** 想定
+** 前提
 
 下記の図に示す構成となります。
 
@@ -49,28 +49,69 @@ MODEM---ONU1---ROUTER3
 
 #+end_src
 
+ここでは、IP v6 は無効にします。
+
 #+results:
 [[file:images/1211_51.png]]
 
-** 1step
+** IPアドレスの設定
 
-OpenWrtルーターを機能的にルーターとして接続する場合、LAN側を192.168.1.102として設定し、WAN(INTERNET)ポートではなく、いずれかのLANポート介してONUと接続しました。
+最初に、WAN(INTERNET)ポートではなく、いずれかのLANポート介してクライアントPCと接続した状態で設定します。
 
-まずは、wan と wan6 を削除します。"Delete"後、"Save & Appply"します。
-
-file:images/1211_01.jpg
-
-その後、IPv4 address を変更します。
+Network -> Interfaces から、lan を Edit し、General Settings から IPv4 address を変更します。
 ここで、IPv4 Gateway も設定したいですが、ちょうど現在ルーターに設定されているIPアドレスと同じになってしまうので、この状態ではできないようです。
 
 file:images/1211_02.jpg
 
-
 一度、"Save & Appply"を行ったあと、あらためて設定します。
+
+** Gatewayの設定
+
+Network -> Interfaces から、lan を Edit し、General Settings から IPv4 Gateway を 192.168.1.1 に設定します。
 
 file:images/1211_03.jpg
 
-ただ、このままだと、LANポート経由で上流のルーター(ONU)と接続する場合は動作するのですが、WAN(INTERNET)ポートに接続した場合は正しく動作しません。
+** DHCPクライアントの無効化
+
+Network -> Interfaces から、DHCP client の wan と wan6 を削除します。
+
+"Delete"後、"Save & Appply"します。
+
+file:images/1211_01.jpg
+
+** DNSの設定
+
+DNSの設定を行います。
+
+Network -> Interfaces から、lan を Edit し、Advanced Settings から Use custom DNS servers に 192.168.1.1 を設定します。
+
+"Save & Appply"します。
+
+file:images/1211_06.jpg
+
+** DHCPサーバーの無効設定
+
+DHCPサーバーを無効にします。
+
+Network -> Interfaces から、lan を Edit し、DHCP Server のタブから、Ignore interface をチェックします。
+
+file:images/1211_07.jpg
+
+** DHCPサーバー IP v6 の無効設定
+
+Network -> Interfaces から、lan を Edit し、DHCP Server のタブから、さらに IPv6 Settings のタブを選択し、DHCPv6-Service を disabled にします。
+
+file:images/1211_08.jpg
+
+** 診断
+
+ここで、ルーターのLANポートのいずれかと上位のルーターと接続します。
+
+NetworkのDiagnosticsで、IPv4 Ping、IPv4 Traceroute、Nslookup ともに結果が取得できればOKです。
+
+** WANポートをLANポートとして使用する設定(WHR-1166DHP)
+
+未設定の場合、LANポート経由で上流のルーター(ONU)と接続する場合はインターネットに接続できますが、WAN(INTERNET)ポートに接続した場合は接続できません。
 
 VLANの設定を変更します。
 VLAN ID 1 の方で WAN が off、VLAN ID 2 の方で WAN が Untagged となっているので、VLAN ID 1 の方で WANをUntaggedにし、VLAN ID 2 の方はoffとします。
@@ -81,14 +122,25 @@ file:images/1211_04.jpg
 
 file:images/1211_05.jpg
 
-DNSの設定も行います。
-これで、NetworkのDiagnosticsもOKとなりました。
+** WANポートをLANポートとして使用する設定(WZR-1750DHP)
 
-file:images/1211_06.jpg
+未設定の場合、LANポート経由で上流のルーター(ONU)と接続する場合はインターネットに接続できますが、WAN(INTERNET)ポートに接続した場合は接続できません。
 
-DHCPを無効にします。
+file:images/1211_09.jpg
 
-file:images/1211_07.jpg
+Network -> Interfaces から、Devices のタブで、br-lan を Configure します。
+
+Bridge ports に wan を加えます。
+
+file:images/1211_10.jpg
+
+また Enable IPv6 を disabled にします。
+
+file:images/1211_11.jpg
+
+ここで、ルーターのWANポートと上位のルーターと接続します。
+
+NetworkのDiagnosticsで、IPv4 Ping、IPv4 Traceroute、Nslookup ともに結果が取得できればOKです。
 
 * おわりに
 
@@ -398,3 +450,9 @@ config rule
 # images/1211_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1211_51.png
 
 # images/1211_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/03/1211_07.jpg
+
+# images/1211_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1211_08.jpg
+
+# images/1211_09.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1211_09.jpg
+# images/1211_10.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1211_10.jpg
+# images/1211_11.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/04/1211_11.jpg
