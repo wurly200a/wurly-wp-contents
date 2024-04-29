@@ -1,0 +1,242 @@
+#+BLOG: wurly-blog
+#+POSTID: 1260
+#+ORG2BLOG:
+#+DATE: [2024-04-27 Sat 14:09]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: OpenWrt
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WZR-1750DHP に OpenWrt をインストール
+
+* はじめに
+
+OpenVPNサーバーとして長らく(約6年)DD-WRTを使用来ましたが、2024年時点でリリースが行われていません。
+一方で、最近、私の自宅のネットワーク環境を使用していろいろと学習を行っており、今後ルーターを活用するケースが増えそうになってきた為、最新のOpenWrtを導入することにしました。
+これまでDD-WRTを使用していた BUFFALO WZR-1750DHP をOpenWrtに書き換えることにしました。
+
+OpenVPNのサービスを止めたくないので、こちらは代替サーバーを仕立てました。
+(別途、WHR-1166DHPでOpenVPNが使えるようにしました。一時的な代替のつもりでしたが、VPNの使用頻度や使用するデータ量が少ないので、当面このままでも使おうと考えています。)
+
+* 要約
+
+結論としては、下記の手順でファームウェアを書き換えることができました。
+
+ - ファームウェアをhttpサーバーにアップロード
+ - DD-WRTにtelnetでログイン
+ - ファームウェアイメージをhttpサーバーからwgetでダウンロード
+ - mtdコマンドで書き込み
+
+* 経緯
+
+ - [[https://openwrt.org/toh/buffalo/wzr-1750dhp][[OpenWrt Wiki] Buffalo WZR-1750DHP]]
+https://openwrt.org/toh/buffalo/wzr-1750dhp
+
+上記ページによると、まず、WZR-1750DHPでOpenWrtを使用する場合、WiFiやUSBの使用に難があるとのこと。
+私の場合、WiFiを使用する予定は無いので問題ありません。
+
+ファームウェアの書き込み方法については、(1)から(3)のやり方が記載されています。
+
+
+ - (1) DD-WRTから web interface を使用する
+ - (2) tftpを使う
+ - (3) 殻割り
+
+(1)については、下記が事例のようです。
+ - [[http://kdpeter.blogspot.com/2015/03/buffalo-wzr-1750dhp-openwrt.html?m=1][Buffalo WZR-1750DHP + OpenWRT]]
+http://kdpeter.blogspot.com/2015/03/buffalo-wzr-1750dhp-openwrt.html?m=1
+
+私の場合すでにDD-WRTを使用していますので、web interface から書き換えることができるはずでした。
+
+また、(2)についても、[[./?p=1172][WHR-1166DHP に OpenWrt をインストール]] の通り、WHR-1166DHPではtftpを使って書き換えた実績がありますので、こちらも使えるはずでした。
+
+tftpを使う場合のサーバーのIPアドレスについては下記によると 192.168.11.2 のようです。
+
+ - [[https://dd-wrt.com/nxt/wiki/doku.php?id=hardware:buffalo:buffalo_wzr1750dhp][hardware:buffalo:buffalo_wzr1750dhp [DD-WRT NXT Wiki]]]
+https://dd-wrt.com/nxt/wiki/doku.php?id=hardware:buffalo:buffalo_wzr1750dhp
+
+(3)については下記が参考になります。殻割りはやってみたい気持ちはありますが、線出しをする部品の手持ちが無いのですぐにはできそうにありません。
+
+ - [[https://crimsonwoods.hatenablog.com/entry/2013/06/08/235115][文鎮化したWZR-1750DHPの修理 - crimsonwoodsのブログ]]
+https://crimsonwoods.hatenablog.com/entry/2013/06/08/235115
+
+(1)(2)を試しました。
+ただ、実際やってみると、(1)(2)いずれも上手く行きませんした。
+
+(1)については、実行してみると、実行直後にルーターのLEDが一瞬光るのですが、その後10分以上待っても音沙汰なし。
+
+(2)についても、AOSSボタンを押しながら起動してもtftp経由でファームがダウンロードできず、DD-WRTが起動してしまいます。
+下記の通り試行錯誤しましたが挙動は変わりませんでした。
+
+ - AOSSボタンの押下タイミングを変える(押したまま起動、起動した後に押下、など)
+ - tftpサーバーと接続するLANポートの変更(ポート1,ポート4,WANポート)
+ - ハードウェアリセット(筐体下部にあるリセットスイッチを押下)
+
+ということで別手段を検討します。
+
+ - (4) DD-WRTから mtdコマンドで書き込み
+
+下記を参考にしました。
+
+ - [[http://shiryog.xvs.jp/archives/2020/04/26_210000992.php][Bufallo WZR-HP-AG300HでDD-WRTからOpenWrtのインストール | 思慮g ～考えるblog～]]
+http://shiryog.xvs.jp/archives/2020/04/26_210000992.php
+
+* 実際の手順
+
+** ファームウェアをhttpサーバーに転送
+
+OpernWrtのサイトからダウンロードしたファイルをhttpサーバーに転送します。
+
+#+begin_src 
+$ ftp httpサーバー
+#+end_src
+
+#+begin_src 
+ftp> !dir
+openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx
+#+end_src
+
+#+begin_src 
+ftp> bin
+ftp> put openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx
+ftp> bye
+#+end_src
+
+** アップデート対象のルーターの設定
+
+ファームイメージを取得するため、ルーター自体をインターネットに接続する必要があります。下記の手順で 192.168.1.104 に手動IP設定し、WANポートからインターネットに接続しました。
+
+ - [[http://cha.la.coocan.jp/doc/DD_WRT_bridge_setting.html][DD-WRT ブリッジ設定]]
+http://cha.la.coocan.jp/doc/DD_WRT_bridge_setting.html
+
+
+** telnet接続
+
+telnetで接続します。
+(DD-WRTのバージョンはだいぶ古いです。)
+
+#+begin_src 
+$ telnet 192.168.1.104
+Trying 192.168.1.104...
+Connected to 192.168.1.104.
+Escape character is '^]'.
+
+DD-WRT v3.0-r33342 std (c) 2017 NewMedia-NET GmbH
+Release: 09/09/17
+
+DD-WRT login: root
+Password:
+==========================================================
+
+     ___  ___     _      _____  ______       ____  ___
+    / _ \/ _ \___| | /| / / _ \/_  __/ _  __|_  / / _ \
+   / // / // /___/ |/ |/ / , _/ / /   | |/ //_ <_/ // /
+  /____/____/    |__/|__/_/|_| /_/    |___/____(_)___/
+
+                       DD-WRT v3.0
+                   http://www.dd-wrt.com
+
+==========================================================
+
+
+BusyBox v1.27.2 (2017-09-09 09:40:56 CEST) built-in shell (ash)
+
+root@DD-WRT:~# ls -la
+drwx------    3 root     root             0 Apr 27 18:49 .
+drwxrwxrwx   11 root     root             0 Jan  1  1970 ..
+drwx------    2 root     root             0 Jan  1  1970 .ssh
+#+end_src
+
+** ファームウェアイメージの取得
+
+ルーター上にファームウェアイメージを取得します。
+
+#+begin_src 
+root@DD-WRT:~# wget http://{httpサーバーのURL}/openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx
+openwrt-23.05.3-bcm5 100% |*****************************************************************************************|  8192k  0:00:00 ETA
+root@DD-WRT:~# dir
+-sh: dir: not found
+root@DD-WRT:~# ls -la
+drwx------    3 root     root             0 Apr 27 19:08 .
+drwxrwxrwx   11 root     root             0 Jan  1  1970 ..
+drwx------    2 root     root             0 Jan  1  1970 .ssh
+-rw-r--r--    1 root     root       8388608 Apr 27 19:08 openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx
+root@DD-WRT:~# ls -la
+drwx------    3 root     root             0 Apr 27 19:08 .
+drwxrwxrwx   11 root     root             0 Jan  1  1970 ..
+drwx------    2 root     root             0 Jan  1  1970 .ssh
+-rw-r--r--    1 root     root       8388608 Apr 27 19:08 openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx
+#+end_src
+
+** mtdコマンドで書き込み
+
+mtdコマンドで書き込みます。
+オプションはよくわからないので参考サイトのものをそのまま使用します。
+
+#+begin_src 
+root@DD-WRT:~# mtd -r write openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx linux
+Unlocking linux ...
+Could not unlock MTD device: linux
+linux: Not supported
+Writing from openwrt-23.05.3-bcm53xx-generic-buffalo_wzr-1750dhp-squashfs.trx to linux ...  [w]
+root@DD-WRT:~# Connection closed by foreign host.
+#+end_src
+
+書き込み自体は完了し、ルーターが再起動したようですので、WANポートのケーブルを抜き、ルーターのLAN1ポートに直接PCから接続します。
+LEDが光り始めます。
+
+** ルーターの再起動
+
+正常にアップデート完了した場合、ルーターのIPアドレスは 192.168.1.1 になるはずですので、pingしてみます。
+
+#+begin_src 
+$ ping 192.168.1.1
+PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.
+From 192.168.1.4 icmp_seq=3 Destination Host Unreachable
+From 192.168.1.4 icmp_seq=7 Destination Host Unreachable
+From 192.168.1.4 icmp_seq=10 Destination Host Unreachable
+From 192.168.1.4 icmp_seq=12 Destination Host Unreachable
+64 bytes from 192.168.1.1: icmp_seq=13 ttl=63 time=595 ms
+64 bytes from 192.168.1.1: icmp_seq=14 ttl=63 time=0.833 ms
+64 bytes from 192.168.1.1: icmp_seq=15 ttl=63 time=1.39 ms
+64 bytes from 192.168.1.1: icmp_seq=16 ttl=63 time=1.07 ms
+64 bytes from 192.168.1.1: icmp_seq=17 ttl=63 time=1.50 ms
+^C
+--- 192.168.1.1 ping statistics ---
+18 packets transmitted, 5 received, +4 errors, 72.2222% packet loss, time 17473ms
+rtt min/avg/max/mdev = 0.833/119.929/594.844/237.457 ms
+#+end_src
+
+無事立ち上がったようです。
+
+** OpenWrtへssh接続
+
+sshで接続します。
+
+#+begin_src 
+$ ssh root@192.168.1.1
+The authenticity of host '192.168.1.1 (192.168.1.1)' can't be established.
+ED25519 key fingerprint is SHA256:U*****************************************A.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '192.168.1.1' (ED25519) to the list of known hosts.
+
+
+BusyBox v1.36.1 (2024-03-22 22:09:42 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 23.05.3, r23809-234f1a2efa
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+root@OpenWrt:~#
+#+end_src
+
+このようにOpenWrtに書き換えることができました。
