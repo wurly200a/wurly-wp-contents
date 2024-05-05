@@ -1,0 +1,58 @@
+#+BLOG: wurly-blog
+#+POSTID: 1308
+#+ORG2BLOG:
+#+DATE: [2024-05-05 Sun 17:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Hello, World!
+
+* 参考
+ - [[https://qiita.com/nakamura0907/items/cb769b3a094a6d2e87c0][WSL2上でTauri環境を構築したけれどたまにしかウィンドウを開いてくれない問題 #Tauri - Qiita]]
+https://qiita.com/nakamura0907/items/cb769b3a094a6d2e87c0
+
+* 作業
+
+#+begin_src 
+$ Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: MESA-LOADER: failed to open vgem: /usr/lib/dri/vgem_dri.so: cannot open shared object file: No such file or directory (search paths /usr/lib/x86_64-linux-gnu/dri:\$${ORIGIN}/dri:/usr/lib/dri, suffix _dri)
+
+libEGL warning: MESA-LOADER: failed to open vgem: /usr/lib/dri/vgem_dri.so: cannot open shared object file: No such file or directory (search paths /usr/lib/x86_64-linux-gnu/dri:\$${ORIGIN}/dri:/usr/lib/dri, suffix _dri)
+
+
+$
+$ ln -s /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so ./dri/
+ln: failed to create symbolic link './dri/': No such file or directory
+$ ls -la /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 /usr/lib/x86_64-linux-gnu/dri/swrast_dri.so
+$ ls -la /usr/lib/dri/
+ls: cannot access '/usr/lib/dri/': No such file or directory
+$ sudo ln -s /usr/lib/x86_64-linux-gnu/dri /usr/lib/dri
+[sudo] password for wurly:
+$ ls -la /usr/lib/dri/
+total 476248
+drwxr-xr-x  2 root root     4096 Feb 18 14:12 .
+drwxr-xr-x 60 root root    69632 May  5 15:41 ..
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 crocus_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 d3d12_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 i915_dri.so
+-rw-r--r--  4 root root 15894472 Jul  6  2023 i965_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 iris_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 kms_swrast_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 nouveau_dri.so
+-rw-r--r--  4 root root 15894472 Jul  6  2023 nouveau_vieux_dri.so
+-rw-r--r--  4 root root 15894472 Jul  6  2023 r200_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 r300_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 r600_dri.so
+-rw-r--r--  4 root root 15894472 Jul  6  2023 radeon_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 radeonsi_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 swrast_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 virtio_gpu_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 vmwgfx_dri.so
+-rw-r--r-- 13 root root 32612968 Jan 24 21:01 zink_dri.so
+$ ls -la /usr/lib | grep dry
+$ ls -la /usr/lib | grep dri
+lrwxrwxrwx  1 root root    29 May  5 17:02 dri -> /usr/lib/x86_64-linux-gnu/dri
+$
+#+end_src
