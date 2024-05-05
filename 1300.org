@@ -1,0 +1,131 @@
+#+BLOG: wurly-blog
+#+POSTID: 1300
+#+ORG2BLOG:
+#+DATE: [2024-05-05 Sun 16:37]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Emacs pgtk(Pure GTK)ビルドをWSLで使用する場合の設定
+
+* 概要
+
+Emacs pgtk(Pure GTK)ビルドをWSLで使用する場合の各種設定についてです。
+
+私の環境では、Emacs 29.2、29.3向けに設定した内容です。
+
+* (pgtk向け)WSL上のEmacsからWindowsへコピー＆ペーストを可能にする
+
+#+begin_src bash
+$ sudo apt install wl-clipboard
+#+end_src
+
+ここでは、featurep で pgtk が有効であることを確認し、wl-copy 及び wl-paste が実行可能であることを確認してから設定するようにしています。
+
+#+begin_src emacs-lisp
+(if (featurep 'pgtk)
+    ; you need to install "wl-clipboard" first
+    (if (and (zerop (call-process "which" nil nil nil "wl-copy"))
+             (zerop (call-process "which" nil nil nil "wl-paste")))
+        ;; credit: yorickvP on Github
+        (progn
+          (setq wl-copy-process nil)
+          (defun wl-copy (text)
+            (setq wl-copy-process (make-process :name "wl-copy"
+                                                :buffe*r nil
+                                                :command '("wl-copy" "-f" "-n")
+                                                :connection-type 'pipe))
+            (process-send-string wl-copy-process text)
+            (process-send-eof wl-copy-process))
+          (defun wl-paste ()
+            (if (and wl-copy-process (process-live-p wl-copy-process))
+                nil ; should return nil if we're the current paste owner
+              (shell-command-to-string "wl-paste -n | tr -d \r")))
+          (setq interprogram-cut-function 'wl-copy)
+          (setq interprogram-paste-function 'wl-paste)
+          )
+      ))
+#+end_src
+
+* (pgtk向け)アイコンテーマのインストールとテーマの設定
+
+インストールしていないとEmacsの起動時にWarningが発生します。
+
+#+begin_src bash
+$ sudo apt install adwaita-icon-theme-full
+#+end_src
+
+#+begin_src bash
+export GTK_THEME=Adwaita:dark
+#+end_src
+
+* (pgtk向け)アイコンの適正化
+
+** 行うこと
+
+pgtkビルドの場合、タスクバーやスタートメニューのアイコンがペンギンのアイコンとなってしまうので、Emacsのものとなるようにします。
+
+\slash{}usr/local/share/applications/emacs.desktop の "Icon=emacs" を "Icon=emacs29" に書き換え、/usr/share/icons/hicolor/ 以下の各サイズの apps/ ディレクトリに emacs.png を emacs29.png としてコピーします。
+
+** emacs.desktop の変更
+
+#+begin_src 
+sudo sed -i 's/Icon=emacs$/Icon=emacs29/' /usr/local/share/applications/emacs.desktop
+#+end_src
+
+#+begin_src 
+$ cd ~/source/emacs-29.3/etc/images/icons/hicolor/
+#+end_src
+
+#+begin_src bash
+$ ls -la
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 128x128
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 16x16
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 24x24
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 32x32
+drwxr-xr-x 3 wurly wurly 4096 Dec  2 16:21 48x48
+drwxr-xr-x 4 wurly wurly 4096 Dec  2 16:21 scalable
+#+end_src
+
+** アイコンコピースクリプトの作成
+
+#+begin_src bash
+cat << 'EOS' > copy_emacs_icons.sh
+#!/bin/bash
+
+for d in *
+do
+    sudo cp "$d/apps/emacs.png" "/usr/share/icons/hicolor/$d/apps/emacs29.png"
+done
+EOS
+#+end_src
+
+** スクリプトの実行
+
+#+begin_src bash
+$ chmod +x copy_emacs_icons.sh
+$ ./copy_emacs_icons.sh
+#+end_src
+
+スクリプトの都合上、下記メッセージが表示されてしまいますが想定通りです。
+
+#+begin_src bash
+cp: cannot stat 'copy_emacs_icons.sh/apps/emacs.png': Not a directory
+cp: cannot stat 'scalable/apps/emacs.png': No such file or directory
+#+end_src
+
+** コピー結果確認
+
+#+begin_src bash
+$ find /usr/share/icons/hicolor/ | grep emacs29.png
+/usr/share/icons/hicolor/128x128/apps/emacs29.png
+/usr/share/icons/hicolor/16x16/apps/emacs29.png
+/usr/share/icons/hicolor/32x32/apps/emacs29.png
+/usr/share/icons/hicolor/48x48/apps/emacs29.png
+/usr/share/icons/hicolor/24x24/apps/emacs29.png
+#+end_src
+
+** 設定の反映
+
+アイコンが変わらない場合には、wslを再起動 (PowerShell から wsl --shutdown)すると反映されます。
+
