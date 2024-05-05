@@ -38,6 +38,45 @@ OpenWrtのパッケージに haproxy、keepalived が含まれることがわか
 
  - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
 
+* 全体構成
+
+#+begin_src mermaid :file images/1134_51.png
+%%{init:{'theme':'base','flowchart':{'rankSpacing':10}}}%%
+graph TB
+  subgraph controlplane1[control plane node]
+    APISERVER1["apiserver"]
+    CONTROLLER1["controller-manager"]
+  end
+  
+  subgraph controlplane2[control plane node]
+    APISERVER2["apiserver"]
+  end
+  
+  subgraph controlplane3[control plane node]
+    APISERVER3["apiserver"]
+  end
+
+  
+  LB["load balancer"]
+  
+  %% relation
+  CHROMEBOX3---LB
+  LB---APISERVER1
+  LB---APISERVER2
+  LB---APISERVER3
+  APISERVER1---CONTROLLER1
+  
+  %%style
+  classDef SERVER fill:#46d,fill-opacity:100
+  class controlplane1 SERVER
+
+#+end_src
+
+#+results:
+[[file:images/1134_51.png]]
+
+* ロードバランサー
+
 * 参考
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
  - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
