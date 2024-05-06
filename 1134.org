@@ -77,6 +77,957 @@ graph TB
 
 * ロードバランサー
 
+下記の通り、ルーターにインストールされた OpenWrt にhaproxyをインストール、設定しました。
+
+ - [[./?p=1312][HA Kubernetes クラスター向け haproxy の構築]]
+
+* コントロールプレーンのハードウェア、OSの準備
+
+ - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
+
+上記と同様に、マシンを設定します。
+
+ここでは、3台のラズパイ4Bを設定しました。
+
+* コントロールプレーンのOS基本設定、containerd・kubernetesのインストール
+
+ - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
+
+上記と同様に設定します。
+
+ - 192.168.1.201 k8s-ctrl1
+ - 192.168.1.202 k8s-ctrl2
+ - 192.168.1.203 k8s-ctrl3
+
+下記は設定が異なるところです。
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/hosts
+192.168.1.201  k8s-ctrl1
+192.168.1.202  k8s-ctrl2
+192.168.1.203  k8s-ctrl3
+_EOF_
+#+end_src
+
+* 参考
+
+ここから先は下記を参考にして行います。
+
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+
+ - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
+https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e
+
+* kubeadm init(最初のコントロールプレーン向け)
+
+k8s-ctrl1 で作業します。ロードバランサーのIPアドレスは 192.168.1.100 です。
+
+#+begin_src bash
+$ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
+#+end_src
+
+結果
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
+I0506 22:26:35.713265    1438 version.go:256] remote version is much newer: v1.30.0; falling back to: stable-1.29
+[init] Using Kubernetes version: v1.29.4
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0506 22:26:36.858967    1438 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime is inconsistent with that used by kubeadm. It is recommended that using "re
+gistry.k8s.io/pause:3.9" as the CRI sandbox image.
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s-ctrl1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.1.201 192.168.1.100]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.1.201 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.1.201 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "super-admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 18.544814 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+cf6b62a26809ce3e4126c782badb0853e02d97dab46f90d7e895dd96ac1b3a1d
+[mark-control-plane] Marking the node k8s-ctrl1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node k8s-ctrl1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: hdie35.u9airq6ychkt8amq
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a \
+        --control-plane --certificate-key cf6b62a26809ce3e4126c782badb0853e02d97dab46f90d7e895dd96ac1b3a1d
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a 
+#+end_src
+
+まずは指示通り(k8s-ctrl1上で)こちらを実行します。
+
+#+begin_src bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+#+end_src
+
+corednsがPending状態になっています。
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl get pod -n kube-system -w
+NAME                                READY   STATUS    RESTARTS   AGE
+coredns-76f75df574-mzng7            0/1     Pending   0          4m9s
+coredns-76f75df574-t265x            0/1     Pending   0          4m9s
+etcd-k8s-ctrl1                      1/1     Running   0          4m13s
+kube-apiserver-k8s-ctrl1            1/1     Running   0          4m18s
+kube-controller-manager-k8s-ctrl1   1/1     Running   0          4m13s
+kube-proxy-d64kt                    1/1     Running   0          4m9s
+kube-scheduler-k8s-ctrl1            1/1     Running   0          4m13s
+#+end_src
+
+calicoのインストール
+
+#+begin_src bash
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+poddisruptionbudget.policy/calico-kube-controllers created
+serviceaccount/calico-kube-controllers created
+serviceaccount/calico-node created
+serviceaccount/calico-cni-plugin created
+configmap/calico-config created
+customresourcedefinition.apiextensions.k8s.io/bgpconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgpfilters.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/bgppeers.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/blockaffinities.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/caliconodestatuses.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/clusterinformations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/felixconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/globalnetworksets.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/hostendpoints.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamblocks.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamconfigs.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipamhandles.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ippools.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/ipreservations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/kubecontrollersconfigurations.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networkpolicies.crd.projectcalico.org created
+customresourcedefinition.apiextensions.k8s.io/networksets.crd.projectcalico.org created
+clusterrole.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrole.rbac.authorization.k8s.io/calico-node created
+clusterrole.rbac.authorization.k8s.io/calico-cni-plugin created
+clusterrolebinding.rbac.authorization.k8s.io/calico-kube-controllers created
+clusterrolebinding.rbac.authorization.k8s.io/calico-node created
+clusterrolebinding.rbac.authorization.k8s.io/calico-cni-plugin created
+daemonset.apps/calico-node created
+deployment.apps/calico-kube-controllers created
+#+end_src
+
+calico、corednsのコンテナが生成され始めます。
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl get pod -n kube-system
+NAME                                       READY   STATUS              RESTARTS   AGE
+calico-kube-controllers-5fc7d6cf67-qn5xn   0/1     ContainerCreating   0          61s
+calico-node-zz6c7                          0/1     Init:2/3            0          61s
+coredns-76f75df574-mzng7                   0/1     ContainerCreating   0          10m
+coredns-76f75df574-t265x                   0/1     ContainerCreating   0          10m
+etcd-k8s-ctrl1                             1/1     Running             0          10m
+kube-apiserver-k8s-ctrl1                   1/1     Running             0          10m
+kube-controller-manager-k8s-ctrl1          1/1     Running             0          10m
+kube-proxy-d64kt                           1/1     Running             0          10m
+kube-scheduler-k8s-ctrl1                   1/1     Running             0          10m
+#+end_src
+
+しかし、いつまで経ってもcalico-kube-controllers と coredns が ContainerCreating のまま。
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl get pod -n kube-system
+NAME                                       READY   STATUS              RESTARTS        AGE
+calico-kube-controllers-5fc7d6cf67-qn5xn   0/1     ContainerCreating   0               6m26s
+calico-node-zz6c7                          1/1     Running             0               6m26s
+coredns-76f75df574-mzng7                   0/1     ContainerCreating   0               15m
+coredns-76f75df574-t265x                   0/1     ContainerCreating   0               15m
+etcd-k8s-ctrl1                             1/1     Running             0               15m
+kube-apiserver-k8s-ctrl1                   1/1     Running             0               15m
+kube-controller-manager-k8s-ctrl1          1/1     Running             1 (4m42s ago)   15m
+kube-proxy-d64kt                           1/1     Running             0               15m
+kube-scheduler-k8s-ctrl1                   1/1     Running             1 (4m40s ago)   15m
+#+end_src
+
+#+begin_src bash
+$ kubectl describe pod calico-kube-controllers-5fc7d6cf67-t24hh
+#+end_src
+
+#+begin_src bash
+(略)
+Events:
+  Type     Reason                  Age                 From               Message
+  ----     ------                  ----                ----               -------
+  Normal   Scheduled               16m                 default-scheduler  Successfully assigned kube-system/cali  Warning  FailedCreatePodSandBox  16m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  16m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  16m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  16m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  16m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  15m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  15m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  15m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  15m                 kubelet            Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+  Warning  FailedCreatePodSandBox  98s (x58 over 14m)  kubelet            (combined from similar events): Failed8a69": plugin type="calico" failed (add): failed to create host netlink handle: protocol not supported
+#+end_src
+
+下記の要因でcreateできていない模様。
+
+#+begin_src 
+Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
+#+end_src
+
+上記メッセージでググってみたところ、下記があやしい・・・
+
+ - [[https://github.com/canonical/microk8s/issues/2680][Calico fails on 21.10 when running on raspberry pi · Issue #2680 · canonical/microk8s · GitHub]]
+https://github.com/canonical/microk8s/issues/2680
+
+#+begin_quote
+I have been chasing down this issue on my 7 node stack. Not sure if you got the same problem but i never got any containers up. Found out that in Ubuntu 21.10 i had to install sudo apt install linux-modules-extra-raspi after stop and start it came up and working! :)
+#+end_quote
+
+試しに、linex-modules-extra-raspi をインストールしてみたところ・・・
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ sudo apt install linex-modules-extra-raspi
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+E: Unable to locate package linex-modules-extra-raspi
+wurly@k8s-ctrl1:~$ sudo apt install linux-modules-extra-raspi
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  linux-modules-extra-5.15.0-1053-raspi
+The following NEW packages will be installed:
+  linux-modules-extra-5.15.0-1053-raspi linux-modules-extra-raspi
+0 upgraded, 2 newly installed, 0 to remove and 0 not upgraded.
+Need to get 19.7 MB of archives.
+After this operation, 98.6 MB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+Get:1 http://ports.ubuntu.com/ubuntu-ports jammy-updates/main arm64 linux-modules-extra-5.15.0-1053-raspi arm64 5.15.0-1053.56 [19.7 MB]
+Get:2 http://ports.ubuntu.com/ubuntu-ports jammy-updates/main arm64 linux-modules-extra-raspi arm64 5.15.0.1053.50 [2390 B]                                                                                                                                              
+Fetched 19.7 MB in 9s (2091 kB/s)                                                                                                                                                                                                                                        
+Selecting previously unselected package linux-modules-extra-5.15.0-1053-raspi.
+(Reading database ... 102389 files and directories currently installed.)
+Preparing to unpack .../linux-modules-extra-5.15.0-1053-raspi_5.15.0-1053.56_arm64.deb ...
+Unpacking linux-modules-extra-5.15.0-1053-raspi (5.15.0-1053.56) ...
+Selecting previously unselected package linux-modules-extra-raspi.
+Preparing to unpack .../linux-modules-extra-raspi_5.15.0.1053.50_arm64.deb ...
+Unpacking linux-modules-extra-raspi (5.15.0.1053.50) ...
+Setting up linux-modules-extra-5.15.0-1053-raspi (5.15.0-1053.56) ...
+Setting up linux-modules-extra-raspi (5.15.0.1053.50) ...
+Processing triggers for linux-image-5.15.0-1053-raspi (5.15.0-1053.56) ...
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-5.15.0-1053-raspi
+Using DTB: bcm2711-rpi-4-b.dtb
+Installing /lib/firmware/5.15.0-1053-raspi/device-tree/broadcom/bcm2711-rpi-4-b.dtb into /boot/dtbs/5.15.0-1053-raspi/./bcm2711-rpi-4-b.dtb
+Taking backup of bcm2711-rpi-4-b.dtb.
+Installing new bcm2711-rpi-4-b.dtb.
+flash-kernel: deferring update (trigger activated)
+/etc/kernel/postinst.d/zz-flash-kernel:
+Using DTB: bcm2711-rpi-4-b.dtb
+Installing /lib/firmware/5.15.0-1053-raspi/device-tree/broadcom/bcm2711-rpi-4-b.dtb into /boot/dtbs/5.15.0-1053-raspi/./bcm2711-rpi-4-b.dtb
+Taking backup of bcm2711-rpi-4-b.dtb.
+Installing new bcm2711-rpi-4-b.dtb.
+flash-kernel: deferring update (trigger activated)
+Processing triggers for flash-kernel (3.104ubuntu20) ...
+Using DTB: bcm2711-rpi-4-b.dtb
+Installing /lib/firmware/5.15.0-1053-raspi/device-tree/broadcom/bcm2711-rpi-4-b.dtb into /boot/dtbs/5.15.0-1053-raspi/./bcm2711-rpi-4-b.dtb
+Taking backup of bcm2711-rpi-4-b.dtb.
+Installing new bcm2711-rpi-4-b.dtb.
+flash-kernel: installing version 5.15.0-1053-raspi
+Taking backup of vmlinuz.
+Installing new vmlinuz.
+Taking backup of initrd.img.
+Installing new initrd.img.
+Taking backup of uboot_rpi_arm64.bin.
+Installing new uboot_rpi_arm64.bin.
+Taking backup of uboot_rpi_4.bin.
+Installing new uboot_rpi_4.bin.
+Taking backup of uboot_rpi_3.bin.
+Installing new uboot_rpi_3.bin.
+Generating boot script u-boot image... done.
+Taking backup of boot.scr.
+Installing new boot.scr.
+Taking backup of start4.elf.
+Installing new start4.elf.
+Taking backup of fixup4db.dat.
+Installing new fixup4db.dat.
+Taking backup of start.elf.
+Installing new start.elf.
+Taking backup of start4x.elf.
+Installing new start4x.elf.
+Taking backup of start4db.elf.
+Installing new start4db.elf.
+Taking backup of fixup_x.dat.
+Installing new fixup_x.dat.
+Taking backup of start4cd.elf.
+Installing new start4cd.elf.
+Taking backup of fixup4cd.dat.
+Installing new fixup4cd.dat.
+Taking backup of fixup_db.dat.
+Installing new fixup_db.dat.
+Taking backup of bootcode.bin.
+Installing new bootcode.bin.
+Taking backup of fixup.dat.
+Installing new fixup.dat.
+Taking backup of fixup4x.dat.
+Installing new fixup4x.dat.
+Taking backup of start_db.elf.
+Installing new start_db.elf.
+Taking backup of fixup4.dat.
+Installing new fixup4.dat.
+Taking backup of start_x.elf.
+Installing new start_x.elf.
+Taking backup of start_cd.elf.
+Installing new start_cd.elf.
+Taking backup of fixup_cd.dat.
+Installing new fixup_cd.dat.
+Taking backup of bcm2710-rpi-3-b.dtb.
+Installing new bcm2710-rpi-3-b.dtb.
+Taking backup of bcm2711-rpi-400.dtb.
+Installing new bcm2711-rpi-400.dtb.
+Taking backup of bcm2711-rpi-cm4.dtb.
+Installing new bcm2711-rpi-cm4.dtb.
+Taking backup of bcm2710-rpi-cm3.dtb.
+Installing new bcm2710-rpi-cm3.dtb.
+Taking backup of bcm2837-rpi-cm3-io3.dtb.
+Installing new bcm2837-rpi-cm3-io3.dtb.
+Taking backup of bcm2837-rpi-3-b-plus.dtb.
+Installing new bcm2837-rpi-3-b-plus.dtb.
+Taking backup of bcm2837-rpi-3-a-plus.dtb.
+Installing new bcm2837-rpi-3-a-plus.dtb.
+Taking backup of bcm2837-rpi-3-b.dtb.
+Installing new bcm2837-rpi-3-b.dtb.
+Taking backup of bcm2711-rpi-4-b.dtb.
+Installing new bcm2711-rpi-4-b.dtb.
+Taking backup of bcm2710-rpi-2-b.dtb.
+Installing new bcm2710-rpi-2-b.dtb.
+Taking backup of bcm2710-rpi-3-b-plus.dtb.
+Installing new bcm2710-rpi-3-b-plus.dtb.
+Taking backup of bcm2710-rpi-zero-2.dtb.
+Installing new bcm2710-rpi-zero-2.dtb.
+Taking backup of i-sabre-q2m.dtbo.
+Installing new i-sabre-q2m.dtbo.
+Taking backup of waveshare-can-fd-hat-mode-a.dtbo.
+Installing new waveshare-can-fd-hat-mode-a.dtbo.
+Taking backup of jedec-spi-nor.dtbo.
+Installing new jedec-spi-nor.dtbo.
+Taking backup of highperi.dtbo.
+Installing new highperi.dtbo.
+Taking backup of ads7846.dtbo.
+Installing new ads7846.dtbo.
+Taking backup of dwc-otg.dtbo.
+Installing new dwc-otg.dtbo.
+Taking backup of ov5647.dtbo.
+Installing new ov5647.dtbo.
+Taking backup of audioinjector-bare-i2s.dtbo.
+Installing new audioinjector-bare-i2s.dtbo.
+Taking backup of uart2.dtbo.
+Installing new uart2.dtbo.
+Taking backup of pitft22.dtbo.
+Installing new pitft22.dtbo.
+Taking backup of midi-uart4.dtbo.
+Installing new midi-uart4.dtbo.
+Taking backup of ov2311.dtbo.
+Installing new ov2311.dtbo.
+Taking backup of spi2-3cs.dtbo.
+Installing new spi2-3cs.dtbo.
+Taking backup of vc4-kms-dpi-hyperpixel4.dtbo.
+Installing new vc4-kms-dpi-hyperpixel4.dtbo.
+Taking backup of i2c-mux.dtbo.
+Installing new i2c-mux.dtbo.
+Taking backup of adafruit-st7735r.dtbo.
+Installing new adafruit-st7735r.dtbo.
+Taking backup of media-center.dtbo.
+Installing new media-center.dtbo.
+Taking backup of spi5-2cs.dtbo.
+Installing new spi5-2cs.dtbo.
+Taking backup of rpi-cirrus-wm5102.dtbo.
+Installing new rpi-cirrus-wm5102.dtbo.
+Taking backup of vc4-kms-dsi-lt070me05000.dtbo.
+Installing new vc4-kms-dsi-lt070me05000.dtbo.
+Taking backup of adv7282m.dtbo.
+Installing new adv7282m.dtbo.
+Taking backup of ssd1306-spi.dtbo.
+Installing new ssd1306-spi.dtbo.
+Taking backup of spi2-2cs.dtbo.
+Installing new spi2-2cs.dtbo.
+Taking backup of dionaudio-loco-v2.dtbo.
+Installing new dionaudio-loco-v2.dtbo.
+Taking backup of balena-fin.dtbo.
+Installing new balena-fin.dtbo.
+Taking backup of ov9281.dtbo.
+Installing new ov9281.dtbo.
+Taking backup of adau7002-simple.dtbo.
+Installing new adau7002-simple.dtbo.
+Taking backup of vc4-kms-v3d-pi4.dtbo.
+Installing new vc4-kms-v3d-pi4.dtbo.
+Taking backup of mcp2515.dtbo.
+Installing new mcp2515.dtbo.
+Taking backup of vga666.dtbo.
+Installing new vga666.dtbo.
+Taking backup of pps-gpio.dtbo.
+Installing new pps-gpio.dtbo.
+Taking backup of i2c3.dtbo.
+Installing new i2c3.dtbo.
+Taking backup of sc16is752-i2c.dtbo.
+Installing new sc16is752-i2c.dtbo.
+Taking backup of piscreen.dtbo.
+Installing new piscreen.dtbo.
+Taking backup of dpi24.dtbo.
+Installing new dpi24.dtbo.
+Taking backup of cma.dtbo.
+Installing new cma.dtbo.
+Taking backup of arducam-pivariety.dtbo.
+Installing new arducam-pivariety.dtbo.
+Taking backup of udrc.dtbo.
+Installing new udrc.dtbo.
+Taking backup of goodix.dtbo.
+Installing new goodix.dtbo.
+Taking backup of gpio-no-irq.dtbo.
+Installing new gpio-no-irq.dtbo.
+Taking backup of imx378.dtbo.
+Installing new imx378.dtbo.
+Taking backup of piglow.dtbo.
+Installing new piglow.dtbo.
+Taking backup of mcp342x.dtbo.
+Installing new mcp342x.dtbo.
+Taking backup of dpi18cpadhi.dtbo.
+Installing new dpi18cpadhi.dtbo.
+Taking backup of pibell.dtbo.
+Installing new pibell.dtbo.
+Taking backup of allo-katana-dac-audio.dtbo.
+Installing new allo-katana-dac-audio.dtbo.
+Taking backup of imx258.dtbo.
+Installing new imx258.dtbo.
+Taking backup of audremap.dtbo.
+Installing new audremap.dtbo.
+Taking backup of draws.dtbo.
+Installing new draws.dtbo.
+Taking backup of allo-piano-dac-pcm512x-audio.dtbo.
+Installing new allo-piano-dac-pcm512x-audio.dtbo.
+Taking backup of i2c-gpio.dtbo.
+Installing new i2c-gpio.dtbo.
+Taking backup of gpio-key.dtbo.
+Installing new gpio-key.dtbo.
+Taking backup of imx219.dtbo.
+Installing new imx219.dtbo.
+Taking backup of rpi-ft5406.dtbo.
+Installing new rpi-ft5406.dtbo.
+Taking backup of hifiberry-digi.dtbo.
+Installing new hifiberry-digi.dtbo.
+Taking backup of pitft35-resistive.dtbo.
+Installing new pitft35-resistive.dtbo.
+Taking backup of disable-bt.dtbo.
+Installing new disable-bt.dtbo.
+Taking backup of uart1.dtbo.
+Installing new uart1.dtbo.
+Taking backup of midi-uart3.dtbo.
+Installing new midi-uart3.dtbo.
+Taking backup of pifi-mini-210.dtbo.
+Installing new pifi-mini-210.dtbo.
+Taking backup of vl805.dtbo.
+Installing new vl805.dtbo.
+Taking backup of i2c-rtc.dtbo.
+Installing new i2c-rtc.dtbo.
+Taking backup of imx519.dtbo.
+Installing new imx519.dtbo.
+Taking backup of rpi-poe-plus.dtbo.
+Installing new rpi-poe-plus.dtbo.
+Taking backup of at86rf233.dtbo.
+Installing new at86rf233.dtbo.
+Taking backup of vc4-kms-dsi-7inch.dtbo.
+Installing new vc4-kms-dsi-7inch.dtbo.
+Taking backup of edt-ft5406.dtbo.
+Installing new edt-ft5406.dtbo.
+Taking backup of exc3000.dtbo.
+Installing new exc3000.dtbo.
+Taking backup of mlx90640.dtbo.
+Installing new mlx90640.dtbo.
+Taking backup of rpi-display.dtbo.
+Installing new rpi-display.dtbo.
+Taking backup of papirus.dtbo.
+Installing new papirus.dtbo.
+Taking backup of iqaudio-digi-wm8804-audio.dtbo.
+Installing new iqaudio-digi-wm8804-audio.dtbo.
+Taking backup of hy28b.dtbo.
+Installing new hy28b.dtbo.
+Taking backup of googlevoicehat-soundcard.dtbo.
+Installing new googlevoicehat-soundcard.dtbo.
+Taking backup of hifiberry-dacplushd.dtbo.
+Installing new hifiberry-dacplushd.dtbo.
+Taking backup of seeed-can-fd-hat-v2.dtbo.
+Installing new seeed-can-fd-hat-v2.dtbo.
+Taking backup of spi-gpio40-45.dtbo.
+Installing new spi-gpio40-45.dtbo.
+Taking backup of gpio-shutdown.dtbo.
+Installing new gpio-shutdown.dtbo.
+Taking backup of akkordion-iqdacplus.dtbo.
+Installing new akkordion-iqdacplus.dtbo.
+Taking backup of vc4-kms-kippah-7inch.dtbo.
+Installing new vc4-kms-kippah-7inch.dtbo.
+Taking backup of mcp3202.dtbo.
+Installing new mcp3202.dtbo.
+Taking backup of spi0-0cs.dtbo.
+Installing new spi0-0cs.dtbo.
+Taking backup of sh1106-spi.dtbo.
+Installing new sh1106-spi.dtbo.
+Taking backup of adafruit18.dtbo.
+Installing new adafruit18.dtbo.
+Taking backup of wm8960-soundcard.dtbo.
+Installing new wm8960-soundcard.dtbo.
+Taking backup of mbed-dac.dtbo.
+Installing new mbed-dac.dtbo.
+Taking backup of spi6-2cs.dtbo.
+Installing new spi6-2cs.dtbo.
+Taking backup of vc4-fkms-v3d-pi4.dtbo.
+Installing new vc4-fkms-v3d-pi4.dtbo.
+Taking backup of imx477.dtbo.
+Installing new imx477.dtbo.
+Taking backup of ghost-amp.dtbo.
+Installing new ghost-amp.dtbo.
+Taking backup of pifi-dac-zero.dtbo.
+Installing new pifi-dac-zero.dtbo.
+Taking backup of spi3-2cs.dtbo.
+Installing new spi3-2cs.dtbo.
+Taking backup of iqs550.dtbo.
+Installing new iqs550.dtbo.
+Taking backup of tpm-slb9670.dtbo.
+Installing new tpm-slb9670.dtbo.
+Taking backup of sdhost.dtbo.
+Installing new sdhost.dtbo.
+Taking backup of spi6-1cs.dtbo.
+Installing new spi6-1cs.dtbo.
+Taking backup of spi0-2cs.dtbo.
+Installing new spi0-2cs.dtbo.
+Taking backup of hifiberry-dacplusadc.dtbo.
+Installing new hifiberry-dacplusadc.dtbo.
+Taking backup of pcie-32bit-dma.dtbo.
+Installing new pcie-32bit-dma.dtbo.
+Taking backup of spi3-1cs.dtbo.
+Installing new spi3-1cs.dtbo.
+Taking backup of smi-nand.dtbo.
+Installing new smi-nand.dtbo.
+Taking backup of pitft28-resistive.dtbo.
+Installing new pitft28-resistive.dtbo.
+Taking backup of pisound.dtbo.
+Installing new pisound.dtbo.
+Taking backup of justboom-digi.dtbo.
+Installing new justboom-digi.dtbo.
+Taking backup of dwc2.dtbo.
+Installing new dwc2.dtbo.
+Taking backup of spi0-1cs.dtbo.
+Installing new spi0-1cs.dtbo.
+Taking backup of gpio-ir.dtbo.
+Installing new gpio-ir.dtbo.
+Taking backup of ltc294x.dtbo.
+Installing new ltc294x.dtbo.
+Taking backup of uart5.dtbo.
+Installing new uart5.dtbo.
+Taking backup of ssd1351-spi.dtbo.
+Installing new ssd1351-spi.dtbo.
+Taking backup of hifiberry-dacplusadcpro.dtbo.
+Installing new hifiberry-dacplusadcpro.dtbo.
+Taking backup of hifiberry-amp100.dtbo.
+Installing new hifiberry-amp100.dtbo.
+Taking backup of midi-uart2.dtbo.
+Installing new midi-uart2.dtbo.
+Taking backup of uart0.dtbo.
+Installing new uart0.dtbo.
+Taking backup of apds9960.dtbo.
+Installing new apds9960.dtbo.
+Taking backup of tc358743.dtbo.
+Installing new tc358743.dtbo.
+Taking backup of mcp251xfd.dtbo.
+Installing new mcp251xfd.dtbo.
+Taking backup of sc16is750-i2c.dtbo.
+Installing new sc16is750-i2c.dtbo.
+Taking backup of allo-piano-dac-plus-pcm512x-audio.dtbo.
+Installing new allo-piano-dac-plus-pcm512x-audio.dtbo.
+Taking backup of pwm.dtbo.
+Installing new pwm.dtbo.
+Taking backup of sdio.dtbo.
+Installing new sdio.dtbo.
+Taking backup of disable-wifi.dtbo.
+Installing new disable-wifi.dtbo.
+Taking backup of applepi-dac.dtbo.
+Installing new applepi-dac.dtbo.
+Taking backup of mcp23s17.dtbo.
+Installing new mcp23s17.dtbo.
+Taking backup of vc4-kms-dpi-hyperpixel4sq.dtbo.
+Installing new vc4-kms-dpi-hyperpixel4sq.dtbo.
+Taking backup of vc4-kms-dpi-panel.dtbo.
+Installing new vc4-kms-dpi-panel.dtbo.
+Taking backup of rotary-encoder.dtbo.
+Installing new rotary-encoder.dtbo.
+Taking backup of fbtft.dtbo.
+Installing new fbtft.dtbo.
+Taking backup of qca7000-uart0.dtbo.
+Installing new qca7000-uart0.dtbo.
+Taking backup of hifiberry-dacplusdsp.dtbo.
+Installing new hifiberry-dacplusdsp.dtbo.
+Taking backup of mipi-dbi-spi.dtbo.
+Installing new mipi-dbi-spi.dtbo.
+Taking backup of hy28a.dtbo.
+Installing new hy28a.dtbo.
+Taking backup of imx296.dtbo.
+Installing new imx296.dtbo.
+Taking backup of i2c-pwm-pca9685a.dtbo.
+Installing new i2c-pwm-pca9685a.dtbo.
+Taking backup of seeed-can-fd-hat-v1.dtbo.
+Installing new seeed-can-fd-hat-v1.dtbo.
+Taking backup of i2c6.dtbo.
+Installing new i2c6.dtbo.
+Taking backup of audioinjector-ultra.dtbo.
+Installing new audioinjector-ultra.dtbo.
+Taking backup of enc28j60-spi2.dtbo.
+Installing new enc28j60-spi2.dtbo.
+Taking backup of spi-gpio35-39.dtbo.
+Installing new spi-gpio35-39.dtbo.
+Taking backup of smi-dev.dtbo.
+Installing new smi-dev.dtbo.
+Taking backup of i2c1.dtbo.
+Installing new i2c1.dtbo.
+Taking backup of justboom-dac.dtbo.
+Installing new justboom-dac.dtbo.
+Taking backup of tinylcd35.dtbo.
+Installing new tinylcd35.dtbo.
+Taking backup of mcp23017.dtbo.
+Installing new mcp23017.dtbo.
+Taking backup of superaudioboard.dtbo.
+Installing new superaudioboard.dtbo.
+Taking backup of rpi-dac.dtbo.
+Installing new rpi-dac.dtbo.
+Taking backup of sx150x.dtbo.
+Installing new sx150x.dtbo.
+Taking backup of hifiberry-amp.dtbo.
+Installing new hifiberry-amp.dtbo.
+Taking backup of sc16is752-spi1.dtbo.
+Installing new sc16is752-spi1.dtbo.
+Taking backup of upstream-pi4.dtbo.
+Installing new upstream-pi4.dtbo.
+Taking backup of vc4-kms-vga666.dtbo.
+Installing new vc4-kms-vga666.dtbo.
+Taking backup of piscreen2r.dtbo.
+Installing new piscreen2r.dtbo.
+Taking backup of overlay_map.dtb.
+Installing new overlay_map.dtb.
+Taking backup of tc358743-audio.dtbo.
+Installing new tc358743-audio.dtbo.
+Taking backup of gpio-poweroff.dtbo.
+Installing new gpio-poweroff.dtbo.
+Taking backup of vc4-kms-dpi-hyperpixel2r.dtbo.
+Installing new vc4-kms-dpi-hyperpixel2r.dtbo.
+Taking backup of ilitek251x.dtbo.
+Installing new ilitek251x.dtbo.
+Taking backup of allo-digione.dtbo.
+Installing new allo-digione.dtbo.
+Taking backup of dionaudio-loco.dtbo.
+Installing new dionaudio-loco.dtbo.
+Taking backup of i2c-rtc-gpio.dtbo.
+Installing new i2c-rtc-gpio.dtbo.
+Taking backup of hy28b-2017.dtbo.
+Installing new hy28b-2017.dtbo.
+Taking backup of qca7000.dtbo.
+Installing new qca7000.dtbo.
+Taking backup of gpio-fan.dtbo.
+Installing new gpio-fan.dtbo.
+Taking backup of miniuart-bt.dtbo.
+Installing new miniuart-bt.dtbo.
+Taking backup of uart4.dtbo.
+Installing new uart4.dtbo.
+Taking backup of spi4-2cs.dtbo.
+Installing new spi4-2cs.dtbo.
+Taking backup of smi.dtbo.
+Installing new smi.dtbo.
+Taking backup of ssd1331-spi.dtbo.
+Installing new ssd1331-spi.dtbo.
+Taking backup of pwm-2chan.dtbo.
+Installing new pwm-2chan.dtbo.
+Taking backup of vc4-kms-dpi-generic.dtbo.
+Installing new vc4-kms-dpi-generic.dtbo.
+Taking backup of act-led.dtbo.
+Installing new act-led.dtbo.
+Taking backup of midi-uart1.dtbo.
+Installing new midi-uart1.dtbo.
+Taking backup of gpio-hog.dtbo.
+Installing new gpio-hog.dtbo.
+Taking backup of vc4-kms-dsi-lt070me05000-v2.dtbo.
+Installing new vc4-kms-dsi-lt070me05000-v2.dtbo.
+Taking backup of mcp2515-can1.dtbo.
+Installing new mcp2515-can1.dtbo.
+Taking backup of spi4-1cs.dtbo.
+Installing new spi4-1cs.dtbo.
+Taking backup of i2c-sensor.dtbo.
+Installing new i2c-sensor.dtbo.
+Taking backup of rpi-poe.dtbo.
+Installing new rpi-poe.dtbo.
+Taking backup of upstream.dtbo.
+Installing new upstream.dtbo.
+Taking backup of spi1-1cs.dtbo.
+Installing new spi1-1cs.dtbo.
+Taking backup of chipdip-dac.dtbo.
+Installing new chipdip-dac.dtbo.
+Taking backup of rpi-backlight.dtbo.
+Installing new rpi-backlight.dtbo.
+Taking backup of i2c5.dtbo.
+Installing new i2c5.dtbo.
+Taking backup of pwm-ir-tx.dtbo.
+Installing new pwm-ir-tx.dtbo.
+Taking backup of allo-boss2-dac-audio.dtbo.
+Installing new allo-boss2-dac-audio.dtbo.
+Taking backup of dht11.dtbo.
+Installing new dht11.dtbo.
+Taking backup of hifiberry-dacplus.dtbo.
+Installing new hifiberry-dacplus.dtbo.
+Taking backup of ov7251.dtbo.
+Installing new ov7251.dtbo.
+Taking backup of gpio-no-bank0-irq.dtbo.
+Installing new gpio-no-bank0-irq.dtbo.
+Taking backup of wittypi.dtbo.
+Installing new wittypi.dtbo.
+Taking backup of gpio-led.dtbo.
+Installing new gpio-led.dtbo.
+Taking backup of w1-gpio.dtbo.
+Installing new w1-gpio.dtbo.
+Taking backup of i2c0.dtbo.
+Installing new i2c0.dtbo.
+Taking backup of sainsmart18.dtbo.
+Installing new sainsmart18.dtbo.
+Taking backup of i2s-gpio28-31.dtbo.
+Installing new i2s-gpio28-31.dtbo.
+Taking backup of justboom-both.dtbo.
+Installing new justboom-both.dtbo.
+Taking backup of audioinjector-addons.dtbo.
+Installing new audioinjector-addons.dtbo.
+Taking backup of spi1-3cs.dtbo.
+Installing new spi1-3cs.dtbo.
+Taking backup of pifi-dac-hd.dtbo.
+Installing new pifi-dac-hd.dtbo.
+Taking backup of pitft28-capacitive.dtbo.
+Installing new pitft28-capacitive.dtbo.
+Taking backup of irs1125.dtbo.
+Installing new irs1125.dtbo.
+Taking backup of audioinjector-wm8731-audio.dtbo.
+Installing new audioinjector-wm8731-audio.dtbo.
+Taking backup of sc16is752-spi0.dtbo.
+Installing new sc16is752-spi0.dtbo.
+Taking backup of fe-pi-audio.dtbo.
+Installing new fe-pi-audio.dtbo.
+Taking backup of spi1-2cs.dtbo.
+Installing new spi1-2cs.dtbo.
+Taking backup of hdmi-backlight-hwhack-gpio.dtbo.
+Installing new hdmi-backlight-hwhack-gpio.dtbo.
+Taking backup of i2c-bcm2708.dtbo.
+Installing new i2c-bcm2708.dtbo.
+Taking backup of pifi-40.dtbo.
+Installing new pifi-40.dtbo.
+Taking backup of vc4-kms-v3d.dtbo.
+Installing new vc4-kms-v3d.dtbo.
+Taking backup of hd44780-lcd.dtbo.
+Installing new hd44780-lcd.dtbo.
+Taking backup of fsm-demo.dtbo.
+Installing new fsm-demo.dtbo.
+Taking backup of adau1977-adc.dtbo.
+Installing new adau1977-adc.dtbo.
+Taking backup of waveshare-can-fd-hat-mode-b.dtbo.
+Installing new waveshare-can-fd-hat-mode-b.dtbo.
+Taking backup of si446x-spi0.dtbo.
+Installing new si446x-spi0.dtbo.
+Taking backup of rra-digidac1-wm8741-audio.dtbo.
+Installing new rra-digidac1-wm8741-audio.dtbo.
+Taking backup of uart3.dtbo.
+Installing new uart3.dtbo.
+Taking backup of mpu6050.dtbo.
+Installing new mpu6050.dtbo.
+Taking backup of maxtherm.dtbo.
+Installing new maxtherm.dtbo.
+Taking backup of midi-uart5.dtbo.
+Installing new midi-uart5.dtbo.
+Taking backup of hifiberry-digi-pro.dtbo.
+Installing new hifiberry-digi-pro.dtbo.
+Taking backup of cutiepi-panel.dtbo.
+Installing new cutiepi-panel.dtbo.
+Taking backup of imx290.dtbo.
+Installing new imx290.dtbo.
+Taking backup of midi-uart0.dtbo.
+Installing new midi-uart0.dtbo.
+Taking backup of audioinjector-isolated-soundcard.dtbo.
+Installing new audioinjector-isolated-soundcard.dtbo.
+Taking backup of rpivid-v4l2.dtbo.
+Installing new rpivid-v4l2.dtbo.
+Taking backup of rpi-tv.dtbo.
+Installing new rpi-tv.dtbo.
+Taking backup of ugreen-dabboard.dtbo.
+Installing new ugreen-dabboard.dtbo.
+Taking backup of i2c-fan.dtbo.
+Installing new i2c-fan.dtbo.
+Taking backup of mcp2515-can0.dtbo.
+Installing new mcp2515-can0.dtbo.
+Taking backup of anyspi.dtbo.
+Installing new anyspi.dtbo.
+Taking backup of dpi18.dtbo.
+Installing new dpi18.dtbo.
+Taking backup of gpio-ir-tx.dtbo.
+Installing new gpio-ir-tx.dtbo.
+Taking backup of adv728x-m.dtbo.
+Installing new adv728x-m.dtbo.
+Taking backup of enc28j60.dtbo.
+Installing new enc28j60.dtbo.
+Taking backup of pifacedigital.dtbo.
+Installing new pifacedigital.dtbo.
+Taking backup of audiosense-pi.dtbo.
+Installing new audiosense-pi.dtbo.
+Taking backup of mcp3008.dtbo.
+Installing new mcp3008.dtbo.
+Taking backup of rpi-sense.dtbo.
+Installing new rpi-sense.dtbo.
+Taking backup of merus-amp.dtbo.
+Installing new merus-amp.dtbo.
+Taking backup of iqaudio-dac.dtbo.
+Installing new iqaudio-dac.dtbo.
+Taking backup of vc4-fkms-v3d.dtbo.
+Installing new vc4-fkms-v3d.dtbo.
+Taking backup of ads1115.dtbo.
+Installing new ads1115.dtbo.
+Taking backup of ssd1306.dtbo.
+Installing new ssd1306.dtbo.
+Taking backup of i2c4.dtbo.
+Installing new i2c4.dtbo.
+Taking backup of allo-boss-dac-pcm512x-audio.dtbo.
+Installing new allo-boss-dac-pcm512x-audio.dtbo.
+Taking backup of iqaudio-codec.dtbo.
+Installing new iqaudio-codec.dtbo.
+Taking backup of rpi-proto.dtbo.
+Installing new rpi-proto.dtbo.
+Taking backup of w1-gpio-pullup.dtbo.
+Installing new w1-gpio-pullup.dtbo.
+Taking backup of mmc.dtbo.
+Installing new mmc.dtbo.
+Taking backup of ads1015.dtbo.
+Installing new ads1015.dtbo.
+Taking backup of max98357a.dtbo.
+Installing new max98357a.dtbo.
+Taking backup of spi5-1cs.dtbo.
+Installing new spi5-1cs.dtbo.
+Taking backup of mz61581.dtbo.
+Installing new mz61581.dtbo.
+Taking backup of pca953x.dtbo.
+Installing new pca953x.dtbo.
+Taking backup of iqaudio-dacplus.dtbo.
+Installing new iqaudio-dacplus.dtbo.
+Taking backup of hifiberry-dac.dtbo.
+Installing new hifiberry-dac.dtbo.
+Taking backup of spi-rtc.dtbo.
+Installing new spi-rtc.dtbo.
+Taking backup of spi2-1cs.dtbo.
+Installing new spi2-1cs.dtbo.
+Taking backup of cap1106.dtbo.
+Installing new cap1106.dtbo.
+Taking backup of w5500.dtbo.
+Installing new w5500.dtbo.
+Taking backup of minipitft13.dtbo.
+Installing new minipitft13.dtbo.
+Taking backup of README.
+Installing new README.
+Scanning processes...                                                                                                                                                                                                                                                     Scanning processor microcode...                                                                                                                                                                                                                                           Scanning linux images...                                                                                                                                                                                                                                                  
+Running kernel seems to be up-to-date.
+
+Failed to check for processor microcode upgrades.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+#+end_src
+
+インストール中に、全podがRunningになりました。見事！
+
+#+begin_src bash
+$ kubectl get pod -n kube-system
+NAME                                       READY   STATUS    RESTARTS      AGE
+calico-kube-controllers-5fc7d6cf67-t24hh   1/1     Running   0             32m
+calico-node-dq6xq                          1/1     Running   0             27m
+coredns-76f75df574-mzng7                   1/1     Running   0             58m
+coredns-76f75df574-t265x                   1/1     Running   0             58m
+etcd-k8s-ctrl1                             1/1     Running   0             58m
+kube-apiserver-k8s-ctrl1                   1/1     Running   0             58m
+kube-controller-manager-k8s-ctrl1          1/1     Running   1 (48m ago)   58m
+kube-proxy-d64kt                           1/1     Running   0             58m
+kube-scheduler-k8s-ctrl1                   1/1     Running   1 (47m ago)   58m
+#+end_src
+
 * 参考
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
  - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
@@ -85,3 +1036,6 @@ graph TB
  - [[https://www.unitasglobal.co.jp/english/news/?p=256][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part I – Unitas Global]]
  - [[https://knowledge.sakura.ad.jp/8084/][多機能プロクシサーバー「HAProxy」のさまざまな設定例 | さくらのナレッジ]]
  - [[https://zenn.dev/f110/articles/cab6590c4d4bc8][Managed Kubernetesサービス開発者の自宅k8sクラスタ全容]]
+
+
+# images/1134_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/05/1134_51.png
