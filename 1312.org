@@ -1,0 +1,177 @@
+#+BLOG: wurly-blog
+#+POSTID: 1312
+#+ORG2BLOG:
+#+DATE: [2024-05-05 Sun 17:26]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: OpenWrt
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: HA Kubernetes クラスター向け haproxy の構築
+
+* 概要
+
+ルーターにインストールされた OpenWrt にhaproxyをインストールします。
+
+ここでは、ルーターのIPアドレスが 192.168.1.104、k8sのコントロールプレーンを構成するホストは 192.168.1.201, 202, 203 です。
+
+* インストール
+
+#+begin_src bash
+$ ssh root@192.168.1.104
+BusyBox v1.36.1 (2024-03-22 22:09:42 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 23.05.3, r23809-234f1a2efa
+ -----------------------------------------------------
+#+end_src
+
+#+begin_src 
+root@OpenWrt:~# opkg update
+#+end_src
+
+#+begin_src bash
+root@OpenWrt:~# opkg list | grep haproxy
+haproxy - 2.8.6-1 - Open source Reliable, High Performance TCP/HTTP Load Balancer. This package is built with SSL and LUA support.
+haproxy-nossl - 2.8.6-1 - Open source Reliable, High Performance TCP/HTTP Load Balancer. This package is built without SSL support.
+#+end_src
+
+#+begin_src bash
+root@OpenWrt:~# opkg install haproxy
+Installing haproxy (2.8.6-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/haproxy_2.8.6-1_arm_cortex-a9.ipk
+Installing libpcre2 (10.42-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libpcre2_10.42-1_arm_cortex-a9.ipk
+Installing libltdl7 (2.4.7-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libltdl7_2.4.7-1_arm_cortex-a9.ipk
+Installing zlib (1.2.13-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/zlib_1.2.13-1_arm_cortex-a9.ipk
+Installing liblua5.3-5.3 (5.3.5-5) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/liblua5.3-5.3_5.3.5-5_arm_cortex-a9.ipk
+Installing libatomic1 (12.3.0-4) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/targets/bcm53xx/generic/packages/libatomic1_12.3.0-4_arm_cortex-a9.ipk
+Installing libopenssl3 (3.0.13-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libopenssl3_3.0.13-1_arm_cortex-a9.ipk
+Installing terminfo (6.4-2) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/terminfo_6.4-2_arm_cortex-a9.ipk
+Installing libncurses6 (6.4-2) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libncurses6_6.4-2_arm_cortex-a9.ipk
+Installing libreadline8 (8.2-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libreadline8_8.2-1_arm_cortex-a9.ipk
+Configuring terminfo.
+Configuring libatomic1.
+Configuring libopenssl3.
+Configuring libpcre2.
+Configuring libltdl7.
+Configuring zlib.
+Configuring liblua5.3-5.3.
+Configuring libncurses6.
+Configuring libreadline8.
+Configuring haproxy.
+#+end_src
+
+* 設定
+
+** /etc/haproxy.cfg
+
+Exampleの部分は全てコメントアウトし、下記を追加します。
+
+#+begin_src
+listen kubernetes
+	bind :6443
+
+	option tcplog
+    log global
+    log 127.0.0.1 local0
+
+	mode tcp
+
+	balance roundrobin
+	server k8s-ctrl1 192.168.1.201:6443 check fall 3 rise 2
+	server k8s-ctrl2 192.168.1.202:6443 check fall 3 rise 2
+	server k8s-ctrl3 192.168.1.203:6443 check fall 3 rise 2
+#+end_src
+
+Exampleのコメントアウトの部分を除くと、下記のようになりました。
+
+#+begin_src 
+# Example configuration file for HAProxy 2.0, refer to the url below for
+# a full documentation and examples for configuration:
+# https://cbonte.github.io/haproxy-dconv/2.0/configuration.html
+
+
+# Global parameters
+global
+
+	# Log events to a remote syslog server at given address using the
+	# specified facility and verbosity level. Multiple log options 
+	# are allowed.
+	#log 10.0.0.1 daemon info
+
+	# Specifiy the maximum number of allowed connections.
+	maxconn 32000
+
+	# Raise the ulimit for the maximum allowed number of open socket
+	# descriptors per process. This is usually at least twice the
+	# number of allowed connections (maxconn * 2 + nb_servers + 1) .
+	ulimit-n 65535
+
+	# Drop privileges (setuid, setgid), default is "root" on OpenWrt.
+	uid 0
+	gid 0
+
+	# Perform chroot into the specified directory.
+	#chroot /var/run/haproxy/
+
+	# Daemonize on startup
+	daemon
+
+	nosplice
+	# Enable debugging
+	#debug
+
+	# Spawn given number of processes and distribute load among them,
+	# used for multi-core environments or to circumvent per-process
+	# limits like number of open file descriptors. Default is 1.
+	#nbproc 2
+
+# Default parameters
+defaults
+	# Default timeouts
+	timeout connect 5000ms
+	timeout client 50000ms
+	timeout server 50000ms
+
+listen kubernetes
+	bind :6443
+
+	option tcplog
+    log global
+    log 127.0.0.1 local0
+
+	mode tcp
+
+	balance roundrobin
+	server k8s-ctrl1 192.168.1.201:6443 check fall 3 rise 2
+	server k8s-ctrl2 192.168.1.202:6443 check fall 3 rise 2
+	server k8s-ctrl3 192.168.1.203:6443 check fall 3 rise 2
+#+end_src
+
+* 動作チェック(最低限)
+
+#+begin_src bash
+$ nc -v 192.168.1.104 6443
+Connection to 192.168.1.104 6443 port [tcp/*] succeeded!
+#+end_src
+
+* 参考
+
+ - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
+https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e
+
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/#before-you-begin][Creating Highly Available Clusters with kubeadm | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/#before-you-begin
