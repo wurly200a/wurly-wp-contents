@@ -6,7 +6,7 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Hello, World!
+#+TITLE: Emacs XWidgetsビルド関連
 
 * 参考
  - [[https://qiita.com/nakamura0907/items/cb769b3a094a6d2e87c0][WSL2上でTauri環境を構築したけれどたまにしかウィンドウを開いてくれない問題 #Tauri - Qiita]]
