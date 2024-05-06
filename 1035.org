@@ -31,6 +31,19 @@ https://qiita.com/t_ume/items/f0a1c1ae8f94add8f4ba
  - [[https://blog.ebiiim.com/posts/homelab-kubernetes/][自宅Kubernetesクラスタはじめました – えびサブレ]]
 https://blog.ebiiim.com/posts/homelab-kubernetes/
 
+* 作業内容
+
+全ノードに対して行う内容となります。
+
+ - 固定IPアドレスの設定
+ - hostsファイルの設定(各ノード間でそれぞれのホスト名を認識できるようにする)
+ - スワップの無効化
+ - containerd 向けのパラメータ設定1
+ - containerd 向けのパラメータ設定2
+ - containerdのインストール
+  - containerd の インストール
+  - containerd の 設定
+ - Kubernetes(kubelet kubeadm kubectl)のインストール
 
 * ネットワーク構成
 
@@ -151,7 +164,7 @@ overlay               155648  0
 
 ** 設定
 
-\slash{}etc/sysctl.d/ 以下に下記の設定が必要です。
+\slash{}etc/sysctl.d/ 以下に下記の設定が必要です。(具体的な設定方法は後述します。)
 
 #+begin_src conf
 net.bridge.bridge-nf-call-ip6tables = 1
@@ -193,8 +206,24 @@ lrwxrwxrwx  1 root root   14 Sep 20 01:57 99-sysctl.conf -> ../sysctl.conf
 
 このうち、シンボリックリンクとなっている /etc/sysctl.conf にコメントアウトされた行が存在しますので、こちらのコメントアウトを外すことにします。
 
+設定前
+
+#+begin_src bash
+$ cat /etc/sysctl.conf | grep ipv4.ip_forward
+#net.ipv4.ip_forward=1
+#+end_src
+
+設定方法
+
 #+begin_src bash
 sudo sed -i 's/^#\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf
+#+end_src
+
+設定後
+
+#+begin_src bash
+$ cat /etc/sysctl.conf | grep ipv4.ip_forward
+net.ipv4.ip_forward=1
 #+end_src
 
 reloadします。
@@ -236,6 +265,8 @@ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmo
 sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 #+end_src
 
+この時点で、リポジトリ追加の確認のため、Enterキー入力を促される場合には、Enterキーを入力して次に進みます。
+
 #+begin_src bash
 sudo apt update
 sudo apt install -y containerd.io
@@ -243,11 +274,11 @@ sudo apt install -y containerd.io
 
 今回の環境では、containerd.io arm64 1.6.27-1 がインストールされました。
 
-** 設定
+** containerdの設定
 
 設定方法としては下記の通りです。
 
-"containerd config default" によって既定の設定内容を出力できるので、これを/etc/containerd/config.tomlに上書きし、"systemd_cgroup = false" を "systemd_cgroup = true" に書き換えるという意味になります。
+"containerd config default" によって既定の設定内容を出力できるので、これを/etc/containerd/config.tomlに上書きし、"SystemdCgroup = false" を "SystemdCgroup = true" に書き換えるという意味になります。
 
 #+begin_src bash
 containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
@@ -301,6 +332,7 @@ disabled_plugins = ["cri"]
 
 "containerd config default" で下記の内容が出力されます。
 この中で "SystemdCgroup = false" と記述されていますので、"SystemdCgroup = true" に書き換えます。
+(なお、"systemd_cgroup = false" というパラメータもあるようですが、参考にした手順には記載が無いのでこちらは書き換えません)
 
 #+begin_src bash
 $ containerd config default
@@ -562,7 +594,7 @@ version = 2
   uid = 0
 #+end_src
 
-** 再起動
+** containerdの再起動
 
 設定ファイルを変更したのでcontainerdを再起動します。
 
@@ -581,7 +613,24 @@ $ sudo systemctl status containerd
        Docs: https://containerd.io
 #+end_src
 
-* Kubernetes(kubelet kubeadm kubectl)のインストール (全ノード)
+* Kubernetes(kubelet kubeadm kubectl)のインストール (全ノード) v1.29
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+#+end_src
+
+kubelet,kubeadm,kubectl共に、1.29.4-2.1 がインストールされました。apt-mark で自動でバージョンアップされないよう固定しておきます。
+
+* Kubernetes(kubelet kubeadm kubectl)のインストール (全ノード) ※古い情報(1.28)
+
+https://kubernetes.io/blog/2023/08/15/pkgs-k8s-io-introduction/#how-to-migrate に記載されている通り、2024年3月に、それまでGoogleが提供していたパッケージリポジトリが無くなってしまったため、こちらの方法ではインストールできません。
 
 #+begin_src bash
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/kubernetes-xenial.gpg
