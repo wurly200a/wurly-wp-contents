@@ -6,11 +6,11 @@
 #+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: HA Kubernetes クラスターの構築
+#+TITLE: HA(High availability) おうちKubernetesクラスターの構築
 
 * はじめに
 
-下記では、ラズパイ3台でコントロールプレーン・ワーカーノードを含めたクラスタを構成するやり方を学びました。
+下記では、ラズパイ3台でコントロールプレーン・ワーカーノードを含むクラスタを構築しました。
 
  - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
  - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
@@ -20,56 +20,91 @@
 
  - [[./?p=1090][KubernetesのHA構成(コントロールプレーン、etcd、ワーカー)]]
 
-次のステップとして、ラズパイ3台でコントロールプレーンを構成、ワーカーをamd64のPC1台で構成する、半HA構成に取り組みます。
+次のステップとして、ラズパイ3台でコントロールプレーンを構成するHA(High availability) おうちKubernetesクラスター構築に取り組みます。
 
-ワーカー用マシンについては、下記で確保しました。
+ただし、本来ワーカーノードには最低3台必要ですが、今回の構成では1台設けることで半HA構成とします。
+半HA構成とは言っても、今後このままワーカーノードを増やしていくことができますので、本来のHA構成と構築方法としては同じとなります。
 
- - [[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補]]
- - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
+* 主に参考にしたページ
 
-そして実はHA構成に対してはもう一つ構成要素が必要となります。
-それはロードバランサー(load balancer:LB)です。
+主に下記を参考にして作業を行いました。
 
-LBをコントロールプレーンを構成するマシンに配置する例もありますが、個人的にはこれはしっくり来ません。
-LBが稼働しているマシンが落ちたら終わってしまうのでHA構成の意味がありません。(私の知識が足りないだけで意味があるのかもしれませんが)
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
 
-よって別のマシンにLBを立てたいと思いますが、できるだけ少電力なものが望ましいです。
-OpenWrtのパッケージに haproxy、keepalived が含まれることがわかりましたので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
-
- - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
+ - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
+https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e
 
 * 全体構成
 
+ - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/#stacked-etcd-topology][Options for Highly Available Topology | Kubernetes]]
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/#stacked-etcd-topology
+
+上記の公式ページの図に基づきますと、下記の構成となります。
+
 #+begin_src mermaid :file images/1134_51.png
-%%{init:{'theme':'base','flowchart':{'rankSpacing':10}}}%%
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'primaryColor': '#ffffff',
+      'primaryTextColor': '#000000',
+      'primaryBorderColor': '#000000',
+      'lineColor': '#aaaaaa',
+      'secondaryColor': '#ffffff',
+      'tertiaryColor': '#aaaaaa'
+    }
+  }
+}%%
+
 graph TB
-  subgraph controlplane1[control plane node]
-    APISERVER1["apiserver"]
-    CONTROLLER1["controller-manager"]
-  end
-  
-  subgraph controlplane2[control plane node]
-    APISERVER2["apiserver"]
-  end
-  
-  subgraph controlplane3[control plane node]
+  subgraph controlplane3[control plane 3 192.168.1.203]
     APISERVER3["apiserver"]
+    CONTROLLER3["controller-manager"]
+    SCHEDULER3["scheduler"]
+    ETCD3["etcd"]
   end
 
+  subgraph controlplane2[control plane 2 192.168.1.202]
+    APISERVER2["apiserver"]
+    CONTROLLER2["controller-manager"]
+    SCHEDULER2["scheduler"]
+    ETCD2["etcd"]
+  end
+
+  subgraph controlplane1[control plane 1 192.168.1.201]
+    APISERVER1["apiserver"]
+    CONTROLLER1["controller-manager"]
+    SCHEDULER1["scheduler"]
+    ETCD1["etcd"]
+  end
   
-  LB["load balancer"]
+  LB["load balancer\n192.168.1.100"]
+
+  WORKER["worker node\n192.168.1.211"]
   
   %% relation
-  CHROMEBOX3---LB
+  WORKER---LB
+
   LB---APISERVER1
   LB---APISERVER2
   LB---APISERVER3
-  APISERVER1---CONTROLLER1
-  
-  %%style
-  classDef SERVER fill:#46d,fill-opacity:100
-  class controlplane1 SERVER
 
+  APISERVER1---CONTROLLER1
+  CONTROLLER1---SCHEDULER1
+  SCHEDULER1---ETCD1
+
+  APISERVER2---CONTROLLER2
+  CONTROLLER2---SCHEDULER2
+  SCHEDULER2---ETCD2
+
+  APISERVER3---CONTROLLER3
+  CONTROLLER3---SCHEDULER3
+  SCHEDULER3---ETCD3
+
+linkStyle 1 stroke:#000000
+linkStyle 2 stroke:#000000
+linkStyle 3 stroke:#000000
 #+end_src
 
 #+results:
@@ -77,17 +112,37 @@ graph TB
 
 * ロードバランサー
 
+HA構成に対してはロードバランサー(load balancer:LB)が必要となります。
+
+# LBをコントロールプレーンを構成するマシンに配置する例もありますが、個人的にはこれはしっくり来ません。
+# LBが稼働しているマシンが落ちたら終わってしまうのでHA構成の意味がありません。(私の知識が足りないだけで意味があるのかもしれませんが)
+
+# よって別のマシンにLBを立てたいと思いますが、できるだけ少電力なものが望ましいです。
+
+# OpenWrtのパッケージに haproxy、keepalived が含まれることがわかりましたので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
+
+OpenWrtのパッケージに haproxy がありますので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
+
+ - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
+
 下記の通り、ルーターにインストールされた OpenWrt にhaproxyをインストール、設定しました。
 
  - [[./?p=1312][HA Kubernetes クラスター向け haproxy の構築]]
 
-* コントロールプレーンのハードウェア、OSの準備
+* コントロールプレーンのハードウェア、OS
 
  - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
 
 上記と同様に、マシンを設定します。
 
 ここでは、3台のラズパイ4Bを設定しました。
+
+* ワーカーノードのハードウェア、OS
+
+ワーカー用マシンについては、下記を用います。
+
+ - [[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補]]
+ - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
 
 * コントロールプレーンのOS基本設定、containerd・kubernetesのインストール
 
@@ -108,16 +163,6 @@ cat << _EOF_ | sudo tee -a /etc/hosts
 192.168.1.203  k8s-ctrl3
 _EOF_
 #+end_src
-
-* 参考
-
-ここから先は下記を参考にして行います。
-
- - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
-https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
-
- - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
-https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e
 
 * kubeadm init(最初のコントロールプレーン向け)
 
@@ -351,14 +396,9 @@ https://github.com/canonical/microk8s/issues/2680
 I have been chasing down this issue on my 7 node stack. Not sure if you got the same problem but i never got any containers up. Found out that in Ubuntu 21.10 i had to install sudo apt install linux-modules-extra-raspi after stop and start it came up and working! :)
 #+end_quote
 
-試しに、linex-modules-extra-raspi をインストールしてみたところ・・・
+試しに、linux-modules-extra-raspi をインストールしてみたところ・・・
 
 #+begin_src bash
-wurly@k8s-ctrl1:~$ sudo apt install linex-modules-extra-raspi
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-E: Unable to locate package linex-modules-extra-raspi
 wurly@k8s-ctrl1:~$ sudo apt install linux-modules-extra-raspi
 Reading package lists... Done
 Building dependency tree... Done
@@ -421,567 +461,8 @@ Installing new start4.elf.
 Taking backup of fixup4db.dat.
 Installing new fixup4db.dat.
 Taking backup of start.elf.
-Installing new start.elf.
-Taking backup of start4x.elf.
-Installing new start4x.elf.
-Taking backup of start4db.elf.
-Installing new start4db.elf.
-Taking backup of fixup_x.dat.
-Installing new fixup_x.dat.
-Taking backup of start4cd.elf.
-Installing new start4cd.elf.
-Taking backup of fixup4cd.dat.
-Installing new fixup4cd.dat.
-Taking backup of fixup_db.dat.
-Installing new fixup_db.dat.
-Taking backup of bootcode.bin.
-Installing new bootcode.bin.
-Taking backup of fixup.dat.
-Installing new fixup.dat.
-Taking backup of fixup4x.dat.
-Installing new fixup4x.dat.
-Taking backup of start_db.elf.
-Installing new start_db.elf.
-Taking backup of fixup4.dat.
-Installing new fixup4.dat.
-Taking backup of start_x.elf.
-Installing new start_x.elf.
-Taking backup of start_cd.elf.
-Installing new start_cd.elf.
-Taking backup of fixup_cd.dat.
-Installing new fixup_cd.dat.
-Taking backup of bcm2710-rpi-3-b.dtb.
-Installing new bcm2710-rpi-3-b.dtb.
-Taking backup of bcm2711-rpi-400.dtb.
-Installing new bcm2711-rpi-400.dtb.
-Taking backup of bcm2711-rpi-cm4.dtb.
-Installing new bcm2711-rpi-cm4.dtb.
-Taking backup of bcm2710-rpi-cm3.dtb.
-Installing new bcm2710-rpi-cm3.dtb.
-Taking backup of bcm2837-rpi-cm3-io3.dtb.
-Installing new bcm2837-rpi-cm3-io3.dtb.
-Taking backup of bcm2837-rpi-3-b-plus.dtb.
-Installing new bcm2837-rpi-3-b-plus.dtb.
-Taking backup of bcm2837-rpi-3-a-plus.dtb.
-Installing new bcm2837-rpi-3-a-plus.dtb.
-Taking backup of bcm2837-rpi-3-b.dtb.
-Installing new bcm2837-rpi-3-b.dtb.
-Taking backup of bcm2711-rpi-4-b.dtb.
-Installing new bcm2711-rpi-4-b.dtb.
-Taking backup of bcm2710-rpi-2-b.dtb.
-Installing new bcm2710-rpi-2-b.dtb.
-Taking backup of bcm2710-rpi-3-b-plus.dtb.
-Installing new bcm2710-rpi-3-b-plus.dtb.
-Taking backup of bcm2710-rpi-zero-2.dtb.
-Installing new bcm2710-rpi-zero-2.dtb.
-Taking backup of i-sabre-q2m.dtbo.
-Installing new i-sabre-q2m.dtbo.
-Taking backup of waveshare-can-fd-hat-mode-a.dtbo.
-Installing new waveshare-can-fd-hat-mode-a.dtbo.
-Taking backup of jedec-spi-nor.dtbo.
-Installing new jedec-spi-nor.dtbo.
-Taking backup of highperi.dtbo.
-Installing new highperi.dtbo.
-Taking backup of ads7846.dtbo.
-Installing new ads7846.dtbo.
-Taking backup of dwc-otg.dtbo.
-Installing new dwc-otg.dtbo.
-Taking backup of ov5647.dtbo.
-Installing new ov5647.dtbo.
-Taking backup of audioinjector-bare-i2s.dtbo.
-Installing new audioinjector-bare-i2s.dtbo.
-Taking backup of uart2.dtbo.
-Installing new uart2.dtbo.
-Taking backup of pitft22.dtbo.
-Installing new pitft22.dtbo.
-Taking backup of midi-uart4.dtbo.
-Installing new midi-uart4.dtbo.
-Taking backup of ov2311.dtbo.
-Installing new ov2311.dtbo.
-Taking backup of spi2-3cs.dtbo.
-Installing new spi2-3cs.dtbo.
-Taking backup of vc4-kms-dpi-hyperpixel4.dtbo.
-Installing new vc4-kms-dpi-hyperpixel4.dtbo.
-Taking backup of i2c-mux.dtbo.
-Installing new i2c-mux.dtbo.
-Taking backup of adafruit-st7735r.dtbo.
-Installing new adafruit-st7735r.dtbo.
-Taking backup of media-center.dtbo.
-Installing new media-center.dtbo.
-Taking backup of spi5-2cs.dtbo.
-Installing new spi5-2cs.dtbo.
-Taking backup of rpi-cirrus-wm5102.dtbo.
-Installing new rpi-cirrus-wm5102.dtbo.
-Taking backup of vc4-kms-dsi-lt070me05000.dtbo.
-Installing new vc4-kms-dsi-lt070me05000.dtbo.
-Taking backup of adv7282m.dtbo.
-Installing new adv7282m.dtbo.
-Taking backup of ssd1306-spi.dtbo.
-Installing new ssd1306-spi.dtbo.
-Taking backup of spi2-2cs.dtbo.
-Installing new spi2-2cs.dtbo.
-Taking backup of dionaudio-loco-v2.dtbo.
-Installing new dionaudio-loco-v2.dtbo.
-Taking backup of balena-fin.dtbo.
-Installing new balena-fin.dtbo.
-Taking backup of ov9281.dtbo.
-Installing new ov9281.dtbo.
-Taking backup of adau7002-simple.dtbo.
-Installing new adau7002-simple.dtbo.
-Taking backup of vc4-kms-v3d-pi4.dtbo.
-Installing new vc4-kms-v3d-pi4.dtbo.
-Taking backup of mcp2515.dtbo.
-Installing new mcp2515.dtbo.
-Taking backup of vga666.dtbo.
-Installing new vga666.dtbo.
-Taking backup of pps-gpio.dtbo.
-Installing new pps-gpio.dtbo.
-Taking backup of i2c3.dtbo.
-Installing new i2c3.dtbo.
-Taking backup of sc16is752-i2c.dtbo.
-Installing new sc16is752-i2c.dtbo.
-Taking backup of piscreen.dtbo.
-Installing new piscreen.dtbo.
-Taking backup of dpi24.dtbo.
-Installing new dpi24.dtbo.
-Taking backup of cma.dtbo.
-Installing new cma.dtbo.
-Taking backup of arducam-pivariety.dtbo.
-Installing new arducam-pivariety.dtbo.
-Taking backup of udrc.dtbo.
-Installing new udrc.dtbo.
-Taking backup of goodix.dtbo.
-Installing new goodix.dtbo.
-Taking backup of gpio-no-irq.dtbo.
-Installing new gpio-no-irq.dtbo.
-Taking backup of imx378.dtbo.
-Installing new imx378.dtbo.
-Taking backup of piglow.dtbo.
-Installing new piglow.dtbo.
-Taking backup of mcp342x.dtbo.
-Installing new mcp342x.dtbo.
-Taking backup of dpi18cpadhi.dtbo.
-Installing new dpi18cpadhi.dtbo.
-Taking backup of pibell.dtbo.
-Installing new pibell.dtbo.
-Taking backup of allo-katana-dac-audio.dtbo.
-Installing new allo-katana-dac-audio.dtbo.
-Taking backup of imx258.dtbo.
-Installing new imx258.dtbo.
-Taking backup of audremap.dtbo.
-Installing new audremap.dtbo.
-Taking backup of draws.dtbo.
-Installing new draws.dtbo.
-Taking backup of allo-piano-dac-pcm512x-audio.dtbo.
-Installing new allo-piano-dac-pcm512x-audio.dtbo.
-Taking backup of i2c-gpio.dtbo.
-Installing new i2c-gpio.dtbo.
-Taking backup of gpio-key.dtbo.
-Installing new gpio-key.dtbo.
-Taking backup of imx219.dtbo.
-Installing new imx219.dtbo.
-Taking backup of rpi-ft5406.dtbo.
-Installing new rpi-ft5406.dtbo.
-Taking backup of hifiberry-digi.dtbo.
-Installing new hifiberry-digi.dtbo.
-Taking backup of pitft35-resistive.dtbo.
-Installing new pitft35-resistive.dtbo.
-Taking backup of disable-bt.dtbo.
-Installing new disable-bt.dtbo.
-Taking backup of uart1.dtbo.
-Installing new uart1.dtbo.
-Taking backup of midi-uart3.dtbo.
-Installing new midi-uart3.dtbo.
-Taking backup of pifi-mini-210.dtbo.
-Installing new pifi-mini-210.dtbo.
-Taking backup of vl805.dtbo.
-Installing new vl805.dtbo.
-Taking backup of i2c-rtc.dtbo.
-Installing new i2c-rtc.dtbo.
-Taking backup of imx519.dtbo.
-Installing new imx519.dtbo.
-Taking backup of rpi-poe-plus.dtbo.
-Installing new rpi-poe-plus.dtbo.
-Taking backup of at86rf233.dtbo.
-Installing new at86rf233.dtbo.
-Taking backup of vc4-kms-dsi-7inch.dtbo.
-Installing new vc4-kms-dsi-7inch.dtbo.
-Taking backup of edt-ft5406.dtbo.
-Installing new edt-ft5406.dtbo.
-Taking backup of exc3000.dtbo.
-Installing new exc3000.dtbo.
-Taking backup of mlx90640.dtbo.
-Installing new mlx90640.dtbo.
-Taking backup of rpi-display.dtbo.
-Installing new rpi-display.dtbo.
-Taking backup of papirus.dtbo.
-Installing new papirus.dtbo.
-Taking backup of iqaudio-digi-wm8804-audio.dtbo.
-Installing new iqaudio-digi-wm8804-audio.dtbo.
-Taking backup of hy28b.dtbo.
-Installing new hy28b.dtbo.
-Taking backup of googlevoicehat-soundcard.dtbo.
-Installing new googlevoicehat-soundcard.dtbo.
-Taking backup of hifiberry-dacplushd.dtbo.
-Installing new hifiberry-dacplushd.dtbo.
-Taking backup of seeed-can-fd-hat-v2.dtbo.
-Installing new seeed-can-fd-hat-v2.dtbo.
-Taking backup of spi-gpio40-45.dtbo.
-Installing new spi-gpio40-45.dtbo.
-Taking backup of gpio-shutdown.dtbo.
-Installing new gpio-shutdown.dtbo.
-Taking backup of akkordion-iqdacplus.dtbo.
-Installing new akkordion-iqdacplus.dtbo.
-Taking backup of vc4-kms-kippah-7inch.dtbo.
-Installing new vc4-kms-kippah-7inch.dtbo.
-Taking backup of mcp3202.dtbo.
-Installing new mcp3202.dtbo.
-Taking backup of spi0-0cs.dtbo.
-Installing new spi0-0cs.dtbo.
-Taking backup of sh1106-spi.dtbo.
-Installing new sh1106-spi.dtbo.
-Taking backup of adafruit18.dtbo.
-Installing new adafruit18.dtbo.
-Taking backup of wm8960-soundcard.dtbo.
-Installing new wm8960-soundcard.dtbo.
-Taking backup of mbed-dac.dtbo.
-Installing new mbed-dac.dtbo.
-Taking backup of spi6-2cs.dtbo.
-Installing new spi6-2cs.dtbo.
-Taking backup of vc4-fkms-v3d-pi4.dtbo.
-Installing new vc4-fkms-v3d-pi4.dtbo.
-Taking backup of imx477.dtbo.
-Installing new imx477.dtbo.
-Taking backup of ghost-amp.dtbo.
-Installing new ghost-amp.dtbo.
-Taking backup of pifi-dac-zero.dtbo.
-Installing new pifi-dac-zero.dtbo.
-Taking backup of spi3-2cs.dtbo.
-Installing new spi3-2cs.dtbo.
-Taking backup of iqs550.dtbo.
-Installing new iqs550.dtbo.
-Taking backup of tpm-slb9670.dtbo.
-Installing new tpm-slb9670.dtbo.
-Taking backup of sdhost.dtbo.
-Installing new sdhost.dtbo.
-Taking backup of spi6-1cs.dtbo.
-Installing new spi6-1cs.dtbo.
-Taking backup of spi0-2cs.dtbo.
-Installing new spi0-2cs.dtbo.
-Taking backup of hifiberry-dacplusadc.dtbo.
-Installing new hifiberry-dacplusadc.dtbo.
-Taking backup of pcie-32bit-dma.dtbo.
-Installing new pcie-32bit-dma.dtbo.
-Taking backup of spi3-1cs.dtbo.
-Installing new spi3-1cs.dtbo.
-Taking backup of smi-nand.dtbo.
-Installing new smi-nand.dtbo.
-Taking backup of pitft28-resistive.dtbo.
-Installing new pitft28-resistive.dtbo.
-Taking backup of pisound.dtbo.
-Installing new pisound.dtbo.
-Taking backup of justboom-digi.dtbo.
-Installing new justboom-digi.dtbo.
-Taking backup of dwc2.dtbo.
-Installing new dwc2.dtbo.
-Taking backup of spi0-1cs.dtbo.
-Installing new spi0-1cs.dtbo.
-Taking backup of gpio-ir.dtbo.
-Installing new gpio-ir.dtbo.
-Taking backup of ltc294x.dtbo.
-Installing new ltc294x.dtbo.
-Taking backup of uart5.dtbo.
-Installing new uart5.dtbo.
-Taking backup of ssd1351-spi.dtbo.
-Installing new ssd1351-spi.dtbo.
-Taking backup of hifiberry-dacplusadcpro.dtbo.
-Installing new hifiberry-dacplusadcpro.dtbo.
-Taking backup of hifiberry-amp100.dtbo.
-Installing new hifiberry-amp100.dtbo.
-Taking backup of midi-uart2.dtbo.
-Installing new midi-uart2.dtbo.
-Taking backup of uart0.dtbo.
-Installing new uart0.dtbo.
-Taking backup of apds9960.dtbo.
-Installing new apds9960.dtbo.
-Taking backup of tc358743.dtbo.
-Installing new tc358743.dtbo.
-Taking backup of mcp251xfd.dtbo.
-Installing new mcp251xfd.dtbo.
-Taking backup of sc16is750-i2c.dtbo.
-Installing new sc16is750-i2c.dtbo.
-Taking backup of allo-piano-dac-plus-pcm512x-audio.dtbo.
-Installing new allo-piano-dac-plus-pcm512x-audio.dtbo.
-Taking backup of pwm.dtbo.
-Installing new pwm.dtbo.
-Taking backup of sdio.dtbo.
-Installing new sdio.dtbo.
-Taking backup of disable-wifi.dtbo.
-Installing new disable-wifi.dtbo.
-Taking backup of applepi-dac.dtbo.
-Installing new applepi-dac.dtbo.
-Taking backup of mcp23s17.dtbo.
-Installing new mcp23s17.dtbo.
-Taking backup of vc4-kms-dpi-hyperpixel4sq.dtbo.
-Installing new vc4-kms-dpi-hyperpixel4sq.dtbo.
-Taking backup of vc4-kms-dpi-panel.dtbo.
-Installing new vc4-kms-dpi-panel.dtbo.
-Taking backup of rotary-encoder.dtbo.
-Installing new rotary-encoder.dtbo.
-Taking backup of fbtft.dtbo.
-Installing new fbtft.dtbo.
-Taking backup of qca7000-uart0.dtbo.
-Installing new qca7000-uart0.dtbo.
-Taking backup of hifiberry-dacplusdsp.dtbo.
-Installing new hifiberry-dacplusdsp.dtbo.
-Taking backup of mipi-dbi-spi.dtbo.
-Installing new mipi-dbi-spi.dtbo.
-Taking backup of hy28a.dtbo.
-Installing new hy28a.dtbo.
-Taking backup of imx296.dtbo.
-Installing new imx296.dtbo.
-Taking backup of i2c-pwm-pca9685a.dtbo.
-Installing new i2c-pwm-pca9685a.dtbo.
-Taking backup of seeed-can-fd-hat-v1.dtbo.
-Installing new seeed-can-fd-hat-v1.dtbo.
-Taking backup of i2c6.dtbo.
-Installing new i2c6.dtbo.
-Taking backup of audioinjector-ultra.dtbo.
-Installing new audioinjector-ultra.dtbo.
-Taking backup of enc28j60-spi2.dtbo.
-Installing new enc28j60-spi2.dtbo.
-Taking backup of spi-gpio35-39.dtbo.
-Installing new spi-gpio35-39.dtbo.
-Taking backup of smi-dev.dtbo.
-Installing new smi-dev.dtbo.
-Taking backup of i2c1.dtbo.
-Installing new i2c1.dtbo.
-Taking backup of justboom-dac.dtbo.
-Installing new justboom-dac.dtbo.
-Taking backup of tinylcd35.dtbo.
-Installing new tinylcd35.dtbo.
-Taking backup of mcp23017.dtbo.
-Installing new mcp23017.dtbo.
-Taking backup of superaudioboard.dtbo.
-Installing new superaudioboard.dtbo.
-Taking backup of rpi-dac.dtbo.
-Installing new rpi-dac.dtbo.
-Taking backup of sx150x.dtbo.
-Installing new sx150x.dtbo.
-Taking backup of hifiberry-amp.dtbo.
-Installing new hifiberry-amp.dtbo.
-Taking backup of sc16is752-spi1.dtbo.
-Installing new sc16is752-spi1.dtbo.
-Taking backup of upstream-pi4.dtbo.
-Installing new upstream-pi4.dtbo.
-Taking backup of vc4-kms-vga666.dtbo.
-Installing new vc4-kms-vga666.dtbo.
-Taking backup of piscreen2r.dtbo.
-Installing new piscreen2r.dtbo.
-Taking backup of overlay_map.dtb.
-Installing new overlay_map.dtb.
-Taking backup of tc358743-audio.dtbo.
-Installing new tc358743-audio.dtbo.
-Taking backup of gpio-poweroff.dtbo.
-Installing new gpio-poweroff.dtbo.
-Taking backup of vc4-kms-dpi-hyperpixel2r.dtbo.
-Installing new vc4-kms-dpi-hyperpixel2r.dtbo.
-Taking backup of ilitek251x.dtbo.
-Installing new ilitek251x.dtbo.
-Taking backup of allo-digione.dtbo.
-Installing new allo-digione.dtbo.
-Taking backup of dionaudio-loco.dtbo.
-Installing new dionaudio-loco.dtbo.
-Taking backup of i2c-rtc-gpio.dtbo.
-Installing new i2c-rtc-gpio.dtbo.
-Taking backup of hy28b-2017.dtbo.
-Installing new hy28b-2017.dtbo.
-Taking backup of qca7000.dtbo.
-Installing new qca7000.dtbo.
-Taking backup of gpio-fan.dtbo.
-Installing new gpio-fan.dtbo.
-Taking backup of miniuart-bt.dtbo.
-Installing new miniuart-bt.dtbo.
-Taking backup of uart4.dtbo.
-Installing new uart4.dtbo.
-Taking backup of spi4-2cs.dtbo.
-Installing new spi4-2cs.dtbo.
-Taking backup of smi.dtbo.
-Installing new smi.dtbo.
-Taking backup of ssd1331-spi.dtbo.
-Installing new ssd1331-spi.dtbo.
-Taking backup of pwm-2chan.dtbo.
-Installing new pwm-2chan.dtbo.
-Taking backup of vc4-kms-dpi-generic.dtbo.
-Installing new vc4-kms-dpi-generic.dtbo.
-Taking backup of act-led.dtbo.
-Installing new act-led.dtbo.
-Taking backup of midi-uart1.dtbo.
-Installing new midi-uart1.dtbo.
-Taking backup of gpio-hog.dtbo.
-Installing new gpio-hog.dtbo.
-Taking backup of vc4-kms-dsi-lt070me05000-v2.dtbo.
-Installing new vc4-kms-dsi-lt070me05000-v2.dtbo.
-Taking backup of mcp2515-can1.dtbo.
-Installing new mcp2515-can1.dtbo.
-Taking backup of spi4-1cs.dtbo.
-Installing new spi4-1cs.dtbo.
-Taking backup of i2c-sensor.dtbo.
-Installing new i2c-sensor.dtbo.
-Taking backup of rpi-poe.dtbo.
-Installing new rpi-poe.dtbo.
-Taking backup of upstream.dtbo.
-Installing new upstream.dtbo.
-Taking backup of spi1-1cs.dtbo.
-Installing new spi1-1cs.dtbo.
-Taking backup of chipdip-dac.dtbo.
-Installing new chipdip-dac.dtbo.
-Taking backup of rpi-backlight.dtbo.
-Installing new rpi-backlight.dtbo.
-Taking backup of i2c5.dtbo.
-Installing new i2c5.dtbo.
-Taking backup of pwm-ir-tx.dtbo.
-Installing new pwm-ir-tx.dtbo.
-Taking backup of allo-boss2-dac-audio.dtbo.
-Installing new allo-boss2-dac-audio.dtbo.
-Taking backup of dht11.dtbo.
-Installing new dht11.dtbo.
-Taking backup of hifiberry-dacplus.dtbo.
-Installing new hifiberry-dacplus.dtbo.
-Taking backup of ov7251.dtbo.
-Installing new ov7251.dtbo.
-Taking backup of gpio-no-bank0-irq.dtbo.
-Installing new gpio-no-bank0-irq.dtbo.
-Taking backup of wittypi.dtbo.
-Installing new wittypi.dtbo.
-Taking backup of gpio-led.dtbo.
-Installing new gpio-led.dtbo.
-Taking backup of w1-gpio.dtbo.
-Installing new w1-gpio.dtbo.
-Taking backup of i2c0.dtbo.
-Installing new i2c0.dtbo.
-Taking backup of sainsmart18.dtbo.
-Installing new sainsmart18.dtbo.
-Taking backup of i2s-gpio28-31.dtbo.
-Installing new i2s-gpio28-31.dtbo.
-Taking backup of justboom-both.dtbo.
-Installing new justboom-both.dtbo.
-Taking backup of audioinjector-addons.dtbo.
-Installing new audioinjector-addons.dtbo.
-Taking backup of spi1-3cs.dtbo.
-Installing new spi1-3cs.dtbo.
-Taking backup of pifi-dac-hd.dtbo.
-Installing new pifi-dac-hd.dtbo.
-Taking backup of pitft28-capacitive.dtbo.
-Installing new pitft28-capacitive.dtbo.
-Taking backup of irs1125.dtbo.
-Installing new irs1125.dtbo.
-Taking backup of audioinjector-wm8731-audio.dtbo.
-Installing new audioinjector-wm8731-audio.dtbo.
-Taking backup of sc16is752-spi0.dtbo.
-Installing new sc16is752-spi0.dtbo.
-Taking backup of fe-pi-audio.dtbo.
-Installing new fe-pi-audio.dtbo.
-Taking backup of spi1-2cs.dtbo.
-Installing new spi1-2cs.dtbo.
-Taking backup of hdmi-backlight-hwhack-gpio.dtbo.
-Installing new hdmi-backlight-hwhack-gpio.dtbo.
-Taking backup of i2c-bcm2708.dtbo.
-Installing new i2c-bcm2708.dtbo.
-Taking backup of pifi-40.dtbo.
-Installing new pifi-40.dtbo.
-Taking backup of vc4-kms-v3d.dtbo.
-Installing new vc4-kms-v3d.dtbo.
-Taking backup of hd44780-lcd.dtbo.
-Installing new hd44780-lcd.dtbo.
-Taking backup of fsm-demo.dtbo.
-Installing new fsm-demo.dtbo.
-Taking backup of adau1977-adc.dtbo.
-Installing new adau1977-adc.dtbo.
-Taking backup of waveshare-can-fd-hat-mode-b.dtbo.
-Installing new waveshare-can-fd-hat-mode-b.dtbo.
-Taking backup of si446x-spi0.dtbo.
-Installing new si446x-spi0.dtbo.
-Taking backup of rra-digidac1-wm8741-audio.dtbo.
-Installing new rra-digidac1-wm8741-audio.dtbo.
-Taking backup of uart3.dtbo.
-Installing new uart3.dtbo.
-Taking backup of mpu6050.dtbo.
-Installing new mpu6050.dtbo.
-Taking backup of maxtherm.dtbo.
-Installing new maxtherm.dtbo.
-Taking backup of midi-uart5.dtbo.
-Installing new midi-uart5.dtbo.
-Taking backup of hifiberry-digi-pro.dtbo.
-Installing new hifiberry-digi-pro.dtbo.
-Taking backup of cutiepi-panel.dtbo.
-Installing new cutiepi-panel.dtbo.
-Taking backup of imx290.dtbo.
-Installing new imx290.dtbo.
-Taking backup of midi-uart0.dtbo.
-Installing new midi-uart0.dtbo.
-Taking backup of audioinjector-isolated-soundcard.dtbo.
-Installing new audioinjector-isolated-soundcard.dtbo.
-Taking backup of rpivid-v4l2.dtbo.
-Installing new rpivid-v4l2.dtbo.
-Taking backup of rpi-tv.dtbo.
-Installing new rpi-tv.dtbo.
-Taking backup of ugreen-dabboard.dtbo.
-Installing new ugreen-dabboard.dtbo.
-Taking backup of i2c-fan.dtbo.
-Installing new i2c-fan.dtbo.
-Taking backup of mcp2515-can0.dtbo.
-Installing new mcp2515-can0.dtbo.
-Taking backup of anyspi.dtbo.
-Installing new anyspi.dtbo.
-Taking backup of dpi18.dtbo.
-Installing new dpi18.dtbo.
-Taking backup of gpio-ir-tx.dtbo.
-Installing new gpio-ir-tx.dtbo.
-Taking backup of adv728x-m.dtbo.
-Installing new adv728x-m.dtbo.
-Taking backup of enc28j60.dtbo.
-Installing new enc28j60.dtbo.
-Taking backup of pifacedigital.dtbo.
-Installing new pifacedigital.dtbo.
-Taking backup of audiosense-pi.dtbo.
-Installing new audiosense-pi.dtbo.
-Taking backup of mcp3008.dtbo.
-Installing new mcp3008.dtbo.
-Taking backup of rpi-sense.dtbo.
-Installing new rpi-sense.dtbo.
-Taking backup of merus-amp.dtbo.
-Installing new merus-amp.dtbo.
-Taking backup of iqaudio-dac.dtbo.
-Installing new iqaudio-dac.dtbo.
-Taking backup of vc4-fkms-v3d.dtbo.
-Installing new vc4-fkms-v3d.dtbo.
-Taking backup of ads1115.dtbo.
-Installing new ads1115.dtbo.
-Taking backup of ssd1306.dtbo.
-Installing new ssd1306.dtbo.
-Taking backup of i2c4.dtbo.
-Installing new i2c4.dtbo.
-Taking backup of allo-boss-dac-pcm512x-audio.dtbo.
-Installing new allo-boss-dac-pcm512x-audio.dtbo.
-Taking backup of iqaudio-codec.dtbo.
-Installing new iqaudio-codec.dtbo.
-Taking backup of rpi-proto.dtbo.
-Installing new rpi-proto.dtbo.
-Taking backup of w1-gpio-pullup.dtbo.
-Installing new w1-gpio-pullup.dtbo.
-Taking backup of mmc.dtbo.
-Installing new mmc.dtbo.
-Taking backup of ads1015.dtbo.
-Installing new ads1015.dtbo.
-Taking backup of max98357a.dtbo.
-Installing new max98357a.dtbo.
-Taking backup of spi5-1cs.dtbo.
-Installing new spi5-1cs.dtbo.
-Taking backup of mz61581.dtbo.
-Installing new mz61581.dtbo.
-Taking backup of pca953x.dtbo.
 Installing new pca953x.dtbo.
+(中略)
 Taking backup of iqaudio-dacplus.dtbo.
 Installing new iqaudio-dacplus.dtbo.
 Taking backup of hifiberry-dac.dtbo.
@@ -1028,6 +509,543 @@ kube-proxy-d64kt                           1/1     Running   0             58m
 kube-scheduler-k8s-ctrl1                   1/1     Running   1 (47m ago)   58m
 #+end_src
 
+あとで linux-modules-extra-raspi でググっていたところ、こちらの記事もありました。
+
+ - [[https://qiita.com/showchan33/items/5250f518eb03858a0c25][ラズパイのOSがUbuntuで、KubernetesのCNIを追加したらエラーになった場合の対処法 #RaspberryPi - Qiita]]
+https://qiita.com/showchan33/items/5250f518eb03858a0c25
+
+
+* kubeadm init(残りのコントロールプレーン向け)
+
+k8s-ctrl2 で実行します。
+
+#+begin_src bash
+$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a \
+        --control-plane --certificate-key cf6b62a26809ce3e4126c782badb0853e02d97dab46f90d7e895dd96ac1b3a1d
+#+end_src
+
+実行してみたところ下記の通り言われてしまいました。
+
+#+begin_src bash
+[download-certs] Downloading the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+Secret "kubeadm-certs" was not found in the "kube-system" Namespace. This Secret might have expired. Please, run `kubeadm init phase upload-certs --upload-certs` on a control plane to generate a new one
+#+end_src
+
+k8s-ctrl1 で再アップロードします。
+
+#+begin_src 
+wurly@k8s-ctrl1:~$ sudo kubeadm init phase upload-certs --upload-certs
+[sudo] password for wurly: 
+I0507 08:03:31.056618   32741 version.go:256] remote version is much newer: v1.30.0; falling back to: stable-1.29
+[upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
+#+end_src
+
+k8s-ctrl2 で再度実行します。
+
+#+begin_src bash
+$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a \
+        --control-plane --certificate-key 0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
+#+end_src
+
+今度はOKです。
+
+#+begin_src bash
+wurly@k8s-ctrl2:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a \
+        --control-plane --certificate-key 0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks before initializing the new control plane instance
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0507 08:05:48.572380   17476 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime is inconsistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+[download-certs] Downloading the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[download-certs] Saving the certificates to the folder: "/etc/kubernetes/pki"
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s-ctrl2 localhost] and IPs [192.168.1.202 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s-ctrl2 localhost] and IPs [192.168.1.202 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s-ctrl2 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.1.202 192.168.1.100]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Valid certificates and keys now exist in "/etc/kubernetes/pki"
+[certs] Using the existing "sa" key
+[kubeconfig] Generating kubeconfig files
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[check-etcd] Checking that the etcd cluster is healthy
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+[etcd] Announced new etcd member joining to the existing etcd cluster
+[etcd] Creating static Pod manifest for "etcd"
+{"level":"warn","ts":"2024-05-07T08:06:02.165095+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:02.275197+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:02.429338+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:02.67635+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:03.043254+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:03.582796+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:04.387198+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:06:05.531451+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x400043f880/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+[etcd] Waiting for the new etcd member to join the cluster. This can take up to 40s
+The 'update-status' phase is deprecated and will be removed in a future release. Currently it performs no operation
+[mark-control-plane] Marking the node k8s-ctrl2 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node k8s-ctrl2 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+
+This node has joined the cluster and a new control plane instance was created:
+
+ * Certificate signing request was sent to apiserver and approval was received.
+ * The Kubelet was informed of the new secure connection details.
+ * Control plane label and taint were applied to the new node.
+ * The Kubernetes control plane instances scaled up.
+ * A new etcd member was added to the local/stacked etcd cluster.
+
+To start administering your cluster from this node, you need to run the following as a regular user:
+
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Run 'kubectl get nodes' to see this node join the cluster.
+#+end_src
+
+ノードに追加されます。
+
+#+begin_src bash
+$ k get node
+NAME        STATUS     ROLES           AGE   VERSION
+k8s-ctrl1   Ready      control-plane   9h    v1.29.4
+k8s-ctrl2   NotReady   <none>          2s    v1.29.4
+#+end_src
+
+追加完了しました。
+
+#+begin_src bash
+$ k get node
+NAME        STATUS   ROLES           AGE     VERSION
+k8s-ctrl1   Ready    control-plane   9h      v1.29.4
+k8s-ctrl2   Ready    control-plane   2m33s   v1.29.4
+#+end_src
+
+次にk8s-ctrl3 で実行します。
+
+#+begin_src bash
+wurly@k8s-ctrl3:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a \
+        --control-plane --certificate-key 0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
+[sudo] password for wurly: 
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks before initializing the new control plane instance
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0507 08:08:39.636962   17354 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime is in
+consistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+[download-certs] Downloading the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[download-certs] Saving the certificates to the folder: "/etc/kubernetes/pki"
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s-ctrl3 localhost] and IPs [192.168.1.203 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s-ctrl3 localhost] and IPs [192.168.1.203 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s-ctrl3 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.1.203 192.168.1.100]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Valid certificates and keys now exist in "/etc/kubernetes/pki"
+[certs] Using the existing "sa" key
+[kubeconfig] Generating kubeconfig files
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[check-etcd] Checking that the etcd cluster is healthy
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+[etcd] Announced new etcd member joining to the existing etcd cluster
+[etcd] Creating static Pod manifest for "etcd"
+{"level":"warn","ts":"2024-05-07T08:09:11.367848+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:11.521986+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:11.684702+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:11.922983+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:12.268964+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:12.797185+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:13.575141+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:14.750511+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+{"level":"warn","ts":"2024-05-07T08:09:16.463716+0900","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0x4000299dc0/192.168.1.201:2379","attempt":0,"error":"rpc error: code = FailedPrecondition desc = etcdserver: can only promote a learner member which is in sync with leader"}
+[etcd] Waiting for the new etcd member to join the cluster. This can take up to 40s
+The 'update-status' phase is deprecated and will be removed in a future release. Currently it performs no operation
+[mark-control-plane] Marking the node k8s-ctrl3 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node k8s-ctrl3 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+
+This node has joined the cluster and a new control plane instance was created:
+
+ * Certificate signing request was sent to apiserver and approval was received.
+ * The Kubelet was informed of the new secure connection details.
+ * Control plane label and taint were applied to the new node.
+ * The Kubernetes control plane instances scaled up.
+ * A new etcd member was added to the local/stacked etcd cluster.
+
+To start administering your cluster from this node, you need to run the following as a regular user:
+
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Run 'kubectl get nodes' to see this node join the cluster.
+#+end_src
+
+#+begin_src bash
+$ k get node
+NAME        STATUS     ROLES           AGE     VERSION
+k8s-ctrl1   Ready      control-plane   9h      v1.29.4
+k8s-ctrl2   Ready      control-plane   3m22s   v1.29.4
+k8s-ctrl3   NotReady   control-plane   13s     v1.29.4
+#+end_src
+
+#+begin_src bash
+$ k get node
+NAME        STATUS   ROLES           AGE     VERSION
+k8s-ctrl1   Ready    control-plane   9h      v1.29.4
+k8s-ctrl2   Ready    control-plane   4m55s   v1.29.4
+k8s-ctrl3   Ready    control-plane   106s    v1.29.4
+#+end_src
+
+これで、コントロールプレーンの構築は完了です。
+
+#+begin_src bash
+$ k get pod -A
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS      AGE
+kube-system   calico-kube-controllers-5fc7d6cf67-t24hh   1/1     Running   2 (73m ago)   9h
+kube-system   calico-node-dq6xq                          1/1     Running   2 (73m ago)   9h
+kube-system   calico-node-gqkvn                          1/1     Running   0             12m
+kube-system   calico-node-tzthw                          1/1     Running   0             15m
+kube-system   coredns-76f75df574-mzng7                   1/1     Running   2 (73m ago)   9h
+kube-system   coredns-76f75df574-t265x                   1/1     Running   2 (73m ago)   9h
+kube-system   etcd-k8s-ctrl1                             1/1     Running   2 (73m ago)   9h
+kube-system   etcd-k8s-ctrl2                             1/1     Running   0             15m
+kube-system   etcd-k8s-ctrl3                             1/1     Running   0             12m
+kube-system   kube-apiserver-k8s-ctrl1                   1/1     Running   2 (73m ago)   9h
+kube-system   kube-apiserver-k8s-ctrl2                   1/1     Running   0             15m
+kube-system   kube-apiserver-k8s-ctrl3                   1/1     Running   0             12m
+kube-system   kube-controller-manager-k8s-ctrl1          1/1     Running   3 (73m ago)   9h
+kube-system   kube-controller-manager-k8s-ctrl2          1/1     Running   0             15m
+kube-system   kube-controller-manager-k8s-ctrl3          1/1     Running   0             12m
+kube-system   kube-proxy-ctspc                           1/1     Running   0             15m
+kube-system   kube-proxy-d64kt                           1/1     Running   2 (73m ago)   9h
+kube-system   kube-proxy-tmqkh                           1/1     Running   0             12m
+kube-system   kube-scheduler-k8s-ctrl1                   1/1     Running   4 (13m ago)   9h
+kube-system   kube-scheduler-k8s-ctrl2                   1/1     Running   0             15m
+kube-system   kube-scheduler-k8s-ctrl3                   1/1     Running   0             12m
+#+end_src
+
+* ここまでの検証
+
+#+begin_src bash
+k get pod -o wide
+NAME                                       READY   STATUS        RESTARTS        AGE   IP              NODE        NOMINATED NODE   READINESS GATES
+calico-kube-controllers-5fc7d6cf67-t24hh   1/1     Terminating   2 (108m ago)    10h   172.16.190.25   k8s-ctrl1   <none>           <none>
+calico-kube-controllers-5fc7d6cf67-zhzvh   1/1     Running       0               29s   172.16.35.2     k8s-ctrl3   <none>           <none>
+calico-node-dq6xq                          1/1     Running       2 (108m ago)    9h    192.168.1.201   k8s-ctrl1   <none>           <none>
+calico-node-gqkvn                          1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+calico-node-tzthw                          1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+coredns-76f75df574-dc4fc                   1/1     Running       0               29s   172.16.35.1     k8s-ctrl3   <none>           <none>
+coredns-76f75df574-jsbp4                   1/1     Running       0               29s   172.16.164.1    k8s-ctrl2   <none>           <none>
+coredns-76f75df574-mzng7                   1/1     Terminating   2 (108m ago)    10h   172.16.190.23   k8s-ctrl1   <none>           <none>
+coredns-76f75df574-t265x                   1/1     Terminating   2 (108m ago)    10h   172.16.190.24   k8s-ctrl1   <none>           <none>
+etcd-k8s-ctrl1                             1/1     Running       2 (108m ago)    10h   192.168.1.201   k8s-ctrl1   <none>           <none>
+etcd-k8s-ctrl2                             1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+etcd-k8s-ctrl3                             1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+kube-apiserver-k8s-ctrl1                   1/1     Running       2 (108m ago)    10h   192.168.1.201   k8s-ctrl1   <none>           <none>
+kube-apiserver-k8s-ctrl2                   1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+kube-apiserver-k8s-ctrl3                   1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+kube-controller-manager-k8s-ctrl1          1/1     Running       3 (108m ago)    10h   192.168.1.201   k8s-ctrl1   <none>           <none>
+kube-controller-manager-k8s-ctrl2          1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+kube-controller-manager-k8s-ctrl3          1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+kube-proxy-ctspc                           1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+kube-proxy-d64kt                           1/1     Running       2 (108m ago)    10h   192.168.1.201   k8s-ctrl1   <none>           <none>
+kube-proxy-tmqkh                           1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+kube-scheduler-k8s-ctrl1                   1/1     Running       4 (48m ago)     10h   192.168.1.201   k8s-ctrl1   <none>           <none>
+kube-scheduler-k8s-ctrl2                   1/1     Running       0               50m   192.168.1.202   k8s-ctrl2   <none>           <none>
+kube-scheduler-k8s-ctrl3                   1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
+#+end_src
+
+* ワーカーノードの参加
+
+下記の通りワーカーノードとなるマシンをセットアップします。
+
+ - [[./?p=1326][Kubernetes x86-64(amd64) ワーカーマシンのセットアップ]]
+
+
+現在はコントロールプレーンのみ存在している状態です。
+
+#+begin_src bash
+$ k get pod
+NAME                                       READY   STATUS    RESTARTS        AGE
+calico-kube-controllers-5fc7d6cf67-zhzvh   1/1     Running   1 (5m34s ago)   4d2h
+calico-node-dq6xq                          1/1     Running   3 (5m26s ago)   4d12h
+calico-node-gqkvn                          1/1     Running   2 (5m34s ago)   4d2h
+calico-node-tzthw                          1/1     Running   1 (5m34s ago)   4d2h
+coredns-76f75df574-dc4fc                   1/1     Running   1 (5m34s ago)   4d2h
+coredns-76f75df574-jsbp4                   1/1     Running   1 (5m34s ago)   4d2h
+etcd-k8s-ctrl1                             1/1     Running   3 (5m26s ago)   4d12h
+etcd-k8s-ctrl2                             1/1     Running   1 (5m34s ago)   4d2h
+etcd-k8s-ctrl3                             1/1     Running   2 (5m34s ago)   4d2h
+kube-apiserver-k8s-ctrl1                   1/1     Running   3 (5m26s ago)   4d12h
+kube-apiserver-k8s-ctrl2                   1/1     Running   1 (5m34s ago)   4d2h
+kube-apiserver-k8s-ctrl3                   1/1     Running   2 (5m35s ago)   4d2h
+kube-controller-manager-k8s-ctrl1          1/1     Running   4 (5m26s ago)   4d12h
+kube-controller-manager-k8s-ctrl2          1/1     Running   1 (5m34s ago)   4d2h
+kube-controller-manager-k8s-ctrl3          1/1     Running   2 (5m34s ago)   4d2h
+kube-proxy-ctspc                           1/1     Running   1 (5m34s ago)   4d2h
+kube-proxy-d64kt                           1/1     Running   3 (5m26s ago)   4d12h
+kube-proxy-tmqkh                           1/1     Running   2 (5m34s ago)   4d2h
+kube-scheduler-k8s-ctrl1                   1/1     Running   5 (5m26s ago)   4d12h
+kube-scheduler-k8s-ctrl2                   1/1     Running   1 (5m34s ago)   4d2h
+kube-scheduler-k8s-ctrl3                   1/1     Running   2 (5m34s ago)   4d2h
+$ k get nodes
+NAME        STATUS   ROLES           AGE     VERSION
+k8s-ctrl1   Ready    control-plane   4d12h   v1.29.4
+k8s-ctrl2   Ready    control-plane   4d2h    v1.29.4
+k8s-ctrl3   Ready    control-plane   4d2h    v1.29.4
+#+end_src
+
+#+begin_src bash
+sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a --v=5
+#+end_src
+
+実行してみると、
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6
+cfc18a --v=5
+[sudo] password for wurly: 
+I0511 02:25:53.304043    3224 join.go:413] [preflight] found NodeName empty; using OS hostname as NodeName
+I0511 02:25:53.306686    3224 initconfiguration.go:122] detected and using CRI socket: unix:///var/run/containerd/containerd.sock
+[preflight] Running pre-flight checks
+I0511 02:25:53.306741    3224 preflight.go:93] [preflight] Running general checks
+I0511 02:25:53.306785    3224 checks.go:280] validating the existence of file /etc/kubernetes/kubelet.conf
+I0511 02:25:53.306794    3224 checks.go:280] validating the existence of file /etc/kubernetes/bootstrap-kubelet.conf
+I0511 02:25:53.306802    3224 checks.go:104] validating the container runtime
+I0511 02:25:53.326536    3224 checks.go:639] validating whether swap is enabled or not
+I0511 02:25:53.326595    3224 checks.go:370] validating the presence of executable crictl
+I0511 02:25:53.326622    3224 checks.go:370] validating the presence of executable conntrack
+I0511 02:25:53.326640    3224 checks.go:370] validating the presence of executable ip
+I0511 02:25:53.326660    3224 checks.go:370] validating the presence of executable iptables
+I0511 02:25:53.326682    3224 checks.go:370] validating the presence of executable mount
+I0511 02:25:53.326703    3224 checks.go:370] validating the presence of executable nsenter
+I0511 02:25:53.326723    3224 checks.go:370] validating the presence of executable ebtables
+I0511 02:25:53.326744    3224 checks.go:370] validating the presence of executable ethtool
+I0511 02:25:53.326761    3224 checks.go:370] validating the presence of executable socat
+I0511 02:25:53.326781    3224 checks.go:370] validating the presence of executable tc
+I0511 02:25:53.326795    3224 checks.go:370] validating the presence of executable touch
+I0511 02:25:53.326811    3224 checks.go:516] running all checks
+I0511 02:25:53.336882    3224 checks.go:401] checking whether the given node name is valid and reachable using net.LookupHost
+I0511 02:25:53.337071    3224 checks.go:605] validating kubelet version
+I0511 02:25:53.382237    3224 checks.go:130] validating if the "kubelet" service is enabled and active
+I0511 02:25:53.390207    3224 checks.go:203] validating availability of port 10250
+I0511 02:25:53.390336    3224 checks.go:280] validating the existence of file /etc/kubernetes/pki/ca.crt
+I0511 02:25:53.390346    3224 checks.go:430] validating if the connectivity type is via proxy or direct
+I0511 02:25:53.390367    3224 checks.go:329] validating the contents of file /proc/sys/net/bridge/bridge-nf-call-iptables
+I0511 02:25:53.390389    3224 checks.go:329] validating the contents of file /proc/sys/net/ipv4/ip_forward
+I0511 02:25:53.390405    3224 join.go:532] [preflight] Discovering cluster-info
+I0511 02:25:53.390417    3224 token.go:80] [discovery] Created cluster-info discovery client, requesting info from "192.168.1.100:6443"
+I0511 02:25:53.416226    3224 token.go:223] [discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
+I0511 02:25:58.596077    3224 token.go:223] [discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
+(中略)
+I0511 02:28:58.158711    3224 token.go:223] [discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
+I0511 02:29:03.706321    3224 token.go:223] [discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
+#+end_src
+
+下記のメッセージから先に進みません。
+
+#+begin_quote
+The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
+#+end_quote
+
+ - [[https://discuss.kubernetes.io/t/cluster-info-configmap-does-not-yet-contain-a-jws-signature/14985][Cluster-info ConfigMap does not yet contain a JWS signature - General Discussions - Discuss Kubernetes]]
+https://discuss.kubernetes.io/t/cluster-info-configmap-does-not-yet-contain-a-jws-signature/14985
+
+上記によるとtokenが期限切れになっているようです。
+(数日にわたって作業をしているため、このような状況になっています)
+トークンを再作成します。
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubeadm token list
+wurly@k8s-ctrl1:~$ sudo kubeadm token list
+[sudo] password for wurly: 
+wurly@k8s-ctrl1:~$ sudo kubeadm token create
+d8gufx.xhgtb45qps7h7yhv
+wurly@k8s-ctrl1:~$ sudo kubeadm token list
+TOKEN                     TTL         EXPIRES                USAGES                   DESCRIPTION                                                EXTRA GROUPS
+d8gufx.xhgtb45qps7h7yhv   23h         2024-05-12T02:29:57Z   authentication,signing   <none>                                                     system:bootstrappers:kubeadm:default-node-token
+#+end_src
+
+tokenを変更して実行します。
+
+#+begin_src bash
+sudo kubeadm join 192.168.1.100:6443 --token d8gufx.xhgtb45qps7h7yhv \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a --v=5
+#+end_src
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo kubeadm join 192.168.1.100:6443 --token d8gufx.xhgtb45qps7h7yhv \
+        --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a --v=5
+I0511 02:30:54.365840    3626 join.go:413] [preflight] found NodeName empty; using OS hostname as NodeName
+I0511 02:30:54.365949    3626 initconfiguration.go:122] detected and using CRI socket: unix:///var/run/containerd/containerd.sock
+[preflight] Running pre-flight checks
+I0511 02:30:54.365999    3626 preflight.go:93] [preflight] Running general checks
+I0511 02:30:54.366035    3626 checks.go:280] validating the existence of file /etc/kubernetes/kubelet.conf
+I0511 02:30:54.366048    3626 checks.go:280] validating the existence of file /etc/kubernetes/bootstrap-kubelet.conf
+I0511 02:30:54.366057    3626 checks.go:104] validating the container runtime
+I0511 02:30:54.382819    3626 checks.go:639] validating whether swap is enabled or not
+I0511 02:30:54.382869    3626 checks.go:370] validating the presence of executable crictl
+I0511 02:30:54.382893    3626 checks.go:370] validating the presence of executable conntrack
+I0511 02:30:54.382909    3626 checks.go:370] validating the presence of executable ip
+I0511 02:30:54.382927    3626 checks.go:370] validating the presence of executable iptables
+I0511 02:30:54.382945    3626 checks.go:370] validating the presence of executable mount
+I0511 02:30:54.382962    3626 checks.go:370] validating the presence of executable nsenter
+I0511 02:30:54.382980    3626 checks.go:370] validating the presence of executable ebtables
+I0511 02:30:54.383006    3626 checks.go:370] validating the presence of executable ethtool
+I0511 02:30:54.383021    3626 checks.go:370] validating the presence of executable socat
+I0511 02:30:54.383036    3626 checks.go:370] validating the presence of executable tc
+I0511 02:30:54.383054    3626 checks.go:370] validating the presence of executable touch
+I0511 02:30:54.383077    3626 checks.go:516] running all checks
+I0511 02:30:54.394226    3626 checks.go:401] checking whether the given node name is valid and reachable using net.LookupHost
+I0511 02:30:54.394386    3626 checks.go:605] validating kubelet version
+I0511 02:30:54.429461    3626 checks.go:130] validating if the "kubelet" service is enabled and active
+I0511 02:30:54.436446    3626 checks.go:203] validating availability of port 10250
+I0511 02:30:54.436570    3626 checks.go:280] validating the existence of file /etc/kubernetes/pki/ca.crt
+I0511 02:30:54.436582    3626 checks.go:430] validating if the connectivity type is via proxy or direct
+I0511 02:30:54.436609    3626 checks.go:329] validating the contents of file /proc/sys/net/bridge/bridge-nf-call-iptables
+I0511 02:30:54.436642    3626 checks.go:329] validating the contents of file /proc/sys/net/ipv4/ip_forward
+I0511 02:30:54.436666    3626 join.go:532] [preflight] Discovering cluster-info
+I0511 02:30:54.436685    3626 token.go:80] [discovery] Created cluster-info discovery client, requesting info from "192.168.1.100:6443"
+I0511 02:30:54.466412    3626 token.go:118] [discovery] Requesting info from "192.168.1.100:6443" again to validate TLS against the pinned public key
+I0511 02:30:54.498645    3626 token.go:135] [discovery] Cluster info signature and contents are valid and TLS certificate validates against pinned roots, will use API Server "192.168.1.100:6443"
+I0511 02:30:54.498675    3626 discovery.go:52] [discovery] Using provided TLSBootstrapToken as authentication credentials for the join process
+I0511 02:30:54.498692    3626 join.go:546] [preflight] Fetching init configuration
+I0511 02:30:54.498702    3626 join.go:592] [preflight] Retrieving KubeConfig objects
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+I0511 02:30:54.545089    3626 kubeproxy.go:55] attempting to download the KubeProxyConfiguration from ConfigMap "kube-proxy"
+I0511 02:30:54.563297    3626 kubelet.go:74] attempting to download the KubeletConfiguration from ConfigMap "kubelet-config"
+I0511 02:30:54.579250    3626 initconfiguration.go:114] skip CRI socket detection, fill with the default CRI socket unix:///var/run/containerd/containerd.sock
+I0511 02:30:54.580713    3626 interface.go:432] Looking for default routes with IPv4 addresses
+I0511 02:30:54.580750    3626 interface.go:437] Default route transits interface "eno0"
+I0511 02:30:54.581417    3626 interface.go:209] Interface eno0 is up
+I0511 02:30:54.581560    3626 interface.go:257] Interface "eno0" has 3 addresses :[192.168.1.211/24 240d:1a:1d8:a600:b6a9:fcff:fe21:8100/64 fe80::b6a9:fcff:fe21:8100/64].
+I0511 02:30:54.581610    3626 interface.go:224] Checking addr  192.168.1.211/24.
+I0511 02:30:54.581636    3626 interface.go:231] IP found 192.168.1.211
+I0511 02:30:54.581681    3626 interface.go:263] Found valid IPv4 address 192.168.1.211 for interface "eno0".
+I0511 02:30:54.581732    3626 interface.go:443] Found active IP 192.168.1.211 
+I0511 02:30:54.590899    3626 preflight.go:104] [preflight] Running configuration dependant checks
+I0511 02:30:54.590937    3626 controlplaneprepare.go:225] [download-certs] Skipping certs download
+I0511 02:30:54.590973    3626 kubelet.go:121] [kubelet-start] writing bootstrap kubelet config file at /etc/kubernetes/bootstrap-kubelet.conf
+I0511 02:30:54.593788    3626 kubelet.go:136] [kubelet-start] writing CA certificate at /etc/kubernetes/pki/ca.crt
+I0511 02:30:54.595514    3626 kubelet.go:157] [kubelet-start] Checking for an existing Node in the cluster with name "k8s-worker1" and status "Ready"
+I0511 02:30:54.608006    3626 kubelet.go:172] [kubelet-start] Stopping the kubelet
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+I0511 02:30:55.941393    3626 cert_rotation.go:137] Starting client certificate rotation controller
+I0511 02:30:55.943223    3626 kubelet.go:220] [kubelet-start] preserving the crisocket information for the node
+I0511 02:30:55.943289    3626 patchnode.go:31] [patchnode] Uploading the CRI Socket information "unix:///var/run/containerd/containerd.sock" to the Node API object "k8s-worker1" as an annotation
+
+This node has joined the cluster:
+ * Certificate signing request was sent to apiserver and a response was received.
+ * The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+#+end_src
+
+うまく行きました。
+
+workerがクラスターに加わり、最初は NotReadyです。
+
+#+begin_src bash
+$ k get nodes
+NAME          STATUS     ROLES           AGE     VERSION
+k8s-ctrl1     Ready      control-plane   4d13h   v1.29.4
+k8s-ctrl2     Ready      control-plane   4d3h    v1.29.4
+k8s-ctrl3     Ready      control-plane   4d3h    v1.29.4
+k8s-worker1   NotReady   <none>          37s     v1.29.4
+#+end_src
+
+Readyになりました。
+
+#+begin_src bash
+$ k get nodes
+NAME          STATUS   ROLES           AGE     VERSION
+k8s-ctrl1     Ready    control-plane   4d13h   v1.29.4
+k8s-ctrl2     Ready    control-plane   4d3h    v1.29.4
+k8s-ctrl3     Ready    control-plane   4d3h    v1.29.4
+k8s-worker1   Ready    <none>          93s     v1.29.4
+#+end_src
+
+podの状況です。
+
+calico と kube-proxy がワーカー上で動いていることがわかります。
+
+#+begin_src bash
+$ k get pod -o wide
+NAME                                       READY   STATUS    RESTARTS      AGE     IP              NODE          NOMINATED NODE   READINESS GATES
+calico-kube-controllers-5fc7d6cf67-zhzvh   1/1     Running   1 (34m ago)   4d2h    172.16.35.3     k8s-ctrl3     <none>           <none>
+calico-node-dq6xq                          1/1     Running   3 (33m ago)   4d12h   192.168.1.201   k8s-ctrl1     <none>           <none>
+calico-node-gqkvn                          1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+calico-node-qv8g9                          1/1     Running   0             114s    192.168.1.211   k8s-worker1   <none>           <none>
+calico-node-tzthw                          1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+coredns-76f75df574-dc4fc                   1/1     Running   1 (34m ago)   4d2h    172.16.35.4     k8s-ctrl3     <none>           <none>
+coredns-76f75df574-jsbp4                   1/1     Running   1 (34m ago)   4d2h    172.16.164.2    k8s-ctrl2     <none>           <none>
+etcd-k8s-ctrl1                             1/1     Running   3 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
+etcd-k8s-ctrl2                             1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+etcd-k8s-ctrl3                             1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+kube-apiserver-k8s-ctrl1                   1/1     Running   3 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
+kube-apiserver-k8s-ctrl2                   1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+kube-apiserver-k8s-ctrl3                   1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+kube-controller-manager-k8s-ctrl1          1/1     Running   4 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
+kube-controller-manager-k8s-ctrl2          1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+kube-controller-manager-k8s-ctrl3          1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+kube-proxy-ctspc                           1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+kube-proxy-d64kt                           1/1     Running   3 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
+kube-proxy-h4zjz                           1/1     Running   0             114s    192.168.1.211   k8s-worker1   <none>           <none>
+kube-proxy-tmqkh                           1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+kube-scheduler-k8s-ctrl1                   1/1     Running   5 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
+kube-scheduler-k8s-ctrl2                   1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
+kube-scheduler-k8s-ctrl3                   1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
+
+#+end_src
+
 * 参考
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
  - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
@@ -1036,6 +1054,5 @@ kube-scheduler-k8s-ctrl1                   1/1     Running   1 (47m ago)   58m
  - [[https://www.unitasglobal.co.jp/english/news/?p=256][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part I – Unitas Global]]
  - [[https://knowledge.sakura.ad.jp/8084/][多機能プロクシサーバー「HAProxy」のさまざまな設定例 | さくらのナレッジ]]
  - [[https://zenn.dev/f110/articles/cab6590c4d4bc8][Managed Kubernetesサービス開発者の自宅k8sクラスタ全容]]
-
 
 # images/1134_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/05/1134_51.png
