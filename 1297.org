@@ -121,8 +121,14 @@ Configured for 'x86_64-pc-linux-gnu'.
 
 数字は nproc を実行した数を基に設定します。
 
-#+begin_src 
+#+begin_src bash
 make -j16
+#+end_src
+
+または、全てのコアを使うのであれば下記のコマンドは環境に依らず実行できます。
+
+#+begin_src bash
+make -j$(nproc)
 #+end_src
 
 # Available configurations
