@@ -10,20 +10,28 @@
 
 * はじめに
 
-下記では、ラズパイ3台でコントロールプレーン・ワーカーノードを含むクラスタを構築しました。
+下記では、ラズパイ3台でコントロールプレーン・ワーカーを含むクラスタを構築しました。
 
  - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
  - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
  - [[./?p=1055][おうちKubernetesをはじめる(その3)]]
 
-また、下記でHA(High Availability)構成について少し理解を深めました。
+また、下記にHA(High Availability)構成についてまとめました。
 
  - [[./?p=1090][KubernetesのHA構成(コントロールプレーン、etcd、ワーカー)]]
 
 次のステップとして、ラズパイ3台でコントロールプレーンを構成するHA(High availability) おうちKubernetesクラスター構築に取り組みます。
 
-ただし、本来ワーカーノードには最低3台必要ですが、今回の構成では1台設けることで半HA構成とします。
-半HA構成とは言っても、今後このままワーカーノードを増やしていくことができますので、本来のHA構成と構築方法としては同じとなります。
+ワーカーについてはx86(amd64)のPCを1台を使用します。
+Kubernetesのクラスター構築方法を理解する上では、ラズパイ3台での構築は非常に有効であると感じましたが、
+実際になんらかのアプリケーションをデプロイすることを試していくとなると、公開されているDockerイメージの数の上で、より多くのアプリケーションを使用することができるx86アーキのマシンをワーカーとして使用することが有効であると思います。
+(もちろんKubernetesをラズパイ/ARMで使用することが目的であればラズパイで問題ないと思います。)
+
+本来ワーカーノードには最低3台必要ですが、今回の構成では1台設けることで半HA構成とします。
+半HA構成とは言っても、今後このままワーカーノードを増やしていくことができますので、構築方法としては本来のHA構成と同等となります。
+今後、できればワーカーノードを増やしたいと考えています。
+
+なお、HA構成に対してはコントロールプレーンのノードを選択的に使用するため、ロードバランサー(load balancer:LB)が必要となります。
 
 * 主に参考にしたページ
 
@@ -40,7 +48,10 @@ https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cl
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/#stacked-etcd-topology][Options for Highly Available Topology | Kubernetes]]
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/#stacked-etcd-topology
 
-上記の公式ページの図に基づきますと、下記の構成となります。
+今回構築するのは下記のような構成となります。
+(上記の公式ページの図を参考にしています)
+
+ユーザーは ロードバランサー(192.168.1.100:6443) にアクセスする(kubectrlを実行する)ことになります。
 
 #+begin_src mermaid :file images/1134_51.png
 %%{
@@ -79,7 +90,7 @@ graph TB
     ETCD1["etcd"]
   end
   
-  LB["load balancer\n192.168.1.100"]
+  LB["load balancer\n192.168.1.100:6443"]
 
   WORKER["worker node\n192.168.1.211"]
   
@@ -110,69 +121,94 @@ linkStyle 3 stroke:#000000
 #+results:
 [[file:images/1134_51.png]]
 
+3台のラズパイと1台のPC、OpenWrtをインストールした1台のルーターを使用します。
+
+ - 192.168.1.100 OpenWrt (BUFFALO WZR-1750DHP)
+ - 192.168.1.201 k8s-ctrl1 (RaspberryPi 4B 8GB RAM)
+ - 192.168.1.202 k8s-ctrl2 (RaspberryPi 4B 8GB RAM)
+ - 192.168.1.203 k8s-ctrl3 (RaspberryPi 4B 8GB RAM)
+ - 192.168.1.211 k8s-worker1 (ASUS Chromebox3 i7-8550U 16GB RAM, 256GB NVMe SSD)
+
+* ソフトウェアのバージョン
+
+ - Ubuntu 22.04
+ - Kubernetes v1.29 (v1.29.4-2.1)
+ - Calico v3.27.0
+
 * ロードバランサー
 
-HA構成に対してはロードバランサー(load balancer:LB)が必要となります。
-
-# LBをコントロールプレーンを構成するマシンに配置する例もありますが、個人的にはこれはしっくり来ません。
-# LBが稼働しているマシンが落ちたら終わってしまうのでHA構成の意味がありません。(私の知識が足りないだけで意味があるのかもしれませんが)
-
-# よって別のマシンにLBを立てたいと思いますが、できるだけ少電力なものが望ましいです。
-
-# OpenWrtのパッケージに haproxy、keepalived が含まれることがわかりましたので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
-
-OpenWrtのパッケージに haproxy がありますので、BuffaloのルーターにOpenWrtをインストールし、これを使用します。
+OpenWrtのパッケージに haproxy がありますので、Buffaloの小型ルーターにOpenWrtをインストールし、これをロードバランサーとして使用します。
+ロードバランサーのIPアドレスは 192.168.1.100 とします。
+下記の通り、ルーターにOpenWrtをインストールし、opkgにてhaproxyをインストール、設定しました。
 
  - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
-
-下記の通り、ルーターにインストールされた OpenWrt にhaproxyをインストール、設定しました。
-
  - [[./?p=1312][HA Kubernetes クラスター向け haproxy の構築]]
 
-* コントロールプレーンのハードウェア、OS
+いくつかの参考文献においては、haproxyとkeepalivedを組み合わせて構築する方法がありましたが、これは選択せず、より単純なhaproxyのみを使用する構成を選択しました。
+
+keepalivedを使用する目的は、ロードバランサー自体の冗長構成であると理解しています。
+公式ページにも言及がありますが、ロードバランサーの構成方法はKubernetes自体には直接関係がありません。
+私の使用目的はKubernetesのキャッチアップ、理解が中心ですので、シンプルなhaproxyのみの構成で十分であると判断しました。
+一方で、今回の小型ルーター + OpenWrt を使用する場合には比較的安定して動作することが期待できると考えています。
+
+* コントロールプレーン
+
+ - ハードウェアのセットアップ
+ - OSのインストール
+ - OS基本設定
+ - containerd・kubernetesのインストール
+
+下記と同様に、マシンを設定します。
 
  - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
-
-上記と同様に、マシンを設定します。
-
-ここでは、3台のラズパイ4Bを設定しました。
-
-* ワーカーノードのハードウェア、OS
-
-ワーカー用マシンについては、下記を用います。
-
- - [[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補]]
- - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
-
-* コントロールプレーンのOS基本設定、containerd・kubernetesのインストール
-
  - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
 
-上記と同様に設定します。
-
- - 192.168.1.201 k8s-ctrl1
- - 192.168.1.202 k8s-ctrl2
- - 192.168.1.203 k8s-ctrl3
-
-下記は設定が異なるところです。
+なお、/etc/hosts については下記の通り設定しました。
 
 #+begin_src bash
 cat << _EOF_ | sudo tee -a /etc/hosts
 192.168.1.201  k8s-ctrl1
 192.168.1.202  k8s-ctrl2
 192.168.1.203  k8s-ctrl3
+192.168.1.211  k8s-worker1
 _EOF_
 #+end_src
 
+* ワーカー
+
+ワーカーとなるマシンを下記の通りセットアップします。
+
+ - ハードウェアのセットアップ
+ - OSのインストール
+ - OS基本設定
+ - containerd・kubernetesのインストール
+
+マシンの選定や具体的な設定方法については下記に記載しています。
+
+ - [[./?p=1126][おうちKubernetes amd64 ワーカー用マシンの候補]]
+ - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
+ - [[./?p=1326][Kubernetes x86-64(amd64) ワーカーマシンのセットアップ]]
+
 * kubeadm init(最初のコントロールプレーン向け)
 
-k8s-ctrl1 で作業します。ロードバランサーのIPアドレスは 192.168.1.100 です。
+** kubeadm initの実行
+
+k8s-ctrl1 で実行します。
+ここで、--control-plane-endpoint ではロードバランサーのIPアドレスを指定します。
 
 #+begin_src bash
 $ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
 #+end_src
 
-結果
+** kubeadm initの結果
+
+kubeadm initの結果で次に行うべき内容が示されますので、必ずこれを控えておきます。
+
+ - クラスターを使い始めるための設定
+ - podネットワーク(CNI)のdeployについて
+ - 他のコントロールプレーンノードの参加方法
+  - 証明書(upload-certs)が期限切れになった場合の対応方法
+ - ワーカーノードの参加方法
 
 #+begin_src bash
 wurly@k8s-ctrl1:~$ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
@@ -265,6 +301,8 @@ kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
         --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a 
 #+end_src
 
+** クラスターを使い始めるための設定
+
 まずは指示通り(k8s-ctrl1上で)こちらを実行します。
 
 #+begin_src bash
@@ -273,7 +311,8 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 #+end_src
 
-corednsがPending状態になっています。
+kubectrlが実行できることを確認します。
+この時点では、corednsはPending状態になっています。
 
 #+begin_src bash
 wurly@k8s-ctrl1:~$ kubectl get pod -n kube-system -w
@@ -287,11 +326,28 @@ kube-proxy-d64kt                    1/1     Running   0          4m9s
 kube-scheduler-k8s-ctrl1            1/1     Running   0          4m13s
 #+end_src
 
-calicoのインストール
+** CNI(Calico)のインストール
+
+Kubernetes v1.29 に合わせ、下記の記載を確認し、Calico v3.27 を使用します。
+
+ - [[https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements][System requirements | Calico Documentation]]
+https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements
+
+#+begin_quote
+We test Calico v3.27 against the following Kubernetes versions. Other versions may work, but we are not actively testing them.
+
+ - v1.27
+ - v1.28
+ - v1.29
+#+end_quote
+
+下記コマンドでデプロイできます。
 
 #+begin_src bash
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
 #+end_src
+
+下記が実行結果です。
 
 #+begin_src bash
 wurly@k8s-ctrl1:~$ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
@@ -344,7 +400,9 @@ kube-proxy-d64kt                           1/1     Running             0        
 kube-scheduler-k8s-ctrl1                   1/1     Running             0          10m
 #+end_src
 
-しかし、いつまで経ってもcalico-kube-controllers と coredns が ContainerCreating のまま。
+** calico-kube-controllers と coredns が ContainerCreating のままの現象
+
+しかし、いつまで経ってもcalico-kube-controllers と coredns が ContainerCreating のままでした。
 
 #+begin_src bash
 wurly@k8s-ctrl1:~$ kubectl get pod -n kube-system
@@ -381,13 +439,15 @@ Events:
   Warning  FailedCreatePodSandBox  98s (x58 over 14m)  kubelet            (combined from similar events): Failed8a69": plugin type="calico" failed (add): failed to create host netlink handle: protocol not supported
 #+end_src
 
-下記の要因でcreateできていない模様。
+下記の要因でcreateできていない模様です。
 
 #+begin_src 
 Failed to create pod sandbox: rpc erroed (add): failed to create host netlink handle: protocol not supported
 #+end_src
 
-上記メッセージでググってみたところ、下記があやしい・・・
+** calicoが立ち上がらない現象への対処(linux-modules-extra-raspiのインストール)
+
+上記メッセージでググってみたところ、下記があやしそうです。
 
  - [[https://github.com/canonical/microk8s/issues/2680][Calico fails on 21.10 when running on raspberry pi · Issue #2680 · canonical/microk8s · GitHub]]
 https://github.com/canonical/microk8s/issues/2680
@@ -514,8 +574,9 @@ kube-scheduler-k8s-ctrl1                   1/1     Running   1 (47m ago)   58m
  - [[https://qiita.com/showchan33/items/5250f518eb03858a0c25][ラズパイのOSがUbuntuで、KubernetesのCNIを追加したらエラーになった場合の対処法 #RaspberryPi - Qiita]]
 https://qiita.com/showchan33/items/5250f518eb03858a0c25
 
+* kubeadm join(残りのコントロールプレーン向け)
 
-* kubeadm init(残りのコントロールプレーン向け)
+** kubeadm join --control-plane の実行(k8s-ctrl2)
 
 k8s-ctrl2 で実行します。
 
@@ -525,14 +586,19 @@ $ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
         --control-plane --certificate-key cf6b62a26809ce3e4126c782badb0853e02d97dab46f90d7e895dd96ac1b3a1d
 #+end_src
 
-実行してみたところ下記の通り言われてしまいました。
+** 証明書が見つからない(削除された)場合
+
+実行してみたところ下記のように言われてしまいました。
+kubeadm init を実行してからしばらく経ってからkubeadm joinを行う場合に発生します。
 
 #+begin_src bash
 [download-certs] Downloading the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
 Secret "kubeadm-certs" was not found in the "kube-system" Namespace. This Secret might have expired. Please, run `kubeadm init phase upload-certs --upload-certs` on a control plane to generate a new one
 #+end_src
 
-k8s-ctrl1 で再アップロードします。
+** upload-certs の再アップロード
+
+手順に従い、k8s-ctrl1 で証明書を再アップロードします。
 
 #+begin_src 
 wurly@k8s-ctrl1:~$ sudo kubeadm init phase upload-certs --upload-certs
@@ -543,7 +609,9 @@ I0507 08:03:31.056618   32741 version.go:256] remote version is much newer: v1.3
 0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
 #+end_src
 
-k8s-ctrl2 で再度実行します。
+** kubeadm join --control-plane の再実行(k8s-ctrl2)
+
+k8s-ctrl2 で再度 kubeadm join を実行します。
 
 #+begin_src bash
 $ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
@@ -551,7 +619,7 @@ $ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
         --control-plane --certificate-key 0626e7a06e87e81e158ac7d9d1bb1f4f8adbcd29b0ff34659de706ec533cf105
 #+end_src
 
-今度はOKです。
+今度は正常にjoinできました。
 
 #+begin_src bash
 wurly@k8s-ctrl2:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
@@ -626,7 +694,7 @@ To start administering your cluster from this node, you need to run the followin
 Run 'kubectl get nodes' to see this node join the cluster.
 #+end_src
 
-ノードに追加されます。
+kube-ctrl2が追加されます。最初は STATUS が NotReady です。
 
 #+begin_src bash
 $ k get node
@@ -635,7 +703,7 @@ k8s-ctrl1   Ready      control-plane   9h    v1.29.4
 k8s-ctrl2   NotReady   <none>          2s    v1.29.4
 #+end_src
 
-追加完了しました。
+STATUS が Ready となり、追加が完了しました。
 
 #+begin_src bash
 $ k get node
@@ -644,7 +712,11 @@ k8s-ctrl1   Ready    control-plane   9h      v1.29.4
 k8s-ctrl2   Ready    control-plane   2m33s   v1.29.4
 #+end_src
 
-次にk8s-ctrl3 で実行します。
+** kubeadm join --control-plane の実行(k8s-ctrl3)
+
+次にk8s-ctrl3 でkubeadm joinを実行します。
+
+** kubeadm join --control-plane の実行結果(k8s-ctrl3)
 
 #+begin_src bash
 wurly@k8s-ctrl3:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
@@ -722,6 +794,8 @@ To start administering your cluster from this node, you need to run the followin
 Run 'kubectl get nodes' to see this node join the cluster.
 #+end_src
 
+kube-ctrl3が追加されます。最初は STATUS が NotReady です。
+
 #+begin_src bash
 $ k get node
 NAME        STATUS     ROLES           AGE     VERSION
@@ -729,6 +803,8 @@ k8s-ctrl1   Ready      control-plane   9h      v1.29.4
 k8s-ctrl2   Ready      control-plane   3m22s   v1.29.4
 k8s-ctrl3   NotReady   control-plane   13s     v1.29.4
 #+end_src
+
+STATUS が Ready となり、追加が完了しました。
 
 #+begin_src bash
 $ k get node
@@ -739,6 +815,12 @@ k8s-ctrl3   Ready    control-plane   106s    v1.29.4
 #+end_src
 
 これで、コントロールプレーンの構築は完了です。
+
+** (参考)コントロールプレーン構築完了時のpodの様子
+
+podの状態は下記のようになりました。
+
+calico-kube-controllers が一つしかない(k8s-ctrl1のみに存在する)ことが気になりました。
 
 #+begin_src bash
 $ k get pod -A
@@ -766,7 +848,11 @@ kube-system   kube-scheduler-k8s-ctrl2                   1/1     Running   0    
 kube-system   kube-scheduler-k8s-ctrl3                   1/1     Running   0             12m
 #+end_src
 
-* ここまでの検証
+** (参考)k8s-ctrl1をネットワークから切り離したときの挙動
+
+試しに、k8s-ctrl1をネットワークから切り離してみました。
+
+すると、5分くらい経ってから k8s-ctrl3 に calico-kube-controllers が生成され、k8s-ctrl1 のcalico-kube-controllersは消滅していきます。
 
 #+begin_src bash
 k get pod -o wide
@@ -797,14 +883,12 @@ kube-scheduler-k8s-ctrl2                   1/1     Running       0              
 kube-scheduler-k8s-ctrl3                   1/1     Running       1 (7m14s ago)   47m   192.168.1.203   k8s-ctrl3   <none>           <none>
 #+end_src
 
-* ワーカーノードの参加
+* kubeadm join(ワーカーノードの参加)
 
-下記の通りワーカーノードとなるマシンをセットアップします。
+** (参考)kubeadm joinの実行前の状態
 
- - [[./?p=1326][Kubernetes x86-64(amd64) ワーカーマシンのセットアップ]]
-
-
-現在はコントロールプレーンのみ存在している状態です。
+kubeadm joinを行う前にpodの状態を確認しておきます。
+下記はコントロールプレーンのみ存在している状態です。
 
 #+begin_src bash
 $ k get pod
@@ -837,12 +921,18 @@ k8s-ctrl2   Ready    control-plane   4d2h    v1.29.4
 k8s-ctrl3   Ready    control-plane   4d2h    v1.29.4
 #+end_src
 
+** kubeadm joinの実行
+
+kubeadm joinを実行します。
+
 #+begin_src bash
 sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
         --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a --v=5
 #+end_src
 
-実行してみると、
+** kubeadm joinの結果
+
+実行してみると、下記のメッセージから先に進むことができません。
 
 #+begin_src bash
 wurly@k8s-worker1:~$ sudo kubeadm join 192.168.1.100:6443 --token hdie35.u9airq6ychkt8amq \
@@ -886,7 +976,9 @@ I0511 02:28:58.158711    3224 token.go:223] [discovery] The cluster-info ConfigM
 I0511 02:29:03.706321    3224 token.go:223] [discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
 #+end_src
 
-下記のメッセージから先に進みません。
+** トークンの期限切れ
+
+下記のメッセージが問題があることを示していると思われます。
 
 #+begin_quote
 The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hdie35", will try again
@@ -896,8 +988,11 @@ The cluster-info ConfigMap does not yet contain a JWS signature for token ID "hd
 https://discuss.kubernetes.io/t/cluster-info-configmap-does-not-yet-contain-a-jws-signature/14985
 
 上記によるとtokenが期限切れになっているようです。
-(数日にわたって作業をしているため、このような状況になっています)
+私の場合、数日にわたってクラスター構築の作業を行っているため、このような状況になっています。
+(一気に作業を行う場合にはこのような問題にはならないはずです)
 トークンを再作成します。
+
+** トークンの再生成
 
 #+begin_src bash
 wurly@k8s-ctrl1:~$ kubeadm token list
@@ -910,12 +1005,18 @@ TOKEN                     TTL         EXPIRES                USAGES             
 d8gufx.xhgtb45qps7h7yhv   23h         2024-05-12T02:29:57Z   authentication,signing   <none>                                                     system:bootstrappers:kubeadm:default-node-token
 #+end_src
 
-tokenを変更して実行します。
+** kubeadm joinの再実行
+
+指定するtokenを変更して再実行します。
 
 #+begin_src bash
 sudo kubeadm join 192.168.1.100:6443 --token d8gufx.xhgtb45qps7h7yhv \
         --discovery-token-ca-cert-hash sha256:cd58094931470815be7e0b791357ce4ca6907cb861858915e17752baa6cfc18a --v=5
 #+end_src
+
+** kubeadm joinの再実行結果
+
+下記の通り、正常にクラスターに参加できました。
 
 #+begin_src bash
 wurly@k8s-worker1:~$ sudo kubeadm join 192.168.1.100:6443 --token d8gufx.xhgtb45qps7h7yhv \
@@ -989,9 +1090,9 @@ This node has joined the cluster:
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 #+end_src
 
-うまく行きました。
+** (参考)ワーカーのクラスター参加後のpodの状態
 
-workerがクラスターに加わり、最初は NotReadyです。
+ワーカーがクラスターに加わり、最初は NotReadyです。
 
 #+begin_src bash
 $ k get nodes
@@ -1043,13 +1144,19 @@ kube-proxy-tmqkh                           1/1     Running   2 (34m ago)   4d3h 
 kube-scheduler-k8s-ctrl1                   1/1     Running   5 (33m ago)   4d13h   192.168.1.201   k8s-ctrl1     <none>           <none>
 kube-scheduler-k8s-ctrl2                   1/1     Running   1 (34m ago)   4d3h    192.168.1.202   k8s-ctrl2     <none>           <none>
 kube-scheduler-k8s-ctrl3                   1/1     Running   2 (34m ago)   4d3h    192.168.1.203   k8s-ctrl3     <none>           <none>
-
 #+end_src
+
+* おわりに
+
+このように、3台のラズパイと1台のPC、OpenWrtをインストールした1台の小型ルーターを用いて、HA(High availability) おうちKubernetesクラスターの構築ができました。
+
+HA構成と言っても考えられる構成は様々であり、構成を考える上でロードバランサー等を理解することやハードウェアの準備など、それなりに時間がかかりましたが、これらを通じてKubernetesに対する理解が深まったと感じています。
+
+また、今回、技術のキャッチアッププロセスとして「3台のラズパイによるクラスター構築」 → 「3台のラズパイ + 1台のPC + 小型ルーター によるクラスター構築」の順で おうちKubernetesを構築を進める方法についてまとめることができたと考えています。
 
 * 参考
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/][Creating Highly Available Clusters with kubeadm | Kubernetes]]
  - [[https://www.google.com/search?q=Creating+Highly+Available+Clusters+with+kubeadm&sourceid=chrome&ie=UTF-8][Creating Highly Available Clusters with kubeadm - Google Search]]
- - [[https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cluster-using-kubeadm-31cca3fec76e][Creating Highly Available Kubernetes Cluster using kubeadm | by Heshani Samarasekara | Medium]]
  - [[https://www.unitasglobal.co.jp/english/news/?p=258][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part II – Unitas Global]]
  - [[https://www.unitasglobal.co.jp/english/news/?p=256][Setting up Kubernetes High Availability Cluster – Building and testing a multiple masters Part I – Unitas Global]]
  - [[https://knowledge.sakura.ad.jp/8084/][多機能プロクシサーバー「HAProxy」のさまざまな設定例 | さくらのナレッジ]]
