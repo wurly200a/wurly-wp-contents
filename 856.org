@@ -12,29 +12,28 @@
 
 Ubuntu 22.04 に helm をインストールします。
 
-ここでの helm は Emacs のそれではなく、は Kubernetes の パッケージマネージャーのHelmです。
-
-
-* 公式手順
- - [[https://helm.sh/ja/docs/intro/install/][Helm | Helm のインストール]]
-
-#+begin_src bash
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-sudo apt-get install apt-transport-https --yes
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-sudo apt-get update
-sudo apt-get install helm
-#+end_src
+ここでの helm は Emacs のそれではなく、Kubernetes の パッケージマネージャーのHelmです。
 
 * 今回行った方法
 
-gpgファイルの置き場については /usr/share/keyrings/ と /etc/apt/keyrings/ の2つの流派があるのですね。。
+gpgファイルの置き場については /usr/share/keyrings/ と /etc/apt/keyrings/ の2つの流派があると思われます。
 
 私は既に他の多くのファイルを /etc/apt/keyrings/ に置いているため、こちらに合わせました。
 
 #+begin_src bash
 curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/helm.gpg > /dev/null
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+#+end_src
+
+* (参考)公式手順
+ - [[https://helm.sh/ja/docs/intro/install/][Helm | Helm のインストール]]
+
+#+begin_src bash
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+sudo apt-get install apt-transport-https --yes
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
 sudo apt-get update
 sudo apt-get install helm
 #+end_src
