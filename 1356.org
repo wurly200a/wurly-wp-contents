@@ -3,36 +3,37 @@
 #+ORG2BLOG:
 #+DATE: [2024-05-18 Sat 22:22]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 に kubectl をインストール (2024年5月時点)
+#+TITLE: Ubuntu 22.04 に kubectl をインストール・アップデート (2024年5月時点)
 
 * 概要
 
 kubernetes(kubectlなど)のインストール方法が変わりました。
 
-下記は、2024年5月時点での最新のやり方です。このやり方ですと、メジャーバージョンを固定してインストールすることになります。
+下記は、2024年5月時点での最新のやり方です。なお、このやり方ですと、メジャーバージョンを固定してインストールすることになります。
+
+* apt update を実行したときに表示されるエラー
+
+以前の推奨のインストール方法でkubectlをインストールしていた場合、下記のメッセージが表示され、アップデートできなくなっていました。
+
+#+begin_src bash
+E: The repository 'https://apt.kubernetes.io kubernetes-xenial Release' no longer has a Release file.
+N: Updating from such a repository can't be done securely, and is therefore disabled by default.
+N: See apt-secure(8) manpage for repository creation and user configuration details.
+#+end_src
 
 * 以前の設定ファイルの削除
+
+もし、以前に kubectl をインストールしている場合には、apt の sources.list.d に登録されている(以前に自分で登録した)リストの内容を確認します。
 
 #+begin_src bash
 $ cat /etc/apt/sources.list.d/kubernetes.list 
 deb [arch=amd64 signed-by=/etc/apt/keyrings/cloud.google.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
 #+end_src
 
-#+begin_src bash
-$ ls -la /etc/apt/keyrings/
-total 40
-drwxr-xr-x 2 root root  4096 Nov 26 15:01 .
-drwxr-xr-x 8 root root  4096 May  2  2023 ..
--rw-r--r-- 1 root root  1905 Nov 26 14:57 cloud.google.gpg
--rw-r--r-- 1 root root  2760 Nov 26 14:51 docker.gpg
--rw-r--r-- 1 root root 10640 Nov 26 14:29 google-chrome.gpg
--rw-r--r-- 1 root root  1197 Nov 26 15:00 helm.gpg
--rw-r--r-- 1 root root   641 Nov 26 15:01 microsoft.gpg
--rw-r--r-- 1 root root  1185 Nov 23 10:37 nodesource.gpg
-#+end_src
+上記では、signning key が /etc/apt/keyrings/cloud.google.gpg に登録されていますので、一旦、このファイルと、リストのファイルを削除します。
 
 #+begin_src bash
 $ sudo rm /etc/apt/keyrings/cloud.google.gpg 
