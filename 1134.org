@@ -1162,4 +1162,4 @@ HA構成と言っても考えられる構成は様々であり、構成を考え
  - [[https://knowledge.sakura.ad.jp/8084/][多機能プロクシサーバー「HAProxy」のさまざまな設定例 | さくらのナレッジ]]
  - [[https://zenn.dev/f110/articles/cab6590c4d4bc8][Managed Kubernetesサービス開発者の自宅k8sクラスタ全容]]
 
-# images/1134_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/05/1134_51.png
+# images/1134_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/06/1134_51.png
