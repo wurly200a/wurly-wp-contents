@@ -6,7 +6,7 @@
 #+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: HA(High availability) おうちKubernetesクラスターの構築
+#+TITLE: 半HA(High availability) おうちKubernetesクラスターの構築
 
 * はじめに
 
@@ -162,6 +162,13 @@ keepalivedを使用する目的は、ロードバランサー自体の冗長構�
 
  - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
  - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
+
+
+#+begin_src bash
+hostnamectl set-hostname k8s-ctrl1
+hostnamectl set-hostname k8s-ctrl2
+hostnamectl set-hostname k8s-ctrl3
+#+end_src
 
 なお、/etc/hosts については下記の通り設定しました。
 
