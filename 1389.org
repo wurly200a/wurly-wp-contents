@@ -1,0 +1,1047 @@
+#+BLOG: wurly-blog
+#+POSTID: 1389
+#+ORG2BLOG:
+#+DATE: [2024-06-17 Mon 07:47]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: HA おうちKubernetesクラスターの構築
+
+* 概要
+
+ついに、本当の？HA おうちKubernetesクラスターの構築に取り組みます。
+
+下記では、ラズパイ3台のコントロールプレーン＋x86(amd64)のPC 1台のワーカーを設けるKubernetes(K8S)クラスターを構築しました。
+
+ - [[./?p=1134][半HA(High availability) おうちKubernetesクラスターの構築]]
+
+いざ使い始めたところ、この構成にはいろいろと課題がありました。
+
+K8Sクラスターを実用的に使用するにはK8S内のLoad Balancerサービスや、PV(Persist Volume)が必要になります。
+
+Load BalancerはMetalLBをデプロイしましたが、外部IPが取得できずうまく動作できませんでした。
+
+また、PVについても Longhorn、Rook Ceph の導入を試みましたが、こちらもうまく行きませんでした。
+
+いくつか原因がありそうなのですが、CNIをCalicoを選択したため、MetalLB との相性が悪いことや、ワーカーが1台しか無いため、helmチャートのデフォルトのvalues.yamlとの構成が合っていないように見えました。
+
+そこで、やはりまっとうにワーカーを3台設ける構成で構築し直すことにしました。CNIとしたはデプロイするサービスを考慮してCiliumを使用します。
+
+* 本投稿の内容について
+
+おうちKubernetesクラスターの構築については、下記のようにこれまでいろいろと試してきました。
+本稿では重複する部分は割愛していますので、必要に応じて下記ページを参照ください。
+
+ - ラズパイ1台のコントロールプレーン＋ラズパイ2台のワーカー
+  - [[./?p=1011][おうちKubernetesをはじめる(その1)]] 
+  - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
+  - [[./?p=1055][おうちKubernetesをはじめる(その3)]]
+ - HA構成について
+  - [[./?p=1090][KubernetesのHA構成(コントロールプレーン、etcd、ワーカー)]]
+ - ラズパイ3台のコントロールプレーン＋PC 1台のワーカー
+  - [[./?p=1134][半HA(High availability) おうちKubernetesクラスターの構築]]
+ - ワーカーのセットアップ
+  - [[./?p=1132][ASUS Chromebox 3 に Ubuntu 22.04 をインストール]]
+  - [[./?p=1326][Kubernetes x86-64(amd64) ワーカーマシンのセットアップ]]
+ - ルーター、ロードバランサー
+  - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
+  - [[./?p=1312][HA Kubernetes クラスター向け haproxy の構築]]
+ - アクセス方法
+  - [[./?p=1081][kubectl でリモートクラスタに接続]]
+
+* 構成
+
+3台のラズパイと3台のPC(Chromebox改)、OpenWrtをインストールした1台のルーターを使用します。
+
+また、家のLANのルーターのLAN側IPアドレスは192.168.1.1で、LANは 192.168.1.0/16 ですが、K8Sネットワークはセグメントを分け、192.168.10.0/16 としました。
+
+# (構成としては適切ではないかもしれません)
+
+以前の構成ではOpenWrtを有線ブリッジとしていたのですが、今回は、ネットワークセグメントを分けました。
+この方がパフォーマンスとして有利ですし、LBやBGPなどを構成する際に問題になりにくい、または問題があっても解析しやすいと考えました。
+また、以前は各マシンにおいてWi-Fiを有効にしていたのですが、クラスターを構成する際には無効にし、有線LANのみでアクセスするようにしました。
+
+(ネットワークセグメントを分けず、Wi-Fiを有効にしていたのは、問題があった際に作業用のPCからクラスタ内のPCにアクセスしやすくする目的でした)
+
+ - 192.168.1.100/192.168.10.1 OpenWrt (BUFFALO WZR-1750DHP)
+ - 192.168.10.11 k8s-ctrl1 (RaspberryPi 4B 8GB RAM)
+ - 192.168.10.12 k8s-ctrl2 (RaspberryPi 4B 8GB RAM)
+ - 192.168.10.13 k8s-ctrl3 (RaspberryPi 4B 8GB RAM)
+ - 192.168.10.21 k8s-worker1 (ASUS Chromebox3 i7-8550U 16GB RAM, 256GB NVMe SSD)
+ - 192.168.10.22 k8s-worker1 (ASUS Chromebox3 i7-8550U 16GB RAM, 256GB NVMe SSD)
+ - 192.168.10.23 k8s-worker1 (ASUS Chromebox3 i7-8550U 16GB RAM, 256GB NVMe SSD)
+
+* ソフトウェアのバージョン
+
+ - Ubuntu 22.04
+ - Kubernetes v1.29 (v1.29.6)
+ - Cilium v0.16.10
+
+今回構築するのは下記のような構成となります。
+
+ユーザーは ロードバランサー(192.168.1.100:6443) にアクセスする(kubectrlを実行する)ことになります。
+
+#+begin_src mermaid :file images/1389_51.png
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'primaryColor': '#ffffff',
+      'primaryTextColor': '#000000',
+      'primaryBorderColor': '#000000',
+      'lineColor': '#aaaaaa',
+      'secondaryColor': '#ffffff',
+      'tertiaryColor': '#aaaaaa'
+    }
+  }
+}%%
+
+graph TB
+  subgraph controlplane3[control plane 3 192.168.10.13]
+    APISERVER3["apiserver"]
+    CONTROLLER3["controller-manager"]
+    SCHEDULER3["scheduler"]
+    ETCD3["etcd"]
+  end
+
+  subgraph controlplane2[control plane 2 192.168.10.12]
+    APISERVER2["apiserver"]
+    CONTROLLER2["controller-manager"]
+    SCHEDULER2["scheduler"]
+    ETCD2["etcd"]
+  end
+
+  subgraph controlplane1[control plane 1 192.168.10.11]
+    APISERVER1["apiserver"]
+    CONTROLLER1["controller-manager"]
+    SCHEDULER1["scheduler"]
+    ETCD1["etcd"]
+  end
+  
+  LB["OpenWrt Router\nload balancer\n192.168.1.100:6443\n/192.168.10.1"]
+
+  WORKER1["worker node\n192.168.10.21"]
+
+  WORKER2["worker node\n192.168.10.22"]
+
+  WORKER3["worker node\n192.168.10.23"]
+  
+  %% relation
+  WORKER1---LB
+  WORKER2---LB
+  WORKER3---LB
+
+  LB---APISERVER1
+  LB---APISERVER2
+  LB---APISERVER3
+
+  APISERVER1---CONTROLLER1
+  CONTROLLER1---SCHEDULER1
+  SCHEDULER1---ETCD1
+
+  APISERVER2---CONTROLLER2
+  CONTROLLER2---SCHEDULER2
+  SCHEDULER2---ETCD2
+
+  APISERVER3---CONTROLLER3
+  CONTROLLER3---SCHEDULER3
+  SCHEDULER3---ETCD3
+
+linkStyle 1 stroke:#000000
+linkStyle 2 stroke:#000000
+linkStyle 3 stroke:#000000
+#+end_src
+
+#+results:
+[[file:images/1389_51.png]]
+
+* ワーカーのストレージ構成
+
+Rook Ceph を使用することを想定し、ワーカーのストレージについては、パーティションを分けて空きを確保しておきます。
+
+ - [[./?p=1399][Ubuntu 22.04 パーティションを分けてインストール]]
+
+* コントロールプレーンのセットアップ(個別)
+
+** k8s-ctrl1
+
+#+begin_src bash
+hostnamectl set-hostname k8s-ctrl1
+#+end_src
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.10.11/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+** k8s-ctrl2
+
+#+begin_src bash
+hostnamectl set-hostname k8s-ctrl2
+#+end_src
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.10.12/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+** k8s-ctrl3
+
+#+begin_src bash
+hostnamectl set-hostname k8s-ctrl3
+#+end_src
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 192.168.10.13/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+* コントロールプレーンのセットアップ(共通)
+
+** netplan
+
+#+begin_src bash
+sudo chmod 600 /etc/netplan/01-netcfg.yaml
+sudo netplan apply
+ip addr
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt upgrade
+sudo reboot
+#+end_src
+
+** etc/hosts
+
+#+begin_src bash
+cat << _EOF_ | sudo tee -a /etc/hosts
+192.168.10.11  k8s-ctrl1
+192.168.10.12  k8s-ctrl2
+192.168.10.13  k8s-ctrl3
+192.168.10.21  k8s-worker1
+192.168.10.22  k8s-worker2
+192.168.10.23  k8s-worker3
+_EOF_
+#+end_src
+
+#+begin_src bash
+cat /etc/hosts
+#+end_src
+
+** swap off
+
+#+begin_src bash
+sudo swapoff -a
+sudo cat /etc/fstab | grep swap
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+#+end_src
+
+** br_netfilter, overlay
+
+#+begin_src bash
+lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+#+begin_src bash
+sudo tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+#+end_src
+
+#+begin_src 
+cat /etc/modules-load.d/containerd.conf
+#+end_src
+
+#+begin_src bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+** net.ipv4.ip_forward
+
+#+begin_src bash
+sysctl net.bridge.bridge-nf-call-ip6tables
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.ipv4.ip_forward
+#+end_src
+
+#+begin_src bash
+sudo sed -i 's/^#\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf
+cat /etc/sysctl.conf | grep ipv4.ip_forward
+#+end_src
+
+#+begin_src bash
+sudo sysctl --system
+#+end_src
+
+#+begin_src bash
+sysctl net.bridge.bridge-nf-call-ip6tables
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.ipv4.ip_forward
+#+end_src
+
+** containerd
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y gnupg2
+#+end_src
+
+Note : "arm64" is for RaspberryPi
+
+#+begin_src bash
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+[Enter]
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y containerd.io
+#+end_src
+
+#+begin_src bash
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+cat /etc/containerd/config.toml | grep SystemdCgroup
+sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+cat /etc/containerd/config.toml | grep SystemdCgroup
+#+end_src
+
+#+begin_src bash
+sudo systemctl restart containerd
+sudo systemctl status containerd
+#+end_src
+
+** kubernetes(kubelet,kubeadm,kubectl)
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+#+end_src
+
+** linux-modules-extra-raspi
+
+- [[https://docs.cilium.io/en/stable/operations/system_requirements/#ubuntu-22-04-on-raspberry-pi][System Requirements — Cilium 1.15.6 documentation]]
+
+Cilium の公式に下記のように記載されていましたのでインストールします。
+
+#+begin_src 
+Before running Cilium on Ubuntu 22.04 on a Raspberry Pi, please make sure to install the following package:
+#+end_src
+
+#+begin_src bash
+sudo apt install linux-modules-extra-raspi
+#+end_src
+
+** disabled wi-fi
+
+Comment out all the description in this file
+
+#+begin_src bash
+sudo vi /etc/netplan/50-cloud-init.yaml
+#+end_src
+
+#+begin_src bash
+sudo reboot
+#+end_src
+
+* (コントロールプレーンの冗長化のための)ロードバランサー(haproxy)
+
+ - [[./?p=1260][WZR-1750DHP に OpenWrt をインストール]]
+ - [[./?p=1312][HA Kubernetes クラスター向け haproxy の構築]]
+
+#+begin_src bash
+# Default parameters
+defaults
+	# Default timeouts
+	timeout connect 5000ms
+	timeout client 50000ms
+	timeout server 50000ms
+
+listen kubernetes
+	bind :6443
+
+	option tcplog
+    log global
+    log 127.0.0.1 local0
+
+	mode tcp
+
+	balance roundrobin
+	server k8s-ctrl1 192.168.1.11:6443 check fall 3 rise 2
+	server k8s-ctrl2 192.168.1.12:6443 check fall 3 rise 2
+	server k8s-ctrl3 192.168.1.13:6443 check fall 3 rise 2
+#+end_src
+
+#+begin_src bash
+$ nc 127.0.0.1 6443
+#+end_src
+
+* kubeadm init (最初のコントロールプレーン)
+
+# ** k8s-ctrl1(失敗)
+# 
+# #+begin_src bash
+# # sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --apiserver-advertise-address 192.168.10.1 --upload-certs
+# #+end_src
+# 
+# #+begin_src bash
+# wurly@k8s-ctrl1:~$ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --apiserver-advertise-address 192.168.10.1 --upload-certs
+# I0620 08:40:48.380229    2063 version.go:256] remote version is much newer: v1.30.2; falling back to: stable-1.29
+# [init] Using Kubernetes version: v1.29.6
+# [preflight] Running pre-flight checks
+# [preflight] Pulling images required for setting up a Kubernetes cluster
+# [preflight] This might take a minute or two, depending on the speed of your internet connection
+# [preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+# W0620 08:41:30.587056    2063 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime is inconsistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+# [certs] Using certificateDir folder "/etc/kubernetes/pki"
+# [certs] Generating "ca" certificate and key
+# [certs] Generating "apiserver" certificate and key
+# [certs] apiserver serving cert is signed for DNS names [k8s-ctrl1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.10.1 192.168.1.100]
+# [certs] Generating "apiserver-kubelet-client" certificate and key
+# [certs] Generating "front-proxy-ca" certificate and key
+# [certs] Generating "front-proxy-client" certificate and key
+# [certs] Generating "etcd/ca" certificate and key
+# [certs] Generating "etcd/server" certificate and key
+# [certs] etcd/server serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.10.1 127.0.0.1 ::1]
+# [certs] Generating "etcd/peer" certificate and key
+# [certs] etcd/peer serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.10.1 127.0.0.1 ::1]
+# [certs] Generating "etcd/healthcheck-client" certificate and key
+# [certs] Generating "apiserver-etcd-client" certificate and key
+# [certs] Generating "sa" key and public key
+# [kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+# [kubeconfig] Writing "admin.conf" kubeconfig file
+# [kubeconfig] Writing "super-admin.conf" kubeconfig file
+# [kubeconfig] Writing "kubelet.conf" kubeconfig file
+# [kubeconfig] Writing "controller-manager.conf" kubeconfig file
+# [kubeconfig] Writing "scheduler.conf" kubeconfig file
+# [etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+# [control-plane] Using manifest folder "/etc/kubernetes/manifests"
+# [control-plane] Creating static Pod manifest for "kube-apiserver"
+# [control-plane] Creating static Pod manifest for "kube-controller-manager"
+# [control-plane] Creating static Pod manifest for "kube-scheduler"
+# [kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+# [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+# [kubelet-start] Starting the kubelet
+# [wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+# [kubelet-check] Initial timeout of 40s passed.
+# 
+# Unfortunately, an error has occurred:
+#         timed out waiting for the condition
+# 
+# This error is likely caused by:
+#         - The kubelet is not running
+#         - The kubelet is unhealthy due to a misconfiguration of the node in some way (required cgroups disabled)
+# 
+# If you are on a systemd-powered system, you can try to troubleshoot the error with the following commands:
+#         - 'systemctl status kubelet'
+#         - 'journalctl -xeu kubelet'
+# 
+# Additionally, a control plane component may have crashed or exited when started by the container runtime.
+# To troubleshoot, list all containers using your preferred container runtimes CLI.
+# Here is one example how you may list all running Kubernetes containers by using crictl:
+#         - 'crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a | grep kube | grep -v pause'
+#         Once you have found the failing container, you can inspect its logs with:
+#         - 'crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock logs CONTAINERID'
+# error execution phase wait-control-plane: couldn't initialize a Kubernetes cluster
+# To see the stack trace of this error execute with --v=5 or higher
+# #+end_src
+# 
+# #+begin_src bash
+#         - The kubelet is unhealthy due to a misconfiguration of the node in some way (required cgroups disabled)
+# #+end_src
+# 
+# ということなので、
+# 
+# #+begin_src bash
+# cat /etc/containerd/config.toml | grep SystemdCgroup
+# sudo sed -i 's/SystemdCgroup \= true/SystemdCgroup \= false/g' /etc/containerd/config.toml
+# cat /etc/containerd/config.toml | grep SystemdCgroup
+# sudo systemctl restart containerd
+# sudo systemctl status containerd
+# #+end_src
+# 
+# #+begin_src bash
+# sudo kubeadm reset --force
+# #+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ nc localhost 6443 -v
+nc: connect to localhost (127.0.0.1) port 6443 (tcp) failed: Connection refused
+#+end_src
+
+よくわかりませんが、起動してから時間が立つと Connection refused になってしまうことがありました。
+マシン起動直後に実行しました。
+
+#+begin_src bash
+sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ sudo kubeadm init --control-plane-endpoint "192.168.1.100:6443" --upload-certs
+[sudo] password for wurly: 
+I0622 11:34:19.508444    1073 version.go:256] remote version is much newer: v1.30.2; falling back to: stable-1.29
+[init] Using Kubernetes version: v1.29.6
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0622 11:35:06.098998    1073 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.6" of the container runtime
+ is inconsistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s-ctrl1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.10.11 192.168.1.100]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.10.11 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s-ctrl1 localhost] and IPs [192.168.10.11 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "super-admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 17.041551 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+682be5e39e0c2b09b702dcc55eb63d9b186b46956948364b3b46b371cca2e0fb
+[mark-control-plane] Marking the node k8s-ctrl1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node k8s-ctrl1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: 9cdt7o.ac0zofa03n4cpywn
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join 192.168.1.100:6443 --token 9cdt7o.ac0zofa03n4cpywn \
+        --discovery-token-ca-cert-hash sha256:1b5aef58cb727699b774e4676457ff89bade426c52344fdc5891cd8de440a43e \
+        --control-plane --certificate-key 682be5e39e0c2b09b702dcc55eb63d9b186b46956948364b3b46b371cca2e0fb
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.1.100:6443 --token 9cdt7o.ac0zofa03n4cpywn \
+        --discovery-token-ca-cert-hash sha256:1b5aef58cb727699b774e4676457ff89bade426c52344fdc5891cd8de440a43e 
+#+end_src
+
+うまく行きました。
+
+#+begin_src bash
+sudo crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ sudo crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a
+CONTAINER           IMAGE               CREATED              STATE               NAME                      ATTEMPT             POD ID              POD
+56ec3f62abd64       a75156450625c       About a minute ago   Running             kube-proxy                0                   75dadcce43ef2       kube-proxy-8pv9f
+4601bde6bd1ed       46bfddf397d49       About a minute ago   Running             kube-apiserver            0                   43cdd65c1de77       kube-apiserver-k8s-ctrl1
+51841ece14138       9df0eeeacdd8f       About a minute ago   Running             kube-controller-manager   0                   a2013a7bdb1e8       kube-controller-manager-k8s-ctrl1
+8c69a45d684af       014faa467e297       About a minute ago   Running             etcd                      0                   94e9b436cfd92       etcd-k8s-ctrl1
+3cf1ed4bbcf5c       4d823a436d04c       About a minute ago   Running             kube-scheduler            0                   8dc995dff5065       kube-scheduler-k8s-ctrl1
+#+end_src
+
+#+begin_src bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+#+end_src
+
+* Cilium のインストール (最初のコントロールプレーンのみ)
+
+下記の公式手順通りにやってみます。
+
+ - [[https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli][Cilium Quick Installation — Cilium 1.15.6 documentation]]
+
+#+begin_src bash
+CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+CLI_ARCH=amd64
+if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
+curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+#+end_src
+
+上記の通りやっても大丈夫ですが、ラズパイなのでやるべきことは下記ですね。
+
+#+begin_src bash
+CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+CLI_ARCH=arm64
+curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+#+end_src
+
+2024.6.22現在、バージョンは下記でした。
+
+#+begin_src bash
+$ echo ${CILIUM_CLI_VERSION}
+v0.16.10
+#+end_src
+
+#+begin_src bash
+cilium install --version 1.15.6
+#+end_src
+
+#+begin_src bash
+$ cilium install --version 1.15.6
+ℹ️  Using Cilium version 1.15.6
+🔮 Auto-detected cluster name: kubernetes
+🔮 Auto-detected kube-proxy has been installed
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl get pod -A
+NAMESPACE     NAME                                READY   STATUS              RESTARTS   AGE
+kube-system   cilium-lq477                        1/1     Running             0          31s
+kube-system   cilium-operator-f45f4975f-cgzg6     1/1     Running             0          31s
+kube-system   coredns-76f75df574-2p4fj            0/1     ContainerCreating   0          111m
+kube-system   coredns-76f75df574-56zfw            0/1     ContainerCreating   0          111m
+kube-system   etcd-k8s-ctrl1                      1/1     Running             0          111m
+kube-system   kube-apiserver-k8s-ctrl1            1/1     Running             0          111m
+kube-system   kube-controller-manager-k8s-ctrl1   1/1     Running             0          111m
+kube-system   kube-proxy-8pv9f                    1/1     Running             0          111m
+kube-system   kube-scheduler-k8s-ctrl1            1/1     Running             0          111m
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ kubectl get pod -A
+NAMESPACE     NAME                                READY   STATUS    RESTARTS   AGE
+kube-system   cilium-lq477                        1/1     Running   0          2m11s
+kube-system   cilium-operator-f45f4975f-cgzg6     1/1     Running   0          2m11s
+kube-system   coredns-76f75df574-2p4fj            1/1     Running   0          113m
+kube-system   coredns-76f75df574-56zfw            1/1     Running   0          113m
+kube-system   etcd-k8s-ctrl1                      1/1     Running   0          113m
+kube-system   kube-apiserver-k8s-ctrl1            1/1     Running   0          113m
+kube-system   kube-controller-manager-k8s-ctrl1   1/1     Running   0          113m
+kube-system   kube-proxy-8pv9f                    1/1     Running   0          113m
+kube-system   kube-scheduler-k8s-ctrl1            1/1     Running   0          113m
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status --wait
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    disabled (using embedded mode)
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+Deployment             cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+DaemonSet              cilium             Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium             Running: 1
+                       cilium-operator    Running: 1
+Cluster Pods:          2/2 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.15.6@sha256:6aa840986a3a9722cd967ef63248d675a87a                       cilium-operator    quay.io/cilium/operator-generic:v1.15.6@sha256:5789f0935eef96ad571e4f5565
+#+end_src
+
+* kubeadm init (その他のコントロールプレーン)
+
+#+begin_src bash
+sudo kubeadm init phase upload-certs --upload-certs
+#+end_src
+
+上記で再生成した certificate key を使用します。
+
+#+begin_src bash
+sudo kubeadm join 192.168.1.100:6443 --token 9cdt7o.ac0zofa03n4cpywn \
+        --discovery-token-ca-cert-hash sha256:1b5aef58cb727699b774e4676457ff89bade426c52344fdc5891cd8de440a43e \
+        --control-plane --certificate-key 338f0272988bf66b6914994d28fb2ea6de4f399ce791f18aebf60ddd93e6c589
+#+end_src
+
+#+begin_src bash
+$ k get nodes -o wide
+NAME        STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+k8s-ctrl1   Ready    control-plane   153m    v1.29.6   192.168.10.11   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi   containerd://1.6.33
+k8s-ctrl2   Ready    control-plane   2m55s   v1.29.6   192.168.10.12   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi   containerd://1.6.33
+k8s-ctrl3   Ready    control-plane   79s     v1.29.6   192.168.10.13   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi   containerd://1.6.33
+#+end_src
+
+* worker
+
+** k8s-worker1
+
+#+begin_src yaml
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  wifis:
+    wlp2s0:
+      access-points:
+        satori:
+          password: e65601966fe93e613fd6fb970e4a5283240ef478a308ec9cc289e91d97bbc8a8
+      dhcp4: true
+      optional: true
+  ethernets:
+    eno0:
+      addresses:
+        - 192.168.10.21/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+** k8s-worker2
+
+#+begin_src yaml
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  wifis:
+    wlp2s0:
+      access-points:
+        satori:
+          password: e65601966fe93e613fd6fb970e4a5283240ef478a308ec9cc289e91d97bbc8a8
+      dhcp4: true
+      optional: true
+  ethernets:
+    eno0:
+      addresses:
+        - 192.168.10.22/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+** k8s-worker3
+
+#+begin_src yaml
+cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  wifis:
+    wlp2s0:
+      access-points:
+        satori:
+          password: e65601966fe93e613fd6fb970e4a5283240ef478a308ec9cc289e91d97bbc8a8
+      dhcp4: true
+      optional: true
+  ethernets:
+    eno0:
+      addresses:
+        - 192.168.10.23/24
+      nameservers:
+        addresses: [192.168.10.1]
+      routes:
+        - to: default
+          via: 192.168.10.1
+_EOF_
+#+end_src
+
+#+begin_src bash
+sudo chmod 600 /etc/netplan/01-netcfg.yaml 
+sudo rm /etc/netplan/00-installer-config*
+sudo netplan apply
+#+end_src
+
+有線側の接続が確認できたら、無線側を無効にします。
+
+#+begin_src bash
+sudo free -m
+#+end_src
+
+#+begin_src bash
+sudo swapoff -a
+sudo sed -i '/swap/ s/^\(.*\)$/#\1/g' /etc/fstab
+sudo cat /etc/fstab
+#+end_src
+
+#+begin_src bash
+sudo reboot
+#+end_src
+
+#+begin_src bash
+sudo free -m
+#+end_src
+
+#+begin_src bash
+lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+#+begin_src bash
+sudo tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+#+end_src
+
+
+#+begin_src 
+cat /etc/modules-load.d/containerd.conf
+#+end_src
+
+#+begin_src bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+#+end_src
+
+
+#+begin_src bash
+lsmod | grep -e br_netfilter -e overlay
+#+end_src
+
+#+begin_src bash
+sysctl net.bridge.bridge-nf-call-ip6tables
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.ipv4.ip_forward
+#+end_src
+
+#+begin_src bash
+sudo sed -i 's/^#\(net.ipv4.ip_forward=1\)/\1/' /etc/sysctl.conf
+cat /etc/sysctl.conf | grep ipv4.ip_forward
+#+end_src
+
+#+begin_src bash
+sudo sysctl --system
+#+end_src
+
+#+begin_src bash
+sysctl net.bridge.bridge-nf-call-ip6tables
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.ipv4.ip_forward
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y gnupg2
+#+end_src
+
+*注意* 下記は arch=amd64 を指定しています。
+
+#+begin_src bash
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+#+end_src
+
+この時点で、リポジトリ追加の確認のため、Enterキー入力を促される場合には、Enterキーを入力して次に進みます。
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y containerd.io
+#+end_src
+
+#+begin_src bash
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+cat /etc/containerd/config.toml | grep SystemdCgroup
+sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+cat /etc/containerd/config.toml | grep SystemdCgroup
+#+end_src
+
+#+begin_src bash
+sudo systemctl restart containerd
+sudo systemctl status containerd
+#+end_src
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+#+end_src
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+#+end_src
+
+** kubeadm join (k8s-worker1)
+
+(注意) トークンが期限切れの場合、controlプレーンで実行します。
+
+#+begin_src bash
+sudo kubeadm token list
+sudo kubeadm token create
+sudo kubeadm token list
+#+end_src
+
+workerで実行します。
+
+#+begin_src bash
+sudo kubeadm join 192.168.1.100:6443 --token (上記で取得したトークン) --discovery-token-ca-cert-hash sha256:1b5aef58cb727699b774e4676457ff89bade426c52344fdc5891cd8de440a43e --v=5
+#+end_src
+
+#+begin_src bash
+$ k get node
+NAME          STATUS     ROLES           AGE   VERSION
+k8s-ctrl1     Ready      control-plane   27h   v1.29.6
+k8s-ctrl2     Ready      control-plane   25h   v1.29.6
+k8s-ctrl3     Ready      control-plane   25h   v1.29.6
+k8s-worker1   NotReady   <none>          20s   v1.29.6
+$ k get pods -A
+NAMESPACE     NAME                                READY   STATUS     RESTARTS        AGE
+kube-system   cilium-gdzzp                        1/1     Running    2 (3h48m ago)   25h
+kube-system   cilium-j7z76                        0/1     Init:0/6   0               26s
+kube-system   cilium-lq477                        1/1     Running    2 (3h48m ago)   26h
+kube-system   cilium-operator-f45f4975f-cgzg6     1/1     Running    3 (3h48m ago)   26h
+kube-system   cilium-rjtsm                        1/1     Running    2 (3h48m ago)   25h
+kube-system   coredns-76f75df574-2p4fj            1/1     Running    2 (3h48m ago)   27h
+kube-system   coredns-76f75df574-56zfw            1/1     Running    2 (3h48m ago)   27h
+kube-system   etcd-k8s-ctrl1                      1/1     Running    2 (3h48m ago)   27h
+kube-system   etcd-k8s-ctrl2                      1/1     Running    2 (3h48m ago)   25h
+kube-system   etcd-k8s-ctrl3                      1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-apiserver-k8s-ctrl1            1/1     Running    2 (3h48m ago)   27h
+kube-system   kube-apiserver-k8s-ctrl2            1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-apiserver-k8s-ctrl3            1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-controller-manager-k8s-ctrl1   1/1     Running    3 (3h48m ago)   27h
+kube-system   kube-controller-manager-k8s-ctrl2   1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-controller-manager-k8s-ctrl3   1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-proxy-56bkk                    1/1     Running    0               26s
+kube-system   kube-proxy-6rvft                    1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-proxy-8pv9f                    1/1     Running    2 (3h48m ago)   27h
+kube-system   kube-proxy-kp95c                    1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-scheduler-k8s-ctrl1            1/1     Running    3 (3h48m ago)   27h
+kube-system   kube-scheduler-k8s-ctrl2            1/1     Running    2 (3h48m ago)   25h
+kube-system   kube-scheduler-k8s-ctrl3            1/1     Running    2 (3h48m ago)   25h
+$ k get pods -A
+NAMESPACE     NAME                                READY   STATUS    RESTARTS        AGE
+kube-system   cilium-gdzzp                        1/1     Running   2 (3h55m ago)   25h
+kube-system   cilium-j7z76                        1/1     Running   0               6m57s
+kube-system   cilium-lq477                        1/1     Running   2 (3h55m ago)   26h
+kube-system   cilium-operator-f45f4975f-cgzg6     1/1     Running   3 (3h55m ago)   26h
+kube-system   cilium-rjtsm                        1/1     Running   2 (3h55m ago)   25h
+kube-system   coredns-76f75df574-2p4fj            1/1     Running   2 (3h55m ago)   28h
+kube-system   coredns-76f75df574-56zfw            1/1     Running   2 (3h55m ago)   28h
+kube-system   etcd-k8s-ctrl1                      1/1     Running   2 (3h55m ago)   28h
+kube-system   etcd-k8s-ctrl2                      1/1     Running   2 (3h55m ago)   25h
+kube-system   etcd-k8s-ctrl3                      1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-apiserver-k8s-ctrl1            1/1     Running   2 (3h55m ago)   28h
+kube-system   kube-apiserver-k8s-ctrl2            1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-apiserver-k8s-ctrl3            1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-controller-manager-k8s-ctrl1   1/1     Running   3 (3h55m ago)   28h
+kube-system   kube-controller-manager-k8s-ctrl2   1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-controller-manager-k8s-ctrl3   1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-proxy-56bkk                    1/1     Running   0               6m57s
+kube-system   kube-proxy-6rvft                    1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-proxy-8pv9f                    1/1     Running   2 (3h55m ago)   28h
+kube-system   kube-proxy-kp95c                    1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-scheduler-k8s-ctrl1            1/1     Running   3 (3h55m ago)   28h
+kube-system   kube-scheduler-k8s-ctrl2            1/1     Running   2 (3h55m ago)   25h
+kube-system   kube-scheduler-k8s-ctrl3            1/1     Running   2 (3h55m ago)   25h
+$ k get nodes -o wide
+NAME          STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
+k8s-ctrl1     Ready    control-plane   28h     v1.29.6   192.168.10.11   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-ctrl2     Ready    control-plane   25h     v1.29.6   192.168.10.12   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-ctrl3     Ready    control-plane   25h     v1.29.6   192.168.10.13   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-worker1   Ready    <none>          7m13s   v1.29.6   192.168.10.21   <none>        Ubuntu 22.04.4 LTS   5.15.0-112-generic   containerd://1.6.33
+#+end_src
+
+
+** kubeadm joinの実行 (k8s-worker2)
+
+上記同様に実施します。
+
+** kubeadm joinの実行 (k8s-worker3)
+
+上記同様に実施します。
+
+* 確認
+
+ラズパイ3台のコントロールプレーン＋x86(amd64)のPC 3台のワーカーを設けるKubernetesクラスターが構築できました。
+
+#+begin_src bash
+$ k get nodes -o wide
+NAME          STATUS   ROLES           AGE    VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
+k8s-ctrl1     Ready    control-plane   14d    v1.29.6   192.168.10.11   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-ctrl2     Ready    control-plane   14d    v1.29.6   192.168.10.12   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-ctrl3     Ready    control-plane   14d    v1.29.6   192.168.10.13   <none>        Ubuntu 22.04.4 LTS   5.15.0-1055-raspi    containerd://1.6.33
+k8s-worker1   Ready    <none>          13d    v1.29.6   192.168.10.21   <none>        Ubuntu 22.04.4 LTS   5.15.0-112-generic   containerd://1.6.33
+k8s-worker2   Ready    <none>          4d8h   v1.29.6   192.168.10.22   <none>        Ubuntu 22.04.3 LTS   5.15.0-113-generic   containerd://1.7.18
+k8s-worker3   Ready    <none>          4d8h   v1.29.6   192.168.10.23   <none>        Ubuntu 22.04.3 LTS   5.15.0-113-generic   containerd://1.7.18
+#+end_src
+
+# images/1389_51.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1389_51.png
