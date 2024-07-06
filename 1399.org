@@ -1,0 +1,142 @@
+#+BLOG: wurly-blog
+#+POSTID: 1399
+#+ORG2BLOG:
+#+DATE: [2024-06-23 Sun 11:52]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 パーティションを分けてインストール
+
+* 概要
+
+256GBのSSDのうち、100GBにUbuntuをインストールし、残りの領域のパーティションを確保する
+
+* Ubuntuのインストール
+
+# Guided storage configuration
+file:images/1399_01.jpg
+
+# Guided storage configuration
+# Storage configuration
+file:images/1399_02.jpg
+
+# Guided storage configuration
+file:images/1399_03.jpg
+
+# Guided storage configuration
+file:images/1399_04.jpg
+
+# Guided storage configuration
+file:images/1399_05.jpg
+
+# Profile configuration
+file:images/1399_06.jpg
+
+# SSH configuration
+file:images/1399_07.jpg
+
+# Instlling system
+# file:images/1399_08.jpg
+
+# Storage configuration
+file:images/1399_11.jpg
+
+# Storage configuration
+file:images/1399_12.jpg
+
+# Storage configuration
+file:images/1399_13.jpg
+
+# Storage configuration
+file:images/1399_14.jpg
+
+# Storage configuration
+file:images/1399_15.jpg
+
+# Storage configuration
+file:images/1399_16.jpg
+
+# Storage configuration
+file:images/1399_17.jpg
+
+# Storage configuration
+file:images/1399_18.jpg
+
+
+* パーティションの作成
+
+まずは確認
+
+#+begin_src bash
+sudo fdisk -l
+#+end_src
+
+#+begin_src bash
+sudo fdisk /dev/nvme0n1
+#+end_src
+
+helpを見る
+
+#+begin_src bash
+m
+#+end_src
+
+パーティションを作成する
+
+#+begin_src bash
+n
+#+end_src
+
+それぞれEnterで進む
+
+Partition number
+First sector
+Last sector
+
+パーティションテーブルを確認する
+
+#+begin_src bash
+p
+#+end_src
+
+書き込む
+
+#+begin_src bash
+w
+#+end_src
+
+最後も確認
+
+#+begin_src bash
+sudo fdisk -l
+#+end_src
+
+# fdisk
+# file:images/1399_09.jpg
+
+# fdisk
+file:images/1399_10.jpg
+
+
+* 参考
+
+ - [[https://qiita.com/kakkie/items/8f960f2dc5eb6e591d9d][Linux基礎(パーティションとファイルシステムの作成) #Linux - Qiita]]
+https://qiita.com/kakkie/items/8f960f2dc5eb6e591d9d
+
+# images/1399_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_01.jpg
+# images/1399_02.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_02.jpg
+# images/1399_03.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_03.jpg
+# images/1399_04.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_04.jpg
+# images/1399_05.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_05.jpg
+# images/1399_06.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_06.jpg
+# images/1399_07.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_07.jpg
+# images/1399_11.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_11.jpg
+# images/1399_12.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_12.jpg
+# images/1399_13.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_13.jpg
+# images/1399_14.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_14.jpg
+# images/1399_15.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_15.jpg
+# images/1399_16.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_16.jpg
+# images/1399_17.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_17.jpg
+# images/1399_18.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_18.jpg
+# images/1399_10.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1399_10.jpg
