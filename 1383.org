@@ -1,0 +1,187 @@
+#+BLOG: wurly-blog
+#+POSTID: 1383
+#+ORG2BLOG:
+#+DATE: [2024-06-15 Sat 18:47]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: OpenWrt
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: OpenWrt FRR (FRRouting)
+
+* はじめに
+
+ - [[https://frrouting.org/][FRRouting]]
+https://frrouting.org/
+
+MetallbをBGPモードで動かしてみるため、OpenWrt で BGP を構成するためのパッケージを探したところ、FRRが使用できることがわかりましたので使ってみます。
+
+* インストール
+
+** パッケージの確認
+
+#+begin_src bash
+root@OpenWrt:~# opkg list | grep frr
+frr - 8.5.1-1 - FRRouting is free software that implements and manages various IPv4 and IPv6 routing protocols.  Currently FRRouting supports BGP4, BGP4+, OSPFv2, OSPFv3, RIPv1, RIPv2, RIPng, IS-IS, PIM-SM/MSDP, LDP, VRRP and Babel as well as very early support for EIGRP and NHRP.
+frr-babeld - 8.5.1-1 - babeld routing engine
+frr-bfdd - 8.5.1-1 - bfdd routing engine
+frr-bgpd - 8.5.1-1 - bgpd routing engine
+frr-eigrpd - 8.5.1-1 - eigrpd routing engine
+frr-fabricd - 8.5.1-1 - fabricd routing engine
+frr-isisd - 8.5.1-1 - isisd routing engine
+frr-ldpd - 8.5.1-1 - ldpd routing engine
+frr-libfrr - 8.5.1-1 - zebra library
+frr-nhrpd - 8.5.1-1 - nhrpd routing engine
+frr-ospf6d - 8.5.1-1 - ospf6d routing engine
+frr-ospfd - 8.5.1-1 - ospfd routing engine
+frr-pathd - 8.5.1-1 - pathd routing engine
+frr-pbrd - 8.5.1-1 - pbrd routing engine
+frr-pimd - 8.5.1-1 - pimd routing engine
+frr-pythontools - 8.5.1-1 - Python reload tool
+frr-ripd - 8.5.1-1 - ripd routing engine
+frr-ripngd - 8.5.1-1 - ripngd routing engine
+frr-staticd - 8.5.1-1 - staticd routing engine
+frr-vrrpd - 8.5.1-1 - vrrpd routing engine
+frr-vtysh - 8.5.1-1 - integrated shell for frr routing software
+frr-watchfrr - 8.5.1-1 - frr watchdog
+frr-zebra - 8.5.1-1 - Zebra daemon
+#+end_src
+
+** frr と関連パッケージのインストール
+
+これらの関連パッケージをまとめてインストールした方がよさそうです。
+
+#+begin_src bash
+opkg install frr frr-bgpd frr-watchfrr frr-zebra frr-staticd frr-vtysh
+#+end_src
+
+#+begin_src bash
+root@OpenWrt:~# opkg install frr frr-bgpd frr-watchfrr frr-zebra frr-staticd frr-vtysh
+Installing frr (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr_8.5.1-1_arm_cortex-a9.ipk
+Installing librt (1.2.4-4) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/targets/bcm53xx/generic/packages/librt_1.2.4-4_arm_cortex-a9.ipk
+Installing frr-bgpd (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-bgpd_8.5.1-1_arm_cortex-a9.ipk
+Installing libcap (2.69-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/libcap_2.69-1_arm_cortex-a9.ipk
+Installing libyang (2.0.112-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/libyang_2.0.112-1_arm_cortex-a9.ipk
+Installing frr-libfrr (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-libfrr_8.5.1-1_arm_cortex-a9.ipk
+Installing frr-watchfrr (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-watchfrr_8.5.1-1_arm_cortex-a9.ipk
+Installing frr-zebra (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-zebra_8.5.1-1_arm_cortex-a9.ipk
+Installing frr-staticd (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-staticd_8.5.1-1_arm_cortex-a9.ipk
+Installing frr-vtysh (8.5.1-1) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/packages/frr-vtysh_8.5.1-1_arm_cortex-a9.ipk
+Installing more (2.39-2) to root...
+Downloading https://downloads.openwrt.org/releases/23.05.3/packages/arm_cortex-a9/base/more_2.39-2_arm_cortex-a9.ipk
+Configuring more.
+Configuring libcap.
+Configuring librt.
+Configuring frr.
+Started watchfrr
+Configuring libyang.
+Configuring frr-libfrr.
+Configuring frr-vtysh.
+Configuring frr-bgpd.
+Configuring frr-staticd.
+Configuring frr-watchfrr.
+Configuring frr-zebra.
+#+end_src
+
+* frrの設定
+
+BGPを有効にします。
+
+** daemons の設定
+
+#+begin_src bash
+root@OpenWrt:~# cat /etc/frr/daemons 
+#+end_src
+
+#+begin_src conf
+# The staticd,watchfrr and zebra daemons are always started.
+#
+bgpd=no
+ospfd=no
+#ospfd_instances=1,20
+ospf6d=no
+ripd=no
+ripngd=no
+isisd=no
+pimd=no
+ldpd=no
+nhrpd=no
+eigrpd=no
+babeld=no
+sharpd=no
+pathd=no
+pbrd=no
+bfdd=no
+fabricd=no
+vrrpd=no
+
+#
+# If this option is set the /etc/init.d/frr script automatically loads
+# the config via "vtysh -b" when the servers are started.
+# Check /etc/pam.d/frr if you intend to use "vtysh"!
+#
+vtysh_enable=yes
+zebra_options="  -A 127.0.0.1 -s 90000000"
+bgpd_options="   -A 127.0.0.1"
+ospfd_options="  -A 127.0.0.1"
+ospf6d_options=" -A ::1"
+ripd_options="   -A 127.0.0.1"
+ripngd_options=" -A ::1"
+isisd_options="  -A 127.0.0.1"
+pimd_options="   -A 127.0.0.1"
+ldpd_options="   -A 127.0.0.1"
+nhrpd_options="  -A 127.0.0.1"
+eigrpd_options=" -A 127.0.0.1"
+babeld_options=" -A 127.0.0.1"
+sharpd_options=" -A 127.0.0.1"
+pbrd_options="   -A 127.0.0.1"
+staticd_options="-A 127.0.0.1"
+bfdd_options="   -A 127.0.0.1"
+fabricd_options="-A 127.0.0.1"
+vrrpd_options="  -A 127.0.0.1"
+
+# The list of daemons to watch is automatically generated by the init script.
+#watchfrr_options=""
+
+# for debugging purposes, you can specify a "wrap" command to start instead
+# of starting the daemon directly, e.g. to use valgrind on ospfd:
+#   ospfd_wrap="/usr/bin/valgrind"
+# or you can use "all_wrap" for all daemons, e.g. to use perf record:
+#   all_wrap="/usr/bin/perf record --call-graph -"
+# the normal daemon command is added to this at the end.
+#+end_src
+
+既定の設定ではnoになってますので、bgpd=yes にします。
+
+#+begin_src bash
+bgpd=yes
+#+end_src
+
+サービスを再起動します。
+
+#+begin_src 
+root@OpenWrt:~# service frr restart
+Stopped staticd
+Stopped zebra
+Stopped watchfrr
+Started watchfrr
+#+end_src
+
+* おわりに
+
+本題のMetallbと組み合わせて使用する方法については下記で説明しています。
+
+ - [[./?p=1378][Metallb (BGPモード) と OpenWrt FRR を組み合わせて使用する]]
+
+* 参考
+ - [[https://qiita.com/tk_n/items/648e225d06085a0e2530][Docker上のFRRoutingでOSPFを動かしてみる #Docker - Qiita]]
+https://qiita.com/tk_n/items/648e225d06085a0e2530
