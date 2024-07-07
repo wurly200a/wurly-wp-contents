@@ -1,0 +1,251 @@
+#+BLOG: wurly-blog
+#+POSTID: 1376
+#+ORG2BLOG:
+#+DATE: [2024-06-09 Sun 14:04]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Metallbの概要とL2モードでの使い方
+
+* はじめに
+
+ - [[https://qiita.com/tmatsu/items/f45f0ca07b4f8489df85][オンプレK8sで使えるGoogle製External Load Balancer: MetalLB #Docker - Qiita]]
+https://qiita.com/tmatsu/items/f45f0ca07b4f8489df85
+
+ - [[https://zenn.dev/vampire_yuta/articles/ccbc57be8e092a][オンプレKubernetes環境にMetallbをインストールしてLoadbalanserServiceを利用できるようにする]]
+https://zenn.dev/vampire_yuta/articles/ccbc57be8e092a
+
+上記ページで説明されている通り、オンプレKubernetes環境では type "LoadBalancer" のサービスをそのままでは使用できません。
+が、何かしらデプロイする場合、WebUI等を使うために必要になります。
+そこで使用できるのがMetallbです。
+
+最初、なぜ、メタルなんだろう？と思っていたのですが、おそらく”ベアメタル”のメタルですね。
+
+* 前提、事前設定
+
+** CNI
+
+私の環境ではCNIはCiliumを使っています。MetallbはCalicoを完全サポートしていません。
+
+** kube-proxy の strictARP を true に設定
+
+BGPモードで使用する場合には不要かもしれません。
+
+#+begin_src bash
+# see what changes would be made, returns nonzero returncode if different
+kubectl get configmap kube-proxy -n kube-system -o yaml | \
+sed -e "s/strictARP: false/strictARP: true/" | \
+kubectl diff -f - -n kube-system
+
+# actually apply the changes, returns nonzero returncode on errors only
+kubectl get configmap kube-proxy -n kube-system -o yaml | \
+sed -e "s/strictARP: false/strictARP: true/" | \
+kubectl apply -f - -n kube-system
+#+end_src
+
+* metallib のデプロイ
+
+私はhelmでデプロイしました。
+
+#+begin_src bash
+helm repo add metallb https://metallb.github.io/metallb
+kubectl create namespace metallb-system
+helm install metallb metallb/metallb -n metallb-system
+#+end_src
+
+デプロイ前
+
+#+begin_src bash
+$ k get pod -A
+NAMESPACE     NAME                                READY   STATUS    RESTARTS        AGE
+kube-system   cilium-2zpfl                        1/1     Running   2 (3m24s ago)   3d1h
+kube-system   cilium-gdzzp                        1/1     Running   7 (3m19s ago)   12d
+kube-system   cilium-lq477                        1/1     Running   7 (3m18s ago)   12d
+kube-system   cilium-nmk75                        1/1     Running   2 (3m24s ago)   3d1h
+kube-system   cilium-operator-f45f4975f-cgzg6     1/1     Running   8 (3m19s ago)   12d
+kube-system   cilium-qd4rz                        1/1     Running   5 (3m24s ago)   11d
+kube-system   cilium-rjtsm                        1/1     Running   7 (3m17s ago)   12d
+kube-system   coredns-76f75df574-2slnx            1/1     Running   1 (3m24s ago)   25h
+kube-system   coredns-76f75df574-56zfw            1/1     Running   7 (3m19s ago)   12d
+kube-system   etcd-k8s-ctrl1                      1/1     Running   7 (3m18s ago)   12d
+kube-system   etcd-k8s-ctrl2                      1/1     Running   7 (3m18s ago)   12d
+kube-system   etcd-k8s-ctrl3                      1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-apiserver-k8s-ctrl1            1/1     Running   7 (3m19s ago)   12d
+kube-system   kube-apiserver-k8s-ctrl2            1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-apiserver-k8s-ctrl3            1/1     Running   8 (3m18s ago)   12d
+kube-system   kube-controller-manager-k8s-ctrl1   1/1     Running   8 (3m18s ago)   12d
+kube-system   kube-controller-manager-k8s-ctrl2   1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-controller-manager-k8s-ctrl3   1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-proxy-6rvft                    1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-proxy-8pv9f                    1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-proxy-kp95c                    1/1     Running   7 (3m18s ago)   12d
+kube-system   kube-proxy-p4nw4                    1/1     Running   2 (3m24s ago)   3d1h
+kube-system   kube-proxy-pkhpd                    1/1     Running   2 (3m24s ago)   3d1h
+kube-system   kube-proxy-ww49b                    1/1     Running   5 (3m24s ago)   11d
+kube-system   kube-scheduler-k8s-ctrl1            1/1     Running   8 (3m19s ago)   12d
+kube-system   kube-scheduler-k8s-ctrl2            1/1     Running   7 (3m19s ago)   12d
+kube-system   kube-scheduler-k8s-ctrl3            1/1     Running   7 (3m18s ago)   12d
+#+end_src
+
+デプロイ
+
+#+begin_src bash
+$ helm install metallb metallb/metallb -n metallb-system
+NAME: metallb
+LAST DEPLOYED: Fri Jul  5 08:42:34 2024
+NAMESPACE: metallb-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+MetalLB is now running in the cluster.
+
+Now you can configure it via its CRs. Please refer to the metallb official docs
+on how to use the CRs.
+#+end_src
+
+デプロイ後
+
+metallb-controller と metallb-speaker のpodが生成されていることがわかります。
+
+#+begin_src bash
+$ kubectl get pod -n metallb-system
+NAME                                  READY   STATUS    RESTARTS   AGE
+metallb-controller-665d96757f-lshr8   1/1     Running   0          69s
+metallb-speaker-8dx2c                 4/4     Running   0          69s
+metallb-speaker-9g89t                 4/4     Running   0          69s
+metallb-speaker-hm6jw                 2/4     Running   0          69s
+metallb-speaker-v6fnn                 2/4     Running   0          69s
+metallb-speaker-xv626                 2/4     Running   0          69s
+metallb-speaker-zclms                 4/4     Running   0          69s
+#+end_src
+
+* L2モード
+
+** 設定方法
+
+ - [[https://metallb.universe.tf/configuration/][MetalLB, bare metal load-balancer for Kubernetes]]
+https://metallb.universe.tf/configuration/
+
+公式ページの上記を参照するのが確実かと思います。
+
+** L2モードの設定適用
+
+K8Sのサブネットが192.168.10.0/24のため、ここでは、192.168.10.61-192.168.10.70 をIPアドレスプールに設定しています。
+
+metallb-l2-config.yaml
+
+#+begin_src yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.10.61-192.168.10.70
+  autoAssign: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - default
+#+end_src
+
+#+begin_src bash
+kubectl apply -f metallb-l2-config.yaml
+#+end_src
+
+** L2モードの設定削除
+
+もし削除する場合(BGPモードに変更する等)は下記で削除できます。
+
+#+begin_src bash
+kubectl delete -f metallb-l2-config.yaml
+#+end_src
+
+** テスト用nginxのデプロイ
+
+test.yaml
+
+#+begin_src yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: test
+  labels:
+    run: nginx
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: test
+spec:
+  selector:
+    matchLabels:
+      run: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+#+end_src
+
+#+begin_src bash
+kubectl create namespace test
+kubectl apply -f test.yaml
+#+end_src
+
+** テスト用nginxのデプロイ結果
+
+EXTERNAL-IP が払い出されています。
+
+#+begin_src bash
+$ kubens test
+$ k get svc
+NAME            TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)        AGE
+nginx-service   LoadBalancer   10.102.162.163   192.168.10.61   80:30104/TCP   3m10s
+#+end_src
+
+L2モードを確認するという意味では、同一ネットワークからアクセスできることを確認するべきですが、一旦port-forwardで確認してみます。
+これを行うと localhost としてアクセスできます。
+
+#+begin_src bash
+kubectl port-forward svc/nginx-service 8888:80
+#+end_src
+
+file:images/1376_01.jpg
+
+** テスト用nginxの削除
+
+#+begin_src bash
+kubectl delete -f test.yaml
+kubectl delete namespace test
+#+end_src
+
+* 参考
+ - [[https://metallb.universe.tf/configuration/_advanced_ipaddresspool_configuration/][MetalLB, bare metal load-balancer for Kubernetes (advanced_ipaddresspool_configuration)]]
+ - [[https://blog.framinal.life/entry/2020/04/16/022042][【手順あり】MetalLBの使い方から動きまで解説します - フラミナル]]
+ - [[https://zenn.dev/vampire_yuta/articles/ccbc57be8e092a][オンプレKubernetes環境にMetallbをインストールしてLoadbalanserServiceを利用できるようにする]]
+
+# images/1376_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1376_01-1.jpg
