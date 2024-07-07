@@ -1,0 +1,160 @@
+#+BLOG: wurly-blog
+#+POSTID: 1480
+#+ORG2BLOG:
+#+DATE: [2024-07-07 Sun 15:05]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 (WSL) に Emacs 29.4 をインストール
+
+* はじめに
+
+Ubuntu 22.04 (WSL) に Emacs 29.4 をインストールしました。
+
+下記のコンフィギュレーションとなります。
+
+ - pgtk(Pure GTK)
+ - native-compilation
+ - XWidgets 有効
+
+file:images/1480_01.jpg
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src 
+$ git clone --depth 1 --branch emacs-29.4 git://git.sv.gnu.org/emacs.git emacs-29.4
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+#+begin_src 
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libm17n-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev \
+                   libwebkit2gtk-4.0-dev
+#+end_src
+
+** Makefileの生成
+
+#+begin_src bash
+cd emacs-29.4
+./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils --with-xwidgets
+#+end_src
+
+configure結果
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 -lz
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  no
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             no
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes -lglibc (inotify)
+  Does Emacs use access control lists?                    yes -lacl
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ljansson?                               yes
+  Does Emacs use -ltree-sitter?                           no
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            yes
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+#+end_src
+
+** make
+
+数字は nproc を実行した数を基に設定します。
+
+#+begin_src bash
+make -j16
+#+end_src
+
+または、全てのコアを使うのであれば下記のコマンドは環境に依らず実行できます。
+
+#+begin_src bash
+make -j$(nproc)
+#+end_src
+
+# Available configurations
+# Core i5-1235U, 32GB Memory, NVMe SSD
+# Core i7-10700F, 16GB Memory, NVMe SSD
+
+# Core i7-10700F, 16GB Memory, NVMe SSD
+# 15:33 - 15:44
+
+** make install
+
+#+begin_src 
+sudo make install
+#+end_src
+
+* 設定
+
+[[./?p=1300][Emacs pgtk(Pure GTK)ビルドをWSLで使用する場合の設定]] の作業を行いました。
+
+* おわりに
+
+以上です。
+
+# images/1480_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1480_01.jpg
