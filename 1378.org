@@ -6,19 +6,464 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: ASUS Chromebox 3 を UEFI起動マシンにする
+#+TITLE: Metallb (BGPモード) と OpenWrt FRR を組み合わせて使用する
 
-* 手順
- - カバーを開け、所定のビスを外しておく
- - リカバリモードで起動(セキュリティロックの上のスイッチを細い針金等で押下しながら電源スイッチをON)
- - Ctrl + D を押下
-  - このとき反応が無い場合は、キーボードの種類、接続が適切ではないと思われるので別のものを使用するなど対応する
- - 確認を促されるので、セキュリティロックの上のスイッチを細い針金等で押下
- - この後、自動的に何度か再起動して処理を行うのでしばらく待つ
- - 起動時にビープ音が必ず2回鳴るようになる
- - 元の画面とほぼ同じだが、Enable debugging features の選択が表示されるので、これをクリックする
- - 次の画面で Proceed
- - rootパスワードの設定を促されるので設定する(ここではrootとする)
- - 次の画面で OK
- - 同じ画面になるが、ここで Ctrl + Alt + F2 を押下でシェルに入ることができる
- - root / root でログイン
+* はじめに
+
+ - [[./?p=1376][Metallbの概要とL2モードでの使い方]]
+
+Metallbの概要、デプロイ方法については上記で説明しています。
+
+ここでは、BGPモードを使用する際の使い方を説明しています。
+
+BGPモードを使用する際には、上流にBGPプロトコルに対応したルーターが必要になりますが、これについては OpenWrt FRR を使用します。
+インストール方法などは下記で説明しています。
+
+ - [[./?p=1383][OpenWrt FRR (FRRouting)]]
+
+* Metallb BGPモード
+
+** BGPモードの設定適用
+
+ - あまりしっくり来ていないのですが、ChatGPTさんによると下記とのことで、myASN と peerASN は同じに設定しています
+  - 「peerASN はピアリング相手 (OpenWrt) の ASN であり、myASN は MetalLB スピーカーの ASN です。通常、同じネットワーク内で BGP ピアリングを設定する場合、同じ ASN を使用します。」
+
+metallb-bgp-config.yaml
+
+#+begin_src yaml
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: bgp-peer
+  namespace: metallb-system
+spec:
+  myASN: 64512
+  peerASN: 64512
+  peerAddress: 192.168.10.1
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: first-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.10.61-192.168.10.70
+---
+apiVersion: metallb.io/v1beta1
+kind: BGPAdvertisement
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - first-pool
+#+end_src
+
+#+begin_src bash
+kubectl apply -f metallb-bgp-config.yaml
+#+end_src
+
+** BGPモードの設定削除
+
+#+begin_src bash
+kubectl delete -f metallb-bgp-config.yaml
+#+end_src
+
+* OpenWrt FRR側の設定
+
+** frr.conf(設定前)
+
+#+begin_src bash
+root@OpenWrt:~# cat /etc/frr/frr.conf
+password zebra
+!
+!router eigrp 1
+! network 10.0.0.0/8
+! network 192.168.1.0/24
+!
+!router ospf
+!ospf router-id 172.16.0.2
+!network 192.168.1.0/24 area 0
+!neighbor 172.16.0.1
+!
+!router rip
+! network 10.0.0.0/8
+! network 192.168.1.0/24
+!
+log syslog
+!
+access-list vty permit 127.0.0.0/8
+access-list vty deny any
+!
+line vty
+ access-class vty
+#+end_src
+
+** frr.conf(設定後)
+
+K8S側で metallb-speaker のIPを確認します。
+
+#+begin_src bash
+$ kubectl get pod -n metallb-system -o wide
+NAME                                  READY   STATUS    RESTARTS         AGE    IP              NODE          NOMINATED NODE   READINESS GATES
+metallb-controller-665d96757f-lshr8   1/1     Running   3 (3h55m ago)    2d3h   10.0.5.182      k8s-worker3   <none>           <none>
+metallb-speaker-8dx2c                 4/4     Running   13 (3h55m ago)   2d3h   192.168.10.23   k8s-worker3   <none>           <none>
+metallb-speaker-9g89t                 4/4     Running   9 (3h42m ago)    2d3h   192.168.10.22   k8s-worker2   <none>           <none>
+metallb-speaker-hm6jw                 4/4     Running   12 (4h1m ago)    2d3h   192.168.10.13   k8s-ctrl3     <none>           <none>
+metallb-speaker-v6fnn                 4/4     Running   8 (4h1m ago)     2d3h   192.168.10.11   k8s-ctrl1     <none>           <none>
+metallb-speaker-xv626                 4/4     Running   14 (140m ago)    2d3h   192.168.10.12   k8s-ctrl2     <none>           <none>
+metallb-speaker-zclms                 4/4     Running   9 (3h59m ago)    2d3h   192.168.10.21   k8s-worker1   <none>           <none>
+#+end_src
+
+ - passwordは無効にします
+ - bgpの番号は Metallb側に合わせ、64512 にします
+ - speakerのIPアドレスを全てneighborとして設定します
+
+#+begin_src bash
+root@OpenWrt:~# cat /etc/frr/frr.conf
+!password zebra
+!
+!router eigrp 1
+! network 10.0.0.0/8
+! network 192.168.1.0/24
+!
+!router ospf
+!ospf router-id 172.16.0.2
+!network 192.168.1.0/24 area 0
+!neighbor 172.16.0.1
+!
+!router rip
+! network 10.0.0.0/8
+! network 192.168.1.0/24
+!
+log syslog
+!
+access-list vty permit 127.0.0.0/8
+access-list vty deny any
+!
+line vty
+ access-class vty
+
+router bgp 64512
+ bgp router-id 192.168.10.1
+ neighbor 192.168.10.23 remote-as 64512
+ neighbor 192.168.10.22 remote-as 64512
+ neighbor 192.168.10.13 remote-as 64512
+ neighbor 192.168.10.11 remote-as 64512
+ neighbor 192.168.10.12 remote-as 64512
+ neighbor 192.168.10.21 remote-as 64512
+
+ address-family ipv4 unicast
+  network 192.168.10.0/24
+ exit-address-family
+#+end_src
+
+** frrの再起動
+
+#+begin_src bash
+root@OpenWrt:~# service frr restart
+Stopped staticd
+Stopped bgpd
+Stopped zebra
+Stopped watchfrr
+Started watchfrr
+#+end_src
+
+* テスト用アプリケーションのデプロイ
+
+** テスト用nginxのデプロイ
+
+test.yaml
+
+#+begin_src yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: test
+  labels:
+    run: nginx
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: test
+spec:
+  selector:
+    matchLabels:
+      run: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+#+end_src
+
+#+begin_src bash
+kubectl create namespace test
+kubectl apply -f test.yaml
+#+end_src
+
+** テスト用nginxのデプロイ結果
+
+EXTERNAL-IP (192.168.10.61) が払い出されています。
+
+#+begin_src bash
+$ k get svc -n test
+NAME            TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)        AGE
+nginx-service   LoadBalancer   10.97.83.2   192.168.10.61   80:32201/TCP   16h
+#+end_src
+
+* haproxyを使ってホームLANに公開
+
+haproxyを使用して OpenWrtルーター経由で http://192.168.1.100:8080/ でアクセスできることを確認しました。
+
+haproxy.cfg 
+
+#+begin_src 
+root@OpenWrt:~# cat /etc/haproxy.cfg 
+#+end_src
+
+#+begin_src conf
+(略)
+frontend http_front
+    bind 192.168.1.100:8080
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server k8s-service 192.168.10.61:80 check
+(略)
+#+end_src
+
+* 動作確認(ログ)
+
+** frr ログの取得
+
+#+begin_src bash
+root@OpenWrt:~# logread -e frr
+Sat Jul  6 11:34:13 2024 daemon.notice watchfrr[2022]: [T83RR-8SM5G] watchfrr 8.5.1 starting: vty@0
+Sat Jul  6 11:34:13 2024 daemon.info watchfrr[2022]: [ZCJ3S-SPH5S] zebra state -> down : initial connection attempt failed
+Sat Jul  6 11:34:13 2024 daemon.info watchfrr[2022]: [ZCJ3S-SPH5S] bgpd state -> down : initial connection attempt failed
+Sat Jul  6 11:34:13 2024 daemon.info watchfrr[2022]: [ZCJ3S-SPH5S] staticd state -> down : initial connection attempt failed
+Sat Jul  6 11:34:13 2024 daemon.info watchfrr[2022]: [YFT0P-5Q5YX] Forked background command [pid 2033]: /usr/sbin/watchfrr.sh restart all
+Sat Jul  6 11:34:13 2024 daemon.err watchfrr.sh: Cannot stop bgpd: pid file not found
+Sat Jul  6 11:34:13 2024 daemon.err watchfrr.sh: Cannot stop staticd: pid file not found
+Sat Jul  6 11:34:13 2024 daemon.err watchfrr.sh: Cannot stop zebra: pid file not found
+Sat Jul  6 11:34:18 2024 daemon.notice watchfrr[2022]: [QDG3Y-BY5TN] bgpd state -> up : connect succeeded
+Sat Jul  6 11:34:18 2024 daemon.notice watchfrr[2022]: [QDG3Y-BY5TN] staticd state -> up : connect succeeded
+Sat Jul  6 11:34:18 2024 daemon.notice watchfrr[2022]: [QDG3Y-BY5TN] zebra state -> up : connect succeeded
+Sat Jul  6 11:34:18 2024 daemon.notice watchfrr[2022]: [KWE5Q-QNGFC] all daemons up, doing startup-complete notify
+Sat Jul  6 11:34:18 2024 daemon.notice procd: /etc/rc.d/S95frr: Started watchfrr
+Sat Jul  6 11:34:18 2024 daemon.warn watchfrr[2022]: [RKHTV-CNGEG] Daemon: zebra: is in Up state but expected it to be in DAEMON_DOWN state
+Sat Jul  6 11:34:18 2024 daemon.warn watchfrr[2022]: [RKHTV-CNGEG] Daemon: bgpd: is in Up state but expected it to be in DAEMON_DOWN state
+Sat Jul  6 11:34:18 2024 daemon.warn watchfrr[2022]: [RKHTV-CNGEG] Daemon: staticd: is in Up state but expected it to be in DAEMON_DOWN state
+#+end_src
+
+* 動作確認(vtysh)
+
+** vtysh
+
+vtysh というものが使えるようで、-c 引数でコマンドを与えることで直接結果を得られます。
+
+** show ip bgp summary
+
+(ChatGPT先生より)下記のようにBGPピアリングが正常に機能していることを確認します。
+
+ - State/PfxRcd の値が 1 になっているピアが存在すること:
+  - 192.168.10.21, 192.168.10.22, 192.168.10.23 の State/PfxRcd が 1 になっているため、これらのピアが正しくルートを受信していることがわかります。
+ - 全てのピアが Up/Down:
+  - 全てのピアが正しく接続されており、Up/Down カラムには接続時間が表示されています。
+ - RIB エントリーの増加:
+  - RIB entries が 2 になっており、これもルートが正しく交換されていることを示しています。
+
+#+begin_src bash
+root@OpenWrt:~# vtysh -c "show ip bgp summary"
+
+IPv4 Unicast Summary (VRF default):
+BGP router identifier 192.168.10.1, local AS number 64512 vrf-id 0
+BGP table version 10
+RIB entries 2, using 272 bytes of memory
+Peers 6, using 4278 KiB of memory
+
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+192.168.10.11   4      64512       725       728        0    0    0 03:19:14            0        1 N/A
+192.168.10.12   4      64512       725       732        0    0    0 01:39:29            0        1 N/A
+192.168.10.13   4      64512       726       732        0    0    0 03:19:16            0        1 N/A
+192.168.10.21   4      64512       730       727        0    0    0 03:19:08            1        1 N/A
+192.168.10.22   4      64512       695       692        0    0    0 03:01:31            1        1 N/A
+192.168.10.23   4      64512       735       730        0    0    0 03:15:13            1        1 N/A
+
+Total number of neighbors 6
+#+end_src
+
+** show ip route
+
+ChatGPT先生より。このように見るようです。
+
+ - ルーターのルーティングテーブルを確認した結果、192.168.10.61/32 のエントリが BGP ルートで表示されています。これは正しい設定であり、BGP プロトコルを使用して広報された結果です。
+ - 以下の点に注意してください：
+  - BGP ルートは B として表示されており、複数のパス（複数の次ホップ）が示されています。これは通常、BGP によって複数のパスが提供されたことを意味します。
+  - 192.168.10.61/32 に対する各次ホップには、via 192.168.10.21, via 192.168.10.22, via 192.168.10.23 という情報が含まれています。これは、複数の MetalLB のスピーカー（speaker）が提供する経路を示しています。
+  - このように、192.168.10.61 のルーティングエントリが正常に表示されていることを確認しました。これにより、MetalLB が BGP モードで正しく機能し、広報されたアドレスが正常に利用可能であることが示されています。
+
+#+begin_src bash
+root@OpenWrt:~# vtysh -c "show ip route"
+Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, F - PBR,
+       f - OpenFabric,
+       > - selected route, * - FIB route, q - queued, r - rejected, b - backup
+       t - trapped, o - offload failure
+
+K>* 0.0.0.0/0 [0/0] via 192.168.1.1, wan linkdown, 15:08:41
+C>* 192.168.1.0/24 is directly connected, wan, 15:08:39
+C>* 192.168.10.0/24 is directly connected, br-lan, 03:36:58
+B>* 192.168.10.61/32 [200/0] via 192.168.10.21, br-lan, weight 1, 03:17:08
+  *                          via 192.168.10.22, br-lan, weight 1, 03:17:08
+  *                          via 192.168.10.23, br-lan, weight 1, 03:17:08
+#+end_src
+
+** show ip bgp neighbors
+
+下記のように neighbors の情報が得られます。
+
+#+begin_src bash
+root@OpenWrt:~# vtysh -c "show ip bgp neighbors 192.168.10.21"
+BGP neighbor is 192.168.10.21, remote AS 64512, local AS 64512, internal link
+  Local Role: undefined
+  Remote Role: undefined
+Hostname: k8s-worker1
+  BGP version 4, remote router ID 192.168.10.21, local router ID 192.168.10.1
+  BGP state = Established, up for 03:42:29
+  Last read 00:00:29, Last write 00:00:29
+  Hold time is 90 seconds, keepalive interval is 30 seconds
+  Configured hold time is 180 seconds, keepalive interval is 60 seconds
+  Configured conditional advertisements interval is 60 seconds
+  Neighbor capabilities:
+    4 Byte AS: advertised and received
+    Extended Message: advertised and received
+    AddPath:
+      IPv4 Unicast: RX advertised and received
+    Long-lived Graceful Restart: advertised and received
+      Address families by peer:
+    Route refresh: advertised and received(old & new)
+    Enhanced Route Refresh: advertised and received
+    Address Family IPv4 Unicast: advertised and received
+    Address Family IPv6 Unicast: received
+    Hostname Capability: advertised (name: OpenWrt,domain name: n/a) received (name: k8s-worker1,domain name: n/a)
+    Graceful Restart Capability: advertised and received
+      Remote Restart timer is 120 seconds
+      Address families by peer:
+        none
+  Graceful restart information:
+    End-of-RIB send: IPv4 Unicast
+    End-of-RIB received: IPv4 Unicast
+    Local GR Mode: Helper*
+
+    Remote GR Mode: Helper
+
+    R bit: True
+    N bit: False
+    Timers:
+      Configured Restart Time(sec): 120
+      Received Restart Time(sec): 120
+    IPv4 Unicast:
+      F bit: False
+      End-of-RIB sent: Yes
+      End-of-RIB sent after update: No
+      End-of-RIB received: Yes
+      Timers:
+        Configured Stale Path Time(sec): 360
+  Message statistics:
+    Inq depth is 0
+    Outq depth is 0
+                         Sent       Rcvd
+    Opens:                  2          2
+    Notifications:          0          0
+    Updates:                5          8
+    Keepalives:           764        764
+    Route Refresh:          2          2
+    Capability:             0          0
+    Total:                773        776
+  Minimum time between advertisement runs is 0 seconds
+
+ For address family: IPv4 Unicast
+  Update group 2, subgroup 4
+  Packet Queue length 0
+  Community attribute sent to this neighbor(all)
+  1 accepted prefixes
+
+  Connections established 2; dropped 1
+  Last reset 12:36:16,  No AFI/SAFI activated for peer
+  Internal BGP neighbor may be up to 255 hops away.
+Local host: 192.168.10.1, Local port: 179
+Foreign host: 192.168.10.21, Foreign port: 46320
+Nexthop: 192.168.10.1
+Nexthop global: fd98:2533:1844::1
+Nexthop local: fe80::b2c7:45ff:fe7f:f93a
+BGP connection: shared network
+BGP Connect Retry Timer in Seconds: 120
+Estimated round trip time: 5 ms
+Read thread: on  Write thread: on  FD used: 29
+#+end_src
+
+* 動作確認(ipコマンド)
+
+** ip route show
+
+#+begin_src bash
+root@OpenWrt:~# ip route show
+default via 192.168.1.1 dev wan 
+192.168.1.0/24 dev wan scope link  src 192.168.1.100 
+192.168.10.0/24 dev br-lan scope link  src 192.168.10.1 
+192.168.10.61  metric 20 
+#+end_src
+
+* その他
+
+** routel
+
+#+begin_src bash
+$ routel
+/usr/bin/routel: 48: shift: can't shift that many
+         target            gateway          source    proto    scope    dev tbl
+        default       172.31.240.1                   kernel            eth0 
+    172.17.0.0/ 16                      172.17.0.1   kernel     linkdocker0 
+  172.31.240.0/ 20                  172.31.249.248   kernel     link   eth0 
+     127.0.0.0/ 8            local       127.0.0.1   kernel     host     lo local
+      127.0.0.1              local       127.0.0.1   kernel     host     lo local
+127.255.255.255          broadcast       127.0.0.1   kernel     link     lo local
+     172.17.0.1              local      172.17.0.1   kernel     hostdocker0 local
+ 172.17.255.255          broadcast      172.17.0.1   kernel     linkdocker0 local
+ 172.31.249.248              local  172.31.249.248   kernel     host   eth0 local
+ 172.31.255.255          broadcast  172.31.249.248   kernel     link   eth0 local
+        fe80::/ 64                                   kernel            eth0 
+            ::1              local                   kernel              lo local
+fe80::215:5dff:fe9b:59c8              local                   kernel            eth0 local
+#+end_src
+
+# images/1376_01.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/07/1376_01.jpg
+
+* 参考
+ - [[https://metallb.universe.tf/configuration/_advanced_bgp_configuration/][MetalLB, bare metal load-balancer for Kubernetes (advanced_bgp_configuration) ]]
+ - [[https://forum.openwrt.org/t/bgp-between-tnsr-and-openwrt/164059][BGP between tnsr and openwrt - Installing and Using OpenWrt - OpenWrt Forum]]
+ - [[https://devpress.csdn.net/cloud/62f654497e6682346618b0b8.html#devmenu2][MetalLB is used as LoadBalancer- BGP in Kubernetes cluster_godot_weixin_0010034-开发云]]
+ - [[https://frrouting.org/][FRRouting]]
+ - [[https://nozawana44.hatenablog.com/entry/2019/08/17/175039][Calico と MetalLB を BGP モードで共存させる環境を作ってみた【Kubernetes】 - nozawana44のブログ]]
+ - [[https://qiita.com/suzuyui/items/c83554dd055ef0f4253a][オンプレ Kubernetes に MetalLB を入れて EdgerouterX と BGP mode で接続し LoadBalancer 構築 #kubernetes - Qiita]]
