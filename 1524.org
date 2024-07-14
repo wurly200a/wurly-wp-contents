@@ -1,0 +1,94 @@
+#+BLOG: wurly-blog
+#+POSTID: 1524
+#+ORG2BLOG:
+#+DATE: [2024-07-14 Sun 22:14]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetes に Ingress-Nginx Controllerをインストール
+
+* 概要
+
+ - [[./?p=1389][HA おうちKubernetesクラスターの構築]]
+
+上記おうちKubernetesクラスターにて、下記の通り、Metallbがデプロイできました。
+
+ - [[./?p=1376][Metallbの概要とL2モードでの使い方]]
+ - [[./?p=1378][Metallb (BGPモード) と OpenWrt FRR を組み合わせて使用する]]
+
+Metallb が動きましたので、この状態で Ingress-Nginx Controller をインストールしてみます。
+
+* Ingress-Nginx Controllerのインストール (helmを使用)
+
+#+begin_src bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx --create-namespace -n ingress-system
+#+end_src
+
+* 事例
+
+#+begin_src bash
+$ helm install ingress-nginx ingress-nginx/ingress-nginx --create-namespace -n ingress-system
+NAME: ingress-nginx
+LAST DEPLOYED: Sun Jul 14 22:13:39 2024
+NAMESPACE: ingress-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The ingress-nginx controller has been installed.
+It may take a few minutes for the load balancer IP to be available.
+You can watch the status by running 'kubectl get service --namespace ingress-system ingress-nginx-controller --output wide --watch'
+
+An example Ingress that makes use of the controller:
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: example
+    namespace: foo
+  spec:
+    ingressClassName: nginx
+    rules:
+      - host: www.example.com
+        http:
+          paths:
+            - pathType: Prefix
+              backend:
+                service:
+                  name: exampleService
+                  port:
+                    number: 80
+              path: /
+    # This section is only required if TLS is to be enabled for the Ingress
+    tls:
+      - hosts:
+        - www.example.com
+        secretName: example-tls
+
+If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: example-tls
+    namespace: foo
+  data:
+    tls.crt: <base64 encoded cert>
+    tls.key: <base64 encoded key>
+  type: kubernetes.io/tls
+#+end_src
+
+EXTERNAL-IP が払い出されていますので上手く行っていると思われます。
+
+#+begin_src bash
+$ kubectl get service --namespace ingress-system ingress-nginx-controller --output wide --watch
+NAME                       TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                      AGE    SELECTOR
+ingress-nginx-controller   LoadBalancer   10.110.78.190   192.168.10.62   80:31330/TCP,443:32369/TCP   2m6s   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
+#+end_src
+
+* 参考
+
+ - [[https://tech.dentsusoken.com/entry/2023/06/26/%E3%82%AA%E3%83%B3%E3%83%97%E3%83%AC%E3%83%9F%E3%82%B9%E7%92%B0%E5%A2%83%E3%81%AEIngress%E3%81%A7%E7%A4%BE%E5%86%85%E5%90%91%E3%81%91%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E3%81%A8%E7%A4%BE%E5%A4%96%E5%90%91][オンプレミス環境のIngressで社内向けサービスと社外向けサービスを公開したい - 電通総研 テックブログ]]
+https://tech.dentsusoken.com/entry/2023/06/26/%E3%82%AA%E3%83%B3%E3%83%97%E3%83%AC%E3%83%9F%E3%82%B9%E7%92%B0%E5%A2%83%E3%81%AEIngress%E3%81%A7%E7%A4%BE%E5%86%85%E5%90%91%E3%81%91%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E3%81%A8%E7%A4%BE%E5%A4%96%E5%90%91
