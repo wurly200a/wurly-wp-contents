@@ -1,0 +1,92 @@
+#+BLOG: wurly-blog
+#+POSTID: 1496
+#+ORG2BLOG:
+#+DATE: [2024-07-14 Sun 16:37]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Node.js
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 LTS(WSL)へのNode.js LTS のインストール
+
+* はじめに
+
+Node.jsをインストールします。
+
+Ubuntu22.04のaptでインストールできるパッケージはだいぶ古い(バージョン12)ため、新しいバージョンをイントールする方法についてです。
+
+* 参照
+
+ - [[https://github.com/nodesource/distributions][nodesource/distributions: NodeSource Node.js Binary Distributions]]
+https://github.com/nodesource/distributions
+
+上記の手順に従いました。
+
+バージョン指定でインストールする方法もありますが、下記のようなスクリプトも用意されていました。
+
+ - LTS setup_lts.x (現時点ではバージョン20)
+ - current etup_current.x (現時点ではバージョン22)
+
+ここでは、LTSをインストールします。
+
+* 手順(スクリプトでLTSをインストール)
+
+#+begin_src bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x -o nodesource_setup.sh
+sudo -E bash nodesource_setup.sh
+#+end_src
+
+下記ファイルが作成されます。
+
+#+begin_src 
+/usr/share/keyrings/nodesource.gpg
+/etc/apt/sources.list.d/nodesource.list
+#+end_src
+
+#+begin_src bash
+$ curl -fsSL https://deb.nodesource.com/setup_lts.x -o nodesource_setup.sh
+$ sudo -E bash nodesource_setup.sh
+2024-07-12 14:19:50 - Installing pre-requisites
+ヒット:1 https://dl.google.com/linux/chrome/deb stable InRelease
+ヒット:2 http://security.ubuntu.com/ubuntu jammy-security InRelease              
+ヒット:3 http://jp.archive.ubuntu.com/ubuntu jammy InRelease                     
+ヒット:4 http://jp.archive.ubuntu.com/ubuntu jammy-updates InRelease
+ヒット:5 http://jp.archive.ubuntu.com/ubuntu jammy-backports InRelease
+パッケージリストを読み込んでいます... 完了
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています... 完了        
+状態情報を読み取っています... 完了        
+ca-certificates はすでに最新バージョン (20230311ubuntu0.22.04.1) です。
+ca-certificates は手動でインストールしたと設定されました。
+curl はすでに最新バージョン (7.81.0-1ubuntu1.16) です。
+gnupg はすでに最新バージョン (2.2.27-3ubuntu2.1) です。
+gnupg は手動でインストールしたと設定されました。
+以下のパッケージが自動でインストールされましたが、もう必要とされていません:
+  libwpe-1.0-1 libwpebackend-fdo-1.0-1
+これを削除するには 'sudo apt autoremove' を利用してください。
+以下のパッケージが新たにインストールされます:
+  apt-transport-https
+アップグレード: 0 個、新規インストール: 1 個、削除: 0 個、保留: 0 個。
+1,510 B のアーカイブを取得する必要があります。
+この操作後に追加で 170 kB のディスク容量が消費されます。
+取得:1 http://jp.archive.ubuntu.com/ubuntu jammy-updates/universe amd64 apt-transport-https all 2.4.12 [1,510 B]
+1,510 B を 1秒 で取得しました (2,783 B/s)       
+以前に未選択のパッケージ apt-transport-https を選択しています。
+(データベースを読み込んでいます ... 現在 230341 個のファイルとディレクトリがインストールされています。)
+.../apt-transport-https_2.4.12_all.deb を展開する準備をしています ...
+apt-transport-https (2.4.12) を展開しています...
+apt-transport-https (2.4.12) を設定しています ...
+取得:1 https://deb.nodesource.com/node_20.x nodistro InRelease [12.1 kB]
+ヒット:2 https://dl.google.com/linux/chrome/deb stable InRelease                                                                                                  
+取得:3 https://deb.nodesource.com/node_20.x nodistro/main amd64 Packages [8,456 B]                                              
+ヒット:4 http://jp.archive.ubuntu.com/ubuntu jammy InRelease                                                                     
+ヒット:5 http://security.ubuntu.com/ubuntu jammy-security InRelease                               
+ヒット:6 http://jp.archive.ubuntu.com/ubuntu jammy-updates InRelease                              
+ヒット:7 http://jp.archive.ubuntu.com/ubuntu jammy-backports InRelease
+20.6 kB を 2秒 で取得しました (13.2 kB/s)
+パッケージリストを読み込んでいます... 完了
+2024-07-12 14:20:00 - Repository configured successfully.
+2024-07-12 14:20:00 - To install Node.js, run: apt-get install nodejs -y
+2024-07-12 14:20:00 - You can use N|solid Runtime as a node.js alternative
+2024-07-12 14:20:00 - To install N|solid Runtime, run: apt-get install nsolid -y 
+#+end_src
+
