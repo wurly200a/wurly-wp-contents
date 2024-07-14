@@ -6,27 +6,114 @@
 #+CATEGORY: Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 開発環境構築
+#+TITLE: Ubuntu 22.04 開発環境構築(Wurlyの場合)
 
 * 概要
 
-Ubuntu 22.04 で各種開発を行う環境を構築する際のインストール方法のリンクをまとめました。
+Ubuntu 22.04 で各種開発を行う環境を構築する際のインストール方法のリンクと簡易手順をまとめました。
 
-基本的に Linuxネイティブ/WSL いずれにおいても共有の内容となります。
+あくまで、私(Wurly)が優先的に使用するものに特化した内容になっています。
 
-* 基本
+基本的には Linuxネイティブ/WSL いずれにおいてもほぼ共通ですが、一部異なります。
+
+* Google Chrome
  - [[./?p=484][Ubuntu Google Chrome Install]]
 
-* Editor
+#+begin_src bash
+$ sudo apt install curl
+$ curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
+$ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+$ sudo apt update
+$ sudo apt install google-chrome-stable
+#+end_src
+
+* Emacs
  - [[./?p=563][Ubuntu 22.04 (WSL) に Emacs 29.01 をインストール]]
 
+#+begin_src 
+$ git clone --depth 1 --branch emacs-29.4 git://git.sv.gnu.org/emacs.git emacs-29.4
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev \
+$ cd emacs-29.4
+$ make -j$(nproc)
+$ sudo make install
+#+end_src
+
+# https://github.com/ucoka/emacs.d
+# http://192.168.1.101:8008/ConfGr/emacs.private.d
+# https://github.com/wurly200a/wurly-wp-contents
+
+* Ubuntu で 変換、無変換キーをCtrlキーに割り当てる
+ - [[./?p=658][Ubuntu で 変換、無変換キーをCtrlキーに割り当てる]]
+
+#+begin_src 
+$ sudo vi /usr/share/X11/xkb/symbols/jphenk
+$ sudo vi /usr/share/X11/xkb/rules/evdev 
+$ sudo vi /usr/share/X11/xkb/rules/evdev 
+#+end_src
+
+#+begin_src 
+$ sudo apt install dconf-editor
+$ dconf-editor
+#+end_src
+
+* Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (ibus-mozc)
+
+ - [[./?p=677][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (ibus-mozc)]]
+
+#+begin_src 
+$ ibus-setup
+#+end_src
+
+* Vterm
+ - [[./?p=1098][emacs-libvterm (vterm)]]
+
+#+begin_src 
+$ sudo apt install cmake libtool-bin
+#+end_src
+
+#+begin_src 
+$ sudo apt install emacs-mozc
+#+end_src
+
+* openssh-server
+ - [[./?p=720][Ubuntu 22.04 SSHサーバー設定及びクライアントからのX11接続]]
+
+#+begin_src bash
+sudo apt install openssh-server
+#+end_src
+
+** update snap
+
+#+begin_src bash
+$ sudo snap refresh
+$ snap-store --quit && sudo snap refresh snap-store
+#+end_src
+
+** Wayland
+ - [[./?p=1250][Ubuntu 22.04 で Wayland を有効にする]]
+
+#+begin_src bash
+sudo vi /etc/gdm3/custom.conf
+#+end_src
+
+#+begin_src
+WaylandEnable=true
+#+end_src
+
+#+begin_src 
+$ sudo systemctl restart gdm3
+#+end_src
+
 * Node.js
- - [[./?p=768][Ubuntu 22.04 LTS(WSL)へのNode.jsのインストール]]
+
+lspのインストールに必要
+ - [[./?p=1496][Ubuntu 22.04 LTS(WSL)へのNode.js LTS のインストール]]
 
 * Docker/Kubernetes/Azure
  - [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]]
 
- - [[./?p=852][Ubuntu 22.04 に kubectl をインストール]]
+ - [[./?p=1356][Ubuntu 22.04 に kubectl をインストール・アップデート (2024年5月時点)]]
 
  - [[./?p=856][Ubuntu 22.04 に helm をインストール]]
 
@@ -36,15 +123,100 @@ Ubuntu 22.04 で各種開発を行う環境を構築する際のインストー�
 
 * Java
  - [[./?p=722][Ubuntu 22.04 に Maven を install]]
-
  - [[./?p=578][Ubuntu 22.04(WSL) に OpenJDK 17 をインストール]]
-
- - [[./?p=587][Ubuntu 22.04(WSL) に IntelliJ IDEA をインストール]]
 
 * Python
  - [[./?p=908][Ubuntu 22.04 に Python venv をインストール]]
+
+* kubernetes settings
+
+ - [[./?p=1096][Kubernetesをはじめる]]
+
+#+begin_src sh
+echo "alias k='kubectl'" >> ~/.bash_aliases
+echo "alias sa='source ~/.bash_aliases'" >> ~/.bash_aliases
+#+end_src
+
+#+begin_src sh
+echo "source ~/.bash_aliases" >> ~/.bashrc
+#+end_src
+
+#+begin_src bash
+git clone https://github.com/ahmetb/kubectx.git ./kubectx-temp
+sudo cp ./kubectx-temp/kubens /usr/local/bin/kubens
+sudo cp ./kubectx-temp/kubectx /usr/local/bin/kubectx
+COMPDIR=$(pkg-config --variable=completionsdir bash-completion)
+sudo cp ./kubectx-temp/completion/kubens.bash $COMPDIR/kubens
+sudo cp ./kubectx-temp/completion/kubectx.bash $COMPDIR/kubectx
+rm -Rf ./kubectx-temp
+#+end_src
+
+* localectl
+
+システムメッセージが日本語だと違和感があるので変更します。
+
+インストール後、何もしていない状態で下記となっていました。
+
+#+begin_src bash
+$ localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: n/a
+      X11 Layout: jp
+       X11 Model: pc105
+#+end_src
+
+#+begin_src bash
+$ localectl set-x11-keymap jp jp106
+#+end_src
+
+こうなります。
+
+#+begin_src bash
+$ localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: jp106
+      X11 Layout: jp
+       X11 Model: jp106
+#+end_src
+
+#+begin_src 
+sudo vi /etc/locale.gen
+#+end_src
+
+下記のコメントアウトを外します。
+
+#+begin_src 
+# C.UTF-8 UTF-8
+#+end_src
+
+下記を実行します。
+
+#+begin_src bash
+sudo update-locale LANG=C.UTF-8
+#+end_src
+
+#+begin_src bash
+$ localectl
+   System Locale: LANG=C.UTF-8
+       VC Keymap: jp106
+      X11 Layout: jp
+       X11 Model: jp106
+#+end_src
+
+再起動します。
 
 * Rust
  - [[./?p=777][EmacsによるRust開発環境構築]]
 
 # - [[./?p=][]]
+
+* Java IDE
+ - [[./?p=587][Ubuntu 22.04(WSL) に IntelliJ IDEA をインストール]]
+
+
+* Memo
+
+#+begin_src 
+$ ibus-setup
+$ sudo apt install cmake libtool-bin
+#+end_src
