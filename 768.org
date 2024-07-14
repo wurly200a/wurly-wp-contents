@@ -6,7 +6,7 @@
 #+CATEGORY: Node.js
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 LTS(WSL)へのNode.jsのインストール
+#+TITLE: Ubuntu 22.04 LTS(WSL)へのNode.js バージョン18 のインストール
 
 * はじめに
 
@@ -22,6 +22,12 @@ Ubuntu22.04のaptでインストールできるパッケージはだいぶ古い
 https://github.com/nodesource/distributions
 
 上記の手順に従いました。
+
+2024.07.14追記
+
+上記記載の方法が再度変更になっており、スクリプトが提供されています。
+
+[[./?p=1496][Ubuntu 22.04 LTS(WSL)へのNode.js LTS (バージョン20) のインストール]] に新しいやり方を記載しました。
 
 * 手順
 
