@@ -31,61 +31,15 @@ SDカード挿入後、dmesg には下記が出力されていました。
 
 #+begin_src 
 wurly@k8s-worker1:~$ sudo fdisk -l
-Disk /dev/loop0: 63.45 MiB, 66531328 bytes, 129944 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
 
-
-Disk /dev/loop1: 63.91 MiB, 67010560 bytes, 130880 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
-
-Disk /dev/loop2: 111.95 MiB, 117387264 bytes, 229272 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
-
-Disk /dev/loop3: 86.99 MiB, 91213824 bytes, 178152 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
-
-Disk /dev/loop4: 53.26 MiB, 55844864 bytes, 109072 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
-
-Disk /dev/loop5: 40.43 MiB, 42393600 bytes, 82800 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
-
-Disk /dev/nvme0n1: 238.47 GiB, 256060514304 bytes, 500118192 sectors
-Disk model: SPCC M.2 PCIe SSD                       
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: A8E08FB7-F229-41AB-BCDC-B318D4D0330E
+(省略)
 
 Device           Start       End   Sectors   Size Type
 /dev/nvme0n1p1    2048   2203647   2201600     1G EFI System
 /dev/nvme0n1p2 2203648   6397951   4194304     2G Linux filesystem
 /dev/nvme0n1p3 6397952 500115455 493717504 235.4G Linux filesystem
 
-
-Disk /dev/mapper/ubuntu--vg-ubuntu--lv: 100 GiB, 107374182400 bytes, 209715200 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-
+(省略)
 
 Disk /dev/mmcblk0: 14.43 GiB, 15489564672 bytes, 30253056 sectors
 Units: sectors of 1 * 512 = 512 bytes
@@ -107,39 +61,28 @@ Device         Boot   Start      End  Sectors  Size Id Type
 
 /dev/nvme0n1 がメインのNVMe SSDで、 /dev/mmcblk0 が今回の SDカードと判断します。
 
+* バックアップ＆リストア
+
+** バックアップ
+
+ブロックサイズの指定をしないとかなり遅いので、bs=67108864 (64MB) を指定して上手くいきました。
+また、進捗表示されないと不便なので status=progress も指定します。
 
 #+begin_src bash
-Disk /dev/nvme0n1: 238.47 GiB, 256060514304 bytes, 500118192 sectors
-Disk model: SPCC M.2 PCIe SSD                       
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: A8E08FB7-F229-41AB-BCDC-B318D4D0330E
-
-Device           Start       End   Sectors   Size Type
-/dev/nvme0n1p1    2048   2203647   2201600     1G EFI System
-/dev/nvme0n1p2 2203648   6397951   4194304     2G Linux filesystem
-/dev/nvme0n1p3 6397952 500115455 493717504 235.4G Linux filesystem
+sudo dd if=/dev/mmcblk0 bs=67108864 status=progress | gzip > ./hoge.dd.gz
 #+end_src
+
+** リストア
+
+バックアップのときと同様のオプションを使用します。
 
 #+begin_src bash
-Disk /dev/mmcblk0: 14.43 GiB, 15489564672 bytes, 30253056 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: dos
-Disk identifier: 0x00059948
-
-Device         Boot   Start      End  Sectors  Size Id Type
-/dev/mmcblk0p1         2048  2792968  2790921  1.3G  e W95 FAT16 (LBA)
-/dev/mmcblk0p2      2792969 30253055 27460087 13.1G  5 Extended
-/dev/mmcblk0p5      2793472  2859005    65534   32M 83 Linux
-/dev/mmcblk0p6      2859008  2994175   135168   66M  c W95 FAT32 (LBA)
-/dev/mmcblk0p7      2998272 30253055 27254784   13G 83 Linux
+gzip -c ./hoge.dd.gz | sudo dd of=/dev/mmcblk0 bs=67108864 status=progress
 #+end_src
 
-* バックアップ
+* 事例
+
+** Raspberry Pi 3B バックアップ
 
 下記でバックアップしました。
 
@@ -150,12 +93,65 @@ $ sudo dd if=/dev/mmcblk0  of=./rasp3b20240223.dd
 15489564672 bytes (15 GB, 14 GiB) copied, 291.306 s, 53.2 MB/s
 #+end_src
 
-* リストア
 
-やってみてはいませんが、下記でリストアできるはずです。
+** K8Sコントロールプレーン(ラズパイ)バックアップ、N台目が決まっていない状態
+
+汎用的に使用できるようにするため、有線側のLANを無効にします。
+
+/etc/netplan/01-netcfg.yaml の記述を全てコメントアウトします。
+
+ホスト名を下記に変更します。
 
 #+begin_src bash
-$ sudo dd if=./rasp3b20240223.dd of=/dev/mmcblk0
+$ hostnamectl set-hostname k8s-ctrl99
+#+end_src
+
+#+begin_src bash
+sudo dd if=/dev/mmcblk0 bs=67108864 status=progress | gzip > ./k8s-rsp4b-base.dd.gz
+#+end_src
+
+** K8Sコントロールプレーン(ラズパイ)バックアップ、N台目が決まっている状態
+
+backup-k8s-ctrl1.sh
+
+#+begin_src bash
+sudo dd if=/dev/mmcblk0 bs=67108864 status=progress | gzip > ./k8s-rsp4b-ctrl1.dd.gz
+#+end_src
+
+backup-k8s-ctrl2.sh
+
+#+begin_src bash
+sudo dd if=/dev/mmcblk0 bs=67108864 status=progress | gzip > ./k8s-rsp4b-ctrl2.dd.gz
+#+end_src
+
+backup-k8s-ctrl3.sh
+
+#+begin_src bash
+sudo dd if=/dev/mmcblk0 bs=67108864 status=progress | gzip > ./k8s-rsp4b-ctrl3.dd.gz
+#+end_src
+
+** K8Sコントロールプレーン(ラズパイ)リストア
+
+バックアップから復帰させます。
+
+#+begin_src bash
+gzip -c ./k8s-rsp4b-base.dd.gz | sudo dd of=/dev/mmcblk0 bs=67108864 status=progress
+#+end_src
+
+ホストネームをセット、固定IPをセットし、WiFiは無効にします。
+
+#+begin_src bash
+hostnamectl set-hostname k8s-ctrl1
+#+end_src
+
+* おまけ
+
+踏み台にしてコピーする場合
+
+#+begin_src bash
+alias scpk8sw1='scp -o ProxyCommand="ssh -W %h:%p root@192.168.1.100" -i ~/.ssh/id_ed25519'
+
+# scp -o ProxyCommand="ssh -W %h:%p root@192.168.1.100" -i ~/.ssh/id_ed25519 wurly@192.168.10.21:/home/wurly/k8s-rsp4b-base.dd.gz ./
 #+end_src
 
 * 参考
