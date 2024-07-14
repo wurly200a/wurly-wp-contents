@@ -194,6 +194,15 @@ For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides
 ** 解決方法
  - [[https://github.com/mermaid-js/mermaid-cli/issues/595#issuecomment-1728251093][Installation failure when using Snap version of Node.JS · Issue #595 · mermaid-js/mermaid-cli]]
 
+
+* 参考ページ
+ - [[http://cha.la.coocan.jp/wp/2024/02/25/post-1182/][Emacs org-mode で Mermaidの図を描く (ob-mermaid) | Wurly's blog]]
+ - [[https://mermaid.js.org/][Mermaid | Diagramming and charting tool]]
+ - [[https://zenn.dev/junkawa/articles/zenn-mermaidjs-theme-config][Mermaid のテーマ・スタイルの変更方法]]
+ - [[https://mermaid.js.org/config/theming.html#making-a-custom-theme-with-themevariables][Theme Configuration | Mermaid]]
+ - [[https://zenn.dev/fm_radio/articles/5ee416119bfa69][[Mermaid] flowchart 書き方メモ]]
+ - [[https://github.com/mermaid-js/mermaid/issues/1209][Subgraph label spacing is missing left/right and bottom spacing · Issue #1209 · mermaid-js/mermaid]]
+
 * おわりに
 
 以上です。
