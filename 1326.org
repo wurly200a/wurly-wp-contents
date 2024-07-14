@@ -35,7 +35,7 @@
 固定IPアドレスを設定します。
 下記は一例で、それぞれ個体に合わせて設定します。
 
-ここでは、ASUS Chromebox3 の有線ポート eno0 を 192.168.1.211 に設定します。
+ここでは、ASUS Chromebox 3 の有線ポート eno0 を 192.168.1.211 に設定します。
 
 #+begin_src bash
 cat << _EOF_ | sudo tee -a /etc/netplan/01-netcfg.yaml
@@ -59,14 +59,15 @@ sudo netplan apply
 #+end_src
 
 #+begin_src bash
-hostnamectl set-hostname k8s1
+hostnamectl set-hostname k8s-worker1
 #+end_src
 
 #+begin_src bash
 cat << _EOF_ | sudo tee -a /etc/hosts
-192.168.1.201  k8s1
-192.168.1.202  k8s2
-192.168.1.203  k8s3
+192.168.1.201  k8s-ctrl1
+192.168.1.202  k8s-ctrl2
+192.168.1.203  k8s-ctrl3
+192.168.1.211  k8s-worker1
 _EOF_
 #+end_src
 
