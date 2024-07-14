@@ -1,0 +1,44 @@
+#+BLOG: wurly-blog
+#+POSTID: 1492
+#+ORG2BLOG:
+#+DATE: [2024-07-13 Sat 14:18]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)SpringBootアプリのgithub上での開発
+
+* Codecov
+
+個人開発、かつ開発者が一人の場合はずっと無料(as of 2024-07-13)
+
+ - Codecov アカウントの設定とリポジトリの登録
+  - Codecov のサイトでアカウントを作成します。
+  - GitHub リポジトリを Codecov にリンクします。
+  - Codecov リポジトリページでリポジトリの設定に進み、Codecov のアップロードトークンを取得します。
+  - GitHub リポジトリの Settings -> Secrets and variables -> Actions に進み、新しいシークレットとして CODECOV_TOKEN を追加します。
+
+ - Codecov 設定ファイルの作成
+  - 次に、Codecov 設定ファイルをリポジトリに追加します。
+  - この設定ファイルは、パッチカバレッジ（変更コードのカバレッジ）が80%以上であることを要求します。
+
+codecov.yml
+
+#+begin_src yaml
+coverage:
+  status:
+    patch:
+      default:
+        target: 80%
+    project:
+      default:
+        target: 80%
+#+end_src
+
+* 参考
+ - [[https://zenn.dev/ncdc/articles/codecov_yml_settings][【Codecov】codecov.ymlの設定についてのあれこれ]]
+https://zenn.dev/ncdc/articles/codecov_yml_settings
+
+
+ - [[https://techblog.asia-quest.jp/202304/next-generation-branch-protection-rules-about-repository-rules][次世代ブランチ保護ルール リポジトリルールについて | AQ Tech Blog]]
+https://techblog.asia-quest.jp/202304/next-generation-branch-protection-rules-about-repository-rules
