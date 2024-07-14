@@ -1,0 +1,15 @@
+#+BLOG: wurly-blog
+#+POSTID: 1401
+#+ORG2BLOG:
+#+DATE: [2024-07-01 Mon 08:08]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)Kubernetesのシャットダウン
+
+ - [[https://gist.github.com/tomotake-koike/0c8b653fdb974104a7061cb29d58846e][Kubernetes Nodeの停止/復旧手順]]
+https://gist.github.com/tomotake-koike/0c8b653fdb974104a7061cb29d58846e
+
+ - [[https://qiita.com/tkusumi/items/946b0f31931d21a78058][Kubernetes: 複数の Node を安全に停止する (kubectl drain + PodDisruptionBudget) #kubernetes - Qiita]]
+https://qiita.com/tkusumi/items/946b0f31931d21a78058

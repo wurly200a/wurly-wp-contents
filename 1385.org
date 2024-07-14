@@ -1,0 +1,40 @@
+#+BLOG: wurly-blog
+#+POSTID: 1385
+#+ORG2BLOG:
+#+DATE: [2024-06-16 Sun 18:41]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)WSL Ubuntu 22.04 で使用している Emacs が放っておくと固まる
+
+* 概要
+
+#+begin_src bash
+(emacs:45411): GLib-GIO-CRITICAL **: 14:47:42.135: g_dbus_proxy_new: assertion 'G_IS_DBUS_CONNECTION (connection)' failed
+#+end_src
+
+ - [[https://askubuntu.com/questions/1128343/g-is-dbus-connection-failed][putty - G_IS_DBUS_connection failed - Ask Ubuntu]]
+https://askubuntu.com/questions/1128343/g-is-dbus-connection-failed
+
+とりあえず上記を参考に fcitx-module-dbus を削除してみます。
+
+#+begin_src bash
+$ sudo apt purge fcitx-module-dbus
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages will be REMOVED:
+  fcitx-frontend-gtk2* fcitx-frontend-gtk3* fcitx-frontend-qt5* fcitx-module-dbus* fcitx-module-kimpanel*
+0 upgraded, 0 newly installed, 5 to remove and 3 not upgraded.
+After this operation, 595 kB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 317650 files and directories currently installed.)
+Removing fcitx-frontend-gtk2 (1:4.2.9.8-5) ...
+Removing fcitx-frontend-gtk3 (1:4.2.9.8-5) ...
+Removing fcitx-frontend-qt5:amd64 (1.2.7-1.2build1) ...
+Removing fcitx-module-kimpanel (1:4.2.9.8-5) ...
+Removing fcitx-module-dbus (1:4.2.9.8-5) ...
+Processing triggers for libgtk2.0-0:amd64 (2.24.33-2ubuntu2) ...
+Processing triggers for libgtk-3-0:amd64 (3.24.33-1ubuntu2.1) ...
+#+end_src

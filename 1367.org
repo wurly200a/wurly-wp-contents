@@ -1,0 +1,313 @@
+#+BLOG: wurly-blog
+#+POSTID: 1367
+#+ORG2BLOG:
+#+DATE: [2024-06-04 Tue 08:42]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)Longhorn
+
+* 選定
+
+おうちkubernetesにて、Persist Volume を作成したいです。
+
+local-path-provisioner かな？と思っていたのですが
+
+ - [[https://github.com/rancher/local-path-provisioner][rancher/local-path-provisioner: Dynamically provisioning persistent local storage with Kubernetes]]
+
+下記によると、longhorn がよさそうです。
+
+ - [[https://light-of-moe.ddo.jp/~sakura/diary/?p=1575][おうちkubernetes向けのストレージとしてLonghornを採用してみた経緯と感想 – さくらんぼの技術備忘録]]
+
+インストール方法については、下記が参考になりそうです。
+
+ - [[https://h3poteto.hatenablog.com/entry/2023/09/11/210410][おうちKubernetesにLonghornを入れる - PartyIX]]
+
+
+* 手順
+
+下記を行います。
+
+ - Ubuntu ServerでLVMを有効化し、パーティションとして適当なサイズを用意して /var/lib/longhorn にマウントする
+ - helm で Longhorn をインストールする
+
+* パーティションの作成
+
+ - 1380
+
+* チェック
+
+#+begin_src bash
+$ curl -sSfL https://raw.githubusercontent.com/longhorn/longhorn/v1.5.1/scripts/environment_check.sh | bash
+[INFO]  Required dependencies 'kubectl jq mktemp' are installed.
+[INFO]  All nodes have unique hostnames.
+[INFO]  Waiting for longhorn-environment-check pods to become ready (0/1)...
+[INFO]  Waiting for longhorn-environment-check pods to become ready (0/1)...
+[INFO]  Waiting for longhorn-environment-check pods to become ready (0/1)...
+[INFO]  All longhorn-environment-check pods are ready (1/1).
+[INFO]  MountPropagation is enabled
+[INFO]  Checking iscsid...
+[INFO]  Checking multipathd...
+[WARN]  multipathd is running on k8s-worker1
+[INFO]  Checking packages...
+[ERROR] nfs-common is not found in k8s-worker1.
+[INFO]  Cleaning up longhorn-environment-check pods...
+[INFO]  Cleanup completed.
+#+end_src
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo apt install nfs-common
+[sudo] password for wurly: 
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  keyutils libnfsidmap1 rpcbind
+Suggested packages:
+  watchdog
+The following NEW packages will be installed:
+  keyutils libnfsidmap1 nfs-common rpcbind
+0 upgraded, 4 newly installed, 0 to remove and 12 not upgraded.
+#+end_src
+
+#+begin_src bash
+$ curl -sSfL https://raw.githubusercontent.com/longhorn/longhorn/v1.5.1/scripts/environment_check.sh | bash
+[INFO]  Required dependencies 'kubectl jq mktemp' are installed.
+[INFO]  All nodes have unique hostnames.
+[INFO]  Waiting for longhorn-environment-check pods to become ready (0/1)...
+[INFO]  All longhorn-environment-check pods are ready (1/1).
+[INFO]  MountPropagation is enabled
+[INFO]  Checking iscsid...
+[INFO]  Checking multipathd...
+[WARN]  multipathd is running on k8s-worker1
+[INFO]  Checking packages...
+[INFO]  Cleaning up longhorn-environment-check pods...
+[INFO]  Cleanup completed.
+#+end_src
+
+
+#+begin_src bash
+curl -sSfL https://raw.githubusercontent.com/longhorn/longhorn/v1.6.2/scripts/environment_check.sh | bash
+#+end_src
+
+* インストール
+
+Add the Longhorn Helm repository:
+
+#+begin_src 
+helm repo add longhorn https://charts.longhorn.io
+#+end_src
+
+Fetch the latest charts from the repository:
+
+#+begin_src 
+helm repo update
+#+end_src
+
+Install Longhorn in the longhorn-system namespace.
+
+#+begin_src 
+helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.6.2
+#+end_src
+
+#+begin_src bash
+$ helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.6.2
+NAME: longhorn
+LAST DEPLOYED: Fri Jun  7 08:38:15 2024
+NAMESPACE: longhorn-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Longhorn is now installed on the cluster!
+
+Please wait a few minutes for other Longhorn components such as CSI deployments, Engine Images, and Instance Managers to be initialized.
+
+Visit our documentation at https://longhorn.io/docs/
+#+end_src
+
+
+* チェック
+
+To confirm that the deployment succeeded, run:
+
+#+begin_src 
+kubectl -n longhorn-system get pod
+#+end_src
+
+#+begin_src bash
+$ k get pod
+NAME                                        READY   STATUS     RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1   0             46s
+longhorn-manager-ksdx6                      1/1     Running    0             46s
+longhorn-ui-5db87b4db5-pd9xr                0/1     Error      1 (25s ago)   46s
+longhorn-ui-5db87b4db5-wgfmn                0/1     Error      1 (25s ago)   46s
+#+end_src
+
+
+#+begin_src bash
+$ k get pod
+NAME                                        READY   STATUS     RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1   0             46s
+longhorn-manager-ksdx6                      1/1     Running    0             46s
+longhorn-ui-5db87b4db5-pd9xr                0/1     Error      1 (25s ago)   46s
+longhorn-ui-5db87b4db5-wgfmn                0/1     Error      1 (25s ago)   46s
+$ 
+$ k get pod
+NAME                                        READY   STATUS     RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1   0             83s
+longhorn-manager-ksdx6                      1/1     Running    1 (20s ago)   83s
+longhorn-ui-5db87b4db5-pd9xr                0/1     Error      2 (41s ago)   83s
+longhorn-ui-5db87b4db5-wgfmn                0/1     Error      2 (41s ago)   83s
+$ 
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0             2m30s
+longhorn-manager-ksdx6                      1/1     Running            2 (24s ago)   2m30s
+longhorn-ui-5db87b4db5-pd9xr                0/1     CrashLoopBackOff   3 (28s ago)   2m30s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   3 (28s ago)   2m30s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0             4m9s
+longhorn-manager-ksdx6                      1/1     Running            3 (45s ago)   4m9s
+longhorn-ui-5db87b4db5-pd9xr                0/1     CrashLoopBackOff   4 (61s ago)   4m9s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   4 (56s ago)   4m9s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               7m42s
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   4 (51s ago)     7m42s
+longhorn-ui-5db87b4db5-pd9xr                1/1     Running            6 (2m49s ago)   7m42s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   5 (2m37s ago)   7m42s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               7m46s
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   4 (55s ago)     7m46s
+longhorn-ui-5db87b4db5-pd9xr                1/1     Running            6 (2m53s ago)   7m46s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   5 (2m41s ago)   7m46s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               7m47s
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   4 (56s ago)     7m47s
+longhorn-ui-5db87b4db5-pd9xr                1/1     Running            6 (2m54s ago)   7m47s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   5 (2m42s ago)   7m47s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               7m48s
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   4 (57s ago)     7m48s
+longhorn-ui-5db87b4db5-pd9xr                1/1     Running            6 (2m55s ago)   7m48s
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   5 (2m43s ago)   7m48s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               8m14s
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   4 (83s ago)     8m14s
+longhorn-ui-5db87b4db5-pd9xr                0/1     Error              6 (3m21s ago)   8m14s
+longhorn-ui-5db87b4db5-wgfmn                0/1     Error              6 (3m9s ago)    8m14s
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS        AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0               8m15s
+longhorn-manager-ksdx6                      1/1     Running            5 (84s ago)     8m15s
+longhorn-ui-5db87b4db5-pd9xr                0/1     CrashLoopBackOff   6 (14s ago)     8m15s
+longhorn-ui-5db87b4db5-wgfmn                0/1     Error              6 (3m10s ago)   8m15s
+$ 
+$ 
+$ k get pod
+NAME                                        READY   STATUS             RESTARTS      AGE
+longhorn-driver-deployer-68cb9bf546-hrjh5   0/1     Init:0/1           0             14m
+longhorn-manager-ksdx6                      0/1     CrashLoopBackOff   6 (98s ago)   14m
+longhorn-ui-5db87b4db5-pd9xr                0/1     CrashLoopBackOff   7 (76s ago)   14m
+longhorn-ui-5db87b4db5-wgfmn                0/1     CrashLoopBackOff   7 (71s ago)   14m
+#+end_src
+
+うまく立ち上がりません。
+
+* 古いバージョンにて試す
+
+#+begin_src 
+helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.5.5
+#+end_src
+
+やはりうまく立ち上がりません。
+
+* values.yaml
+
+取得します。
+
+#+begin_src bash
+helm show values longhorn/longhorn --version 1.6.2 > values.yaml
+#+end_src
+
+下記を書き換えます。
+
+#+begin_src yaml
+service:
+  ui:
+    # -- Service type for Longhorn UI. (Options: "ClusterIP", "NodePort", "LoadBalancer", "Rancher-Proxy")
+#    type: ClusterIP
+    type: LoadBalancer
+#+end_src
+
+インストールします。
+
+やはりうまく行きません。
+
+#+begin_src 
+Defaulted container "longhorn-driver-deployer" out of: longhorn-driver-deployer, wait-longhorn-manager (init)
+Error from server (BadRequest): container "longhorn-driver-deployer" in pod "longhorn-driver-deployer-54bf98c47d-txth7" is waiting to start: PodInitializing
+
+Process kubernetes-exec exited abnormally with code 1
+#+end_src
+
+#+begin_src 
+helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.6.2 -f values.yaml
+#+end_src
+
+* アンインストール
+
+一旦削除します。
+
+#+begin_src 
+helm uninstall longhorn
+kubectl delete ns longhorn-system
+#+end_src
+
+* 論理ボリュームの削除
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo umount /var/lib/longhorn
+#+end_src
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo wipefs -a /dev/ubuntu-vg/longhorn-lv 
+/dev/ubuntu-vg/longhorn-lv: 2 bytes were erased at offset 0x00000438 (ext4): 53 ef
+#+end_src
+
+#+begin_src bash
+wurly@k8s-worker1:~$ sudo lvremove /dev/ubuntu-vg/longhorn-lv
+Do you really want to remove and DISCARD active logical volume ubuntu-vg/longhorn-lv? [y/n]: y
+  Logical volume "longhorn-lv" successfully removed
+#+end_src
+
+/etc/fstab から下記行を削除
+
+#+begin_src 
+/dev/ubuntu-vg/longhorn-lv /var/lib/longhorn ext4 defaults 0 0
+#+end_src
+
+マウントポイントとしていたディレクトリを削除
+
+#+begin_src bash
+sudo rm -R /var/lib/longhorn
+#+end_src
+
+* 参考
+
+ - [[https://tech.opst.co.jp/2022/07/05/%E5%88%86%E6%95%A3%E3%82%B3%E3%83%B3%E3%83%86%E3%83%8A%E3%82%B9%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B8%E3%80%8Clonghorn%E3%80%8D%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E3%81%BF%E3%81%9F/][分散コンテナストレージ「Longhorn」を使ってみた – TECH4ALL]]
+ - [[https://h3poteto.hatenablog.com/entry/2023/09/11/210410][おうちKubernetesにLonghornを入れる - PartyIX]]
+ - [[https://longhorn.io/docs/1.6.2/deploy/install/install-with-helm/][Longhorn | Documentation]]
+ - [[https://longhorn.io/docs/1.6.2/best-practices/#disk-space-management][Longhorn | Documentation]]
+ - [[https://github.com/longhorn/longhorn/blob/v1.6.2/scripts/environment_check.sh][longhorn/scripts/environment_check.sh at v1.6.2 · longhorn/longhorn]]
+ - [[https://longhorn.io/docs/1.6.2/][Longhorn | Documentation]]
+ - [[https://longhorn.io/docs/1.5.1/deploy/install/#using-the-environment-check-script][Longhorn | Documentation]]
+ - [[https://longhorn.io/docs/1.5.1/deploy/install/install-with-helm/][Longhorn | Documentation]]
+ - [[https://longhorn.io/kb/troubleshooting-volume-with-multipath/][Troubleshooting: `MountVolume.SetUp failed for volume` due to multipathd on the node | The Longhorn Knowledge Base]]

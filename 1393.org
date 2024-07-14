@@ -1,0 +1,19 @@
+#+BLOG: wurly-blog
+#+POSTID: 1393
+#+ORG2BLOG:
+#+DATE: [2024-06-21 Fri 09:06]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: yqコマンド
+
+* 概要
+
+YAML/XMLを操作する際に使うjqコマンドのラッパー。
+pipでインストールできる。
+
+* 参考
+
+ - [[https://zenn.dev/gkz/articles/yq-beginners-guide][yqコマンド(jq wrapper for YAML)使い方備忘録]]
+https://zenn.dev/gkz/articles/yq-beginners-guide

@@ -1,0 +1,11 @@
+#+BLOG: wurly-blog
+#+POSTID: 1397
+#+ORG2BLOG:
+#+DATE: [2024-06-21 Fri 09:10]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: IP v6
+
+- https://www.nic.ad.jp/sc-sendai/program/iwsc-sendai-d1-4.pdf IPv6チュートリアル ～IPv6化ことはじめ～

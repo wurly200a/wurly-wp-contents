@@ -1,0 +1,55 @@
+#+BLOG: wurly-blog
+#+POSTID: 1391
+#+ORG2BLOG:
+#+DATE: [2024-06-21 Fri 08:55]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)6443ポートが空いてない？
+
+* 課題
+
+ - [[https://v1-29.docs.kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/][Installing kubeadm | Kubernetes]]
+https://v1-29.docs.kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+Installing kubeadm に、下記のように記載されている。
+
+#+begin_quote
+Check required ports
+These required ports need to be open in order for Kubernetes components to communicate with each other. You can use tools like netcat to check if a port is open. For example:
+
+nc 127.0.0.1 6443 -v
+The pod network plugin you use may also require certain ports to be open. Since this differs with each pod network plugin, please see the documentation for the plugins about what port(s) those need.
+#+end_quote
+
+* 参考1
+
+ - [[https://stackoverflow.com/questions/70571312/port-6443-connection-refused-when-setting-up-kubernetes][ubuntu - Port 6443 connection refused when setting up kubernetes - Stack Overflow]]
+https://stackoverflow.com/questions/70571312/port-6443-connection-refused-when-setting-up-kubernetes
+
+#+begin_quote
+1. Install nmap " sudo apt-get install nmap "
+2. listen to port 6443 "nc -l 6443"
+3. open a another terminal/window and connect to 6443 port "nc -zv 192.168.50.55 6443" . It should say connected.
+#+end_quote
+
+* 参考2
+
+ - [[https://zenn.dev/y_ikua/articles/afe28653197ca5][Raspberry Piにkubeadmでk8sをinstallしてみた]]
+https://zenn.dev/y_ikua/articles/afe28653197ca5
+
+
+#+begin_quote
+6443ポートが開いていること
+
+$ nc 127.0.0.1 6443
+(UNKNOWN) [127.0.0.1] 6443 (?) : Connection refused
+
+開いてないので、FWを設定する
+
+ufwをインストールしてポート解放
+$ sudo apt-get install ufw
+$ sudo ufw enable
+$ sudo ufw allow 6443/tcp
+#+end_quote

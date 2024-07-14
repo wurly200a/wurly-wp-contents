@@ -1,0 +1,61 @@
+#+BLOG: wurly-blog
+#+POSTID: 1409
+#+ORG2BLOG:
+#+DATE: [2024-07-01 Mon 08:19]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)Switchbot
+
+* 電力
+
+electricCurrent が 1.2 に減る模様
+
+#+begin_src 
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.6, 'weight': 12.7, 'electricityOfDay': 23, 'electricCurrent': 1.89, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.9, 'weight': 7, 'electricityOfDay': 25, 'electricCurrent': 1.2, 'version': 'V1.8-1.8'}, 'message': 'success'}
+(venv) $ python switchbot_getdevicestatus.py 
+200
+{'statusCode': 100, 'body': {'deviceId': 'DCDA0CA9E48A', 'deviceType': 'Plug Mini (JP)', 'hubDeviceId': 'DCDA0CA9E48A', 'power': 'on', 'voltage': 100.9, 'weight': 7, 'electricityOfDay': 25, 'electricCurrent': 1.2, 'version': 'V1.8-1.8'}, 'message': 'success'}
+
+#+end_src
+
+
+
+* 参考
+
+ - [[https://blog.switchbot.jp/announcement/api-v1-1/][【API】新バージョンAPI v1.1を公開しました - SwitchBot Magazine | スマートホームで暮らしをシンプルに]]
+ - [[https://github.com/OpenWonderLabs/SwitchBotAPI?tab=readme-ov-file#get-device-status][OpenWonderLabs/SwitchBotAPI: SwitchBot Open API Documents]]

@@ -1,0 +1,15 @@
+#+BLOG: wurly-blog
+#+POSTID: 1405
+#+ORG2BLOG:
+#+DATE: [2024-07-01 Mon 08:16]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)Goodnotes
+
+* 参考
+
+ - [[https://nasedomemo.com/goodnotes5/#index_id8][goodnotes5 購入方法と6との比較〜どちらを選ぶ？]]
+ - [[https://www.goodnotes.com/blog/brief-story-of-steven-our-founder-ceo][Brief Story of Steven, Our Founder & CEO | Goodnotes Blog]]
+ - [[https://deaz.blog/2023/11/07/goodnotes-6%E5%9F%BA%E6%9C%AC%E7%9A%84%E3%81%AA%E6%A9%9F%E8%83%BD%E3%83%84%E3%83%BC%E3%83%AB%E3%83%90%E3%83%BC%E8%A7%A3%E8%AA%AC/][【GoodNotes 6】基本的な機能解説！ - DEAZ.Blog]]

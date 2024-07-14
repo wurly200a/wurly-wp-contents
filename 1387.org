@@ -1,0 +1,160 @@
+#+BLOG: wurly-blog
+#+POSTID: 1387
+#+ORG2BLOG:
+#+DATE: [2024-06-16 Sun 22:48]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)kubeadm reset
+
+* command
+
+#+begin_src bash
+sudo kubeadm reset --force
+sudo systemctl stop kubelet
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf ~/.kube/
+sudo rm -rf /var/lib/kubelet/
+sudo rm -rf /var/lib/cni/
+sudo rm -rf /etc/cni/
+sudo rm -rf /var/lib/etcd/
+sudo reboot
+#+end_src
+
+* k8s-ctrl1
+
+#+begin_src bash
+$ sudo kubeadm reset --force
+sudo systemctl stop kubelet
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf ~/.kube/
+sudo rm -rf /var/lib/kubelet/
+sudo rm -rf /var/lib/cni/
+sudo rm -rf /etc/cni/
+sudo rm -rf /var/lib/etcd/
+sudo reboot
+[sudo] password for wurly: 
+[reset] Reading configuration from the cluster...
+[reset] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0616 22:47:30.083609    2981 reset.go:124] [reset] Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: Get "https://192.168.1.100:6443/api/v1/namespaces/kube-system/configmaps/kubeadm-config?timeout=10s": dial tcp 192.168.1.100:6443: connect: connection refused
+[preflight] Running pre-flight checks
+W0616 22:47:30.084599    2981 removeetcdmember.go:106] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+Connection to 192.168.1.26 closed by remote host.
+Connection to 192.168.1.26 closed.
+#+end_src
+
+* k8s-ctrl2
+
+#+begin_src bash
+$ sudo kubeadm reset --force
+sudo systemctl stop kubelet
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf ~/.kube/
+sudo rm -rf /var/lib/kubelet/
+sudo rm -rf /var/lib/cni/
+sudo rm -rf /etc/cni/
+sudo rm -rf /var/lib/etcd/
+sudo reboot
+[sudo] password for wurly: 
+[reset] Reading configuration from the cluster...
+[reset] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0616 22:47:49.750937    3510 reset.go:124] [reset] Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: Get "https://192.168.1.100:6443/api/v1/namespaces/kube-system/configmaps/kubeadm-config?timeout=10s": dial tcp 192.168.1.100:6443: connect: connection refused
+[preflight] Running pre-flight checks
+W0616 22:47:49.752355    3510 removeetcdmember.go:106] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+W0616 22:48:15.688527    3510 cleanupnode.go:99] [reset] Failed to remove containers: [failed to stop running pod 5e0b34a1a811a381bcf57960d366e2ed60239e95a22086cc3890e92e07fa048f: output: E0616 22:48:04.599602    3919 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="5e0b34a1a811a381bcf57960d366e2ed60239e95a22086cc3890e92e07fa048f"
+time="2024-06-16T22:48:04+09:00" level=fatal msg="stopping the pod sandbox \"5e0b34a1a811a381bcf57960d366e2ed60239e95a22086cc3890e92e07fa048f\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1, failed to stop running pod 266c41e02351b04f983e6584e4c7648cf7420ec934d8cf4676a84653aca4d725: output: E0616 22:48:15.678864    4107 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="266c41e02351b04f983e6584e4c7648cf7420ec934d8cf4676a84653aca4d725"
+time="2024-06-16T22:48:15+09:00" level=fatal msg="stopping the pod sandbox \"266c41e02351b04f983e6584e4c7648cf7420ec934d8cf4676a84653aca4d725\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1]
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+Connection to 192.168.1.27 closed by remote host.
+Connection to 192.168.1.27 closed.
+#+end_src
+
+* k8s-ctrl3
+
+#+begin_src bash
+$ sudo kubeadm reset --force
+sudo systemctl stop kubelet
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf ~/.kube/
+sudo rm -rf /var/lib/kubelet/
+sudo rm -rf /var/lib/cni/
+sudo rm -rf /etc/cni/
+sudo rm -rf /var/lib/etcd/
+sudo reboot
+[sudo] password for wurly: 
+[reset] Reading configuration from the cluster...
+[reset] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0616 22:47:59.791699    3779 reset.go:124] [reset] Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: Get "https://192.168.1.100:6443/api/v1/namespaces/kube-system/configmaps/kubeadm-config?timeout=10s": dial tcp 192.168.1.100:6443: connect: connection refused
+[preflight] Running pre-flight checks
+W0616 22:47:59.792833    3779 removeetcdmember.go:106] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+W0616 22:48:45.537385    3779 cleanupnode.go:99] [reset] Failed to remove containers: [failed to stop running pod 3a78239b9a3762a5bf52be65790d317fd5948a98e07c18aed0bd9a8b221d16c7: output: E0616 22:48:13.723882    4157 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="3a78239b9a3762a5bf52be65790d317fd5948a98e07c18aed0bd9a8b221d16c7"
+time="2024-06-16T22:48:13+09:00" level=fatal msg="stopping the pod sandbox \"3a78239b9a3762a5bf52be65790d317fd5948a98e07c18aed0bd9a8b221d16c7\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1, failed to stop running pod 0441ce8ff5e66572b69ec7f4e93b743c1a228f3a6740cd1f0dafd23ac953ee27: output: E0616 22:48:24.067322    4299 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="0441ce8ff5e66572b69ec7f4e93b743c1a228f3a6740cd1f0dafd23ac953ee27"
+time="2024-06-16T22:48:24+09:00" level=fatal msg="stopping the pod sandbox \"0441ce8ff5e66572b69ec7f4e93b743c1a228f3a6740cd1f0dafd23ac953ee27\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1, failed to stop running pod 259c931dfa1613c773a3cd81b67951545a3e66656634881602985d83b28abf54: output: E0616 22:48:35.156742    4489 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="259c931dfa1613c773a3cd81b67951545a3e66656634881602985d83b28abf54"
+time="2024-06-16T22:48:35+09:00" level=fatal msg="stopping the pod sandbox \"259c931dfa1613c773a3cd81b67951545a3e66656634881602985d83b28abf54\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1, failed to stop running pod 65c6f1e657d570e277f9088b2d9575acc4b58223fe35434799f31e5600115990: output: E0616 22:48:45.527866    4631 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = DeadlineExceeded desc = context deadline exceeded" podSandboxID="65c6f1e657d570e277f9088b2d9575acc4b58223fe35434799f31e5600115990"
+time="2024-06-16T22:48:45+09:00" level=fatal msg="stopping the pod sandbox \"65c6f1e657d570e277f9088b2d9575acc4b58223fe35434799f31e5600115990\": rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+: exit status 1]
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+Connection to 192.168.1.36 closed by remote host.
+Connection to 192.168.1.36 closed.
+#+end_src
+
+
+
+#+begin_src bash
+sudo apt-mark unhold kubelet kubeadm kubectl
+sudo apt purge -y kubelet kubeadm kubectl
+sudo apt install -y kubelet kubeadm kubectl
+sudo reboot
+#+end_src

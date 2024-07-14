@@ -1,0 +1,13 @@
+#+BLOG: wurly-blog
+#+POSTID: 1411
+#+ORG2BLOG:
+#+DATE: [2024-07-01 Mon 08:29]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)sqlite
+
+ - [[https://qiita.com/saira/items/e08c8849cea6c3b5eb0c][python3でsqlite3の操作。作成や読み出しなどの基礎。 #Python - Qiita]]
+ - [[https://qiita.com/kanegoon/items/fc1e4bfea0984dbe4b90][SQLite3 Command Line Shell dot-commands マニュアル(完全版) #初心者 - Qiita]]
+

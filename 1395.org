@@ -1,0 +1,18 @@
+#+BLOG: wurly-blog
+#+POSTID: 1395
+#+ORG2BLOG:
+#+DATE: [2024-06-21 Fri 09:09]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)VLAN
+
+* 概要
+
+VLANの使い方等
+
+* 参考
+
+ - [[https://ameblo.jp/naginosen/entry-12843367082.html][小規模VLANの自宅での使いどころと設定設定方法(3)　設定編 | 薙の線のブログ]]
+https://ameblo.jp/naginosen/entry-12843367082.html

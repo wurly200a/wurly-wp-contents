@@ -1,0 +1,44 @@
+#+BLOG: wurly-blog
+#+POSTID: 1363
+#+ORG2BLOG:
+#+DATE: [2024-06-01 Sat 23:13]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)ssh(ラズパイのコントロール)
+
+* ssh-copy-id
+
+** 通常
+
+#+begin_src bash
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.201
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.202
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.203
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.211
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.212
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub wurly@192.168.1.213
+#+end_src
+
+** 踏み台経由
+
+#+begin_src bash
+ssh-copy-id -o ProxyCommand="ssh -W %h:%p root@192.168.1.100" -i ~/.ssh/id_ed25519 wurly@192.168.10.11
+ssh-copy-id -o ProxyCommand="ssh -W %h:%p root@192.168.1.100" -i ~/.ssh/id_ed25519 wurly@192.168.10.12
+ssh-copy-id -o ProxyCommand="ssh -W %h:%p root@192.168.1.100" -i ~/.ssh/id_ed25519 wurly@192.168.10.13
+#+end_src
+
+* 一括シャットダウンスクリプト
+
+#+begin_src bash
+ssh wurly@192.168.1.201 sudo -S shutdown -h now
+ssh wurly@192.168.1.202 sudo -S shutdown -h now
+ssh wurly@192.168.1.203 sudo -S shutdown -h now
+ssh wurly@192.168.1.211 sudo -S shutdown -h now
+#+end_src
+
+* 踏み台利用
+
+ - [[https://qiita.com/hkak03key/items/3b0c4752bfbcc52e676d][踏み台サーバを飛び越えて一発で目的のサーバへsshする方法 #SSH - Qiita]]
+https://qiita.com/hkak03key/items/3b0c4752bfbcc52e676d
