@@ -132,6 +132,8 @@ file:images/1011_05.jpg
 
 一旦、Wi-Fiでアクセスできるようにします。
 
+参考： netplanには "wpa_passphrase ESSID パスフレーズ" で生成される暗号化された文字列がセットされるようです。 (https://raspberrypi.stackexchange.com/questions/139093/change-netplan-wifi-encrypted-password, wpa_passphraseコマンド https://atmarkit.itmedia.co.jp/ait/articles/1601/23/news008.html)
+
 file:images/1011_08.jpg
 
 一旦、パスワード認証を使います。
