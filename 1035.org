@@ -51,6 +51,14 @@ https://blog.ebiiim.com/posts/homelab-kubernetes/
  - 192.168.1.202 k8s2
  - 192.168.1.203 k8s3
 
+* ホスト名の設定
+
+下記はk8s1の例で、それぞれ個体に合わせて設定します。
+
+#+begin_src bash
+hostnamectl set-hostname k8s1
+#+end_src
+
 * 各ノードの設定(k8s1の例)
 
 固定IPアドレスを設定します。
@@ -75,10 +83,6 @@ _EOF_
 #+begin_src bash
 sudo chmod 600 /etc/netplan/01-netcfg.yaml
 sudo netplan apply
-#+end_src
-
-#+begin_src bash
-hostnamectl set-hostname k8s1
 #+end_src
 
 #+begin_src bash
