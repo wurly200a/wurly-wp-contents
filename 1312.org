@@ -175,3 +175,11 @@ https://medium.com/@heshani.samarasekara/creating-highly-available-kubernetes-cl
 
  - [[https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/#before-you-begin][Creating Highly Available Clusters with kubeadm | Kubernetes]]
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/#before-you-begin
+
+* 参考2
+
+keepalivedを含む
+
+ - [[https://christina04.hatenablog.com/entry/keepalived-vip][Keepalivedを用いた冗長化 - Carpe Diem]]
+ - [[https://tech-lab.sios.jp/archives/14467][haproxyを利用して冗長化ロードバランサを構築する | SIOS Tech. Lab]]
+ - [[https://tech-blog.rakus.co.jp/entry/20211026/keepalived][keepalivedを使って冗長化をやってみた - RAKUS Developers Blog | ラクス エンジニアブログ]]
