@@ -205,6 +205,15 @@ $ localectl
 
 再起動します。
 
+* Zoom
+
+* Outloook for Linux
+
+* Teams for Linux
+
+
+---
+
 * Rust
  - [[./?p=777][EmacsによるRust開発環境構築]]
 
