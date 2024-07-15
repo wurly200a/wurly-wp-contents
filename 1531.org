@@ -1,0 +1,118 @@
+#+BLOG: wurly-blog
+#+POSTID: 1531
+#+ORG2BLOG:
+#+DATE: [2024-07-15 Mon 15:59]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ceph, Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Rook Ceph で Storageのプロビジョニング
+
+* 概要
+
+ - [[./?p=1371][Rook Ceph を おうちKubernetesにデプロイ]]
+
+上記にてデプロイしました。
+ここでは実際にストレージを使えるようにします。
+
+* kubectl-rook-ceph (kubectl Plugin)
+
+ - [[./?p=1533][Krew (kubectl plugin) の導入]]
+
+上記のページに記載の通り、kubectl-rook-ceph を導入します。
+
+これで、"kubectl rook-ceph" に "ceph" を続けることで cephコマンドが実行できるようになります。
+
+* 状態の確認
+
+helmチャートを使い、defaultのvalues.yamlでデプロイした場合、既にストレージが用意されるようです。
+
+** ceph status
+
+#+begin_src bash
+$ k rook-ceph ceph status
+Info: running 'ceph' command with args: [status]
+  cluster:
+    id:     18be74a6-d73c-4f2f-b5c6-267d7e2b43c9
+    health: HEALTH_WARN
+            1 mgr modules have recently crashed
+ 
+  services:
+    mon: 3 daemons, quorum a,b,c (age 13h)
+    mgr: b(active, since 13h), standbys: a
+    mds: 1/1 daemons up, 1 hot standby
+    osd: 3 osds: 3 up (since 13h), 3 in (since 8d)
+    rgw: 1 daemon active (1 hosts, 1 zones)
+ 
+  data:
+    volumes: 1/1 healthy
+    pools:   12 pools, 169 pgs
+    objects: 398 objects, 670 KiB
+    usage:   236 MiB used, 412 GiB / 412 GiB avail
+    pgs:     169 active+clean
+ 
+  io:
+    client:   852 B/s rd, 1 op/s rd, 0 op/s wr
+#+end_src
+
+** kubectl get cephfilesystem
+
+#+begin_src 
+$ k get cephfilesystem -n rook-ceph
+NAME              ACTIVEMDS   AGE   PHASE
+ceph-filesystem   1           8d    Ready
+#+end_src
+
+** ceph fs ls
+
+#+begin_src 
+$ k rook-ceph ceph fs ls
+Info: running 'ceph' command with args: [fs ls]
+name: ceph-filesystem, metadata pool: ceph-filesystem-metadata, data pools: [ceph-filesystem-data0 ]
+#+end_src
+
+** ceph df
+
+#+begin_src 
+$ k rook-ceph ceph df
+Info: running 'ceph' command with args: [df]
+--- RAW STORAGE ---
+CLASS     SIZE    AVAIL     USED  RAW USED  %RAW USED
+nvme   412 GiB  412 GiB  236 MiB   236 MiB       0.06
+TOTAL  412 GiB  412 GiB  236 MiB   236 MiB       0.06
+ 
+--- POOLS ---
+POOL                                 ID  PGS   STORED  OBJECTS     USED  %USED  MAX AVAIL
+ceph-blockpool                        1   32     19 B        1   12 KiB      0    130 GiB
+ceph-objectstore.rgw.control          2    8      0 B        8      0 B      0    130 GiB
+ceph-filesystem-metadata              3   16   74 KiB       22  304 KiB      0    130 GiB
+ceph-objectstore.rgw.meta             4    8  4.7 KiB        9   82 KiB      0    130 GiB
+.mgr                                  5    1  577 KiB        2  1.7 MiB      0    130 GiB
+ceph-filesystem-data0                 6   32      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.log              7    8   33 KiB      339  1.9 MiB      0    130 GiB
+ceph-objectstore.rgw.buckets.index    8    8      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.buckets.non-ec   9    8      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.otp             10    8      0 B        0      0 B      0    130 GiB
+.rgw.root                            11    8  5.0 KiB       17  192 KiB      0    130 GiB
+ceph-objectstore.rgw.buckets.data    12   32      0 B        0      0 B      0    261 GiB
+#+end_src
+
+** get pod (mds)
+
+#+begin_src 
+$ k get pod -n rook-ceph | grep mds
+rook-ceph-mds-ceph-filesystem-a-7b4d7b9dc4-hvx95        2/2     Running     6 (13h ago)    8d
+rook-ceph-mds-ceph-filesystem-b-6d45c6f856-v97xb        2/2     Running     6 (13h ago)    8d
+#+end_src
+
+** kubectl get sc
+
+StorageClassとして、Block Storage (RDB)、Object Storage (RGW)のBucket、Shared Filesystem(CephFS) が既に用意されています。
+
+#+begin_src bash
+$ k get sc -n rook-ceph
+NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+ceph-block (default)   rook-ceph.rbd.csi.ceph.com      Delete          Immediate           true                   8d
+ceph-bucket            rook-ceph.ceph.rook.io/bucket   Delete          Immediate           false                  8d
+ceph-filesystem        rook-ceph.cephfs.csi.ceph.com   Delete          Immediate           true                   8d
+#+end_src
