@@ -1,0 +1,145 @@
+#+BLOG: wurly-blog
+#+POSTID: 1539
+#+ORG2BLOG:
+#+DATE: [2024-07-15 Mon 22:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ceph, Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Private)Rook Ceph で CephFilesystem(CephFS) を作成してみたけど既に存在していた記録
+
+* 概要
+
+試行錯誤中の内容であり、公開してもあまり役に立たないと思われるため、非公開とする情報です。
+
+* 導入方法
+
+filesystem.yaml
+
+#+begin_src yaml
+apiVersion: ceph.rook.io/v1
+kind: CephFilesystem
+metadata:
+  name: myfs
+  namespace: rook-ceph
+spec:
+  metadataPool:
+    replicated:
+      size: 3
+  dataPools:
+    - name: replicated
+      replicated:
+        size: 3
+  metadataServer:
+    activeCount: 1
+    activeStandby: true
+#+end_src
+
+#+begin_src bash
+kubectl apply -f filesystem.yaml
+#+end_src
+
+* 実行結果
+
+"myfs" が作成されました。
+
+#+begin_src bash
+$ kubectl apply -f filesystem.yaml
+cephfilesystem.ceph.rook.io/myfs created
+#+end_src
+
+mds 2/2 となっています。
+
+#+begin_src bash
+$ k rook-ceph ceph status
+Info: running 'ceph' command with args: [status]
+  cluster:
+    id:     18be74a6-d73c-4f2f-b5c6-267d7e2b43c9
+    health: HEALTH_WARN
+            1 mgr modules have recently crashed
+ 
+  services:
+    mon: 3 daemons, quorum a,b,c (age 13h)
+    mgr: b(active, since 13h), standbys: a
+    mds: 2/2 daemons up, 2 hot standby
+    osd: 3 osds: 3 up (since 13h), 3 in (since 8d)
+    rgw: 1 daemon active (1 hosts, 1 zones)
+ 
+  data:
+    volumes: 2/2 healthy
+    pools:   14 pools, 171 pgs
+    objects: 420 objects, 679 KiB
+    usage:   259 MiB used, 412 GiB / 412 GiB avail
+    pgs:     171 active+clean
+ 
+  io:
+    client:   2.8 KiB/s rd, 2.8 KiB/s wr, 3 op/s rd, 5 op/s wr
+#+end_src
+
+"ceph-filesystem" と "myfs" が存在します。
+
+#+begin_src bash
+$ k get cephfilesystem -n rook-ceph
+NAME              ACTIVEMDS   AGE   PHASE
+ceph-filesystem   1           8d    Ready
+myfs              1           98s   Ready
+#+end_src
+
+上記同様、"ceph-filesystem" と "myfs" が存在します。
+
+#+begin_src bash
+$ k rook-ceph ceph fs ls
+Info: running 'ceph' command with args: [fs ls]
+name: ceph-filesystem, metadata pool: ceph-filesystem-metadata, data pools: [ceph-filesystem-data0 ]
+name: myfs, metadata pool: myfs-metadata, data pools: [myfs-replicated ]
+#+end_src
+
+上記同様、"ceph-filesystem" と "myfs" が存在します。
+
+#+begin_src bash
+$ k rook-ceph ceph df
+Info: running 'ceph' command with args: [df]
+--- RAW STORAGE ---
+CLASS     SIZE    AVAIL     USED  RAW USED  %RAW USED
+nvme   412 GiB  412 GiB  264 MiB   264 MiB       0.06
+TOTAL  412 GiB  412 GiB  264 MiB   264 MiB       0.06
+ 
+--- POOLS ---
+POOL                                 ID  PGS   STORED  OBJECTS     USED  %USED  MAX AVAIL
+ceph-blockpool                        1   32     19 B        1   12 KiB      0    130 GiB
+ceph-objectstore.rgw.control          2    8      0 B        8      0 B      0    130 GiB
+ceph-filesystem-metadata              3   16   74 KiB       22  304 KiB      0    130 GiB
+ceph-objectstore.rgw.meta             4    8  4.7 KiB        9   82 KiB      0    130 GiB
+.mgr                                  5    1  577 KiB        2  1.7 MiB      0    130 GiB
+ceph-filesystem-data0                 6   32      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.log              7    8   33 KiB      339  1.9 MiB      0    130 GiB
+ceph-objectstore.rgw.buckets.index    8    8      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.buckets.non-ec   9    8      0 B        0      0 B      0    130 GiB
+ceph-objectstore.rgw.otp             10    8      0 B        0      0 B      0    130 GiB
+.rgw.root                            11    8  5.0 KiB       17  192 KiB      0    130 GiB
+ceph-objectstore.rgw.buckets.data    12   32      0 B        0      0 B      0    261 GiB
+myfs-metadata                        13   16   10 KiB       22  120 KiB      0    130 GiB
+myfs-replicated                      14   32      0 B        0      0 B      0    130 GiB
+#+end_src
+
+上記同様、"ceph-filesystem" と "myfs" が存在します。
+
+#+begin_src bash
+$ k get pod -n rook-ceph | grep mds
+rook-ceph-mds-ceph-filesystem-a-7b4d7b9dc4-hvx95        2/2     Running     6 (13h ago)    8d
+rook-ceph-mds-ceph-filesystem-b-6d45c6f856-v97xb        2/2     Running     6 (13h ago)    8d
+rook-ceph-mds-myfs-a-6fb8d4c675-pl6vk                   2/2     Running     0              5m39s
+rook-ceph-mds-myfs-b-54fddb9b4f-ms82d                   2/2     Running     0              5m39s
+#+end_src
+
+* ここまでの考察
+
+気づいていませんでしたが、ceph自体をデプロイした時点で、filesystem が作成されていたようです。
+helmチャートでデプロイしたので、そちらに含まれていました。
+myfs は削除します。
+
+#+begin_src bash
+$ k delete -f filesystem.yaml 
+cephfilesystem.ceph.rook.io "myfs" deleted
+#+end_src
+
