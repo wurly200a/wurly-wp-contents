@@ -1,0 +1,372 @@
+#+BLOG: wurly-blog
+#+POSTID: 1556
+#+ORG2BLOG:
+#+DATE: [2024-07-21 Sun 22:29]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetes に metrics-server をインストール
+
+* 概要
+
+node、pod のリソース(CPU、Memory)の消費量を確認するため、kubectl top を実行しようとしましたが、インストールが必要とのこと。
+
+helmでインストールします。
+
+* 事前調査
+
+最新バージョンを確認します。
+
+#+begin_src bash
+$ helm search repo bitnami | grep metrics-server
+bitnami/metrics-server                          7.2.8           0.7.1           Metrics Server aggregates resource usage data, ...
+#+end_src
+
+values.yaml を取得します。
+
+#+begin_src bash
+$ helm show values bitnami/metrics-server --version 7.2.8 > values.7.2.8.yaml
+#+end_src
+
+namespace は分け、metrics-server にしたいと思い、ググったところ下記のページがヒットしました。
+
+ - [[https://www.linode.com/community/questions/22768/helm-not-installing-metrics-server][helm not installing metrics-server (22768) | Linode Questions]]
+https://www.linode.com/community/questions/22768/helm-not-installing-metrics-server
+
+下記のように記載されていました。
+
+#+begin_src bash
+helm upgrade --install metrics-server bitnami/metrics-server \
+--create-namespace --namespace metrics-server \
+--set apiService.create=true \
+--set extraArgs.kubelet-insecure-tls=true \
+--set extraArgs.kubelet-preferred-address-types=InternalIP
+#+end_src
+
+ただ、values.yamlをチェックすると、apiService.create については下記の記載がありました。
+
+
+#+begin_src yaml
+apiService:
+  ## @param apiService.create Specifies whether the v1beta1.metrics.k8s.io API service should be created. You can check if it is needed with `kubectl get --raw "/apis/metrics.k8s.io/v1beta1/nodes"`.
+  ## This is still necessary up to at least k8s version >= 1.21, but depends on vendors and cloud providers.
+  ##
+  create: false
+#+end_src
+
+実行してもErrorが返ってきます。
+
+#+begin_src bash
+$ kubectl get --raw "/apis/metrics.k8s.io/v1beta1/nodes"
+Error from server (ServiceUnavailable): the server is currently unable to handle the request
+#+end_src
+
+下記もよくわかりません。
+
+#+begin_src yaml
+## @param extraArgs Extra arguments to pass to metrics-server on start up
+## ref: https://github.com/kubernetes-incubator/metrics-server#flags
+##
+## extraArgs:
+##   - --kubelet-insecure-tls=true
+##   - --kubelet-preferred-address-types=InternalIP
+#+end_src
+
+まずは、namespaceOverride のみ指定することにしました。
+
+* 1回目(helm install)
+
+** helm install
+
+とりあえず下記でインストールしてみました。
+
+#+begin_src bash
+helm install metrics-server bitnami/metrics-server --version 7.2.8 --namespace metrics-server --create-namespace --set namespaceOverride=metrics-server
+#+end_src
+
+** ERROR
+
+ERRORとなってしまいました。
+
+#+begin_src bash
+$ helm install metrics-server bitnami/metrics-server --version 7.2.8 --namespace metrics-server --create-namespace --set namespaceOverride=metrics-server
+NAME: metrics-server
+LAST DEPLOYED: Sun Jul 21 22:35:32 2024
+NAMESPACE: metrics-server
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+CHART NAME: metrics-server
+CHART VERSION: 7.2.8
+APP VERSION: 0.7.1
+
+\** Please be patient while the chart is being deployed **
+
+The metric server has been deployed.
+###################################################################################
+### ERROR: The metrics.k8s.io/v1beta1 API service is not enabled in the cluster ###
+###################################################################################
+You have disabled the API service creation for this release. As the Kubernetes version in the cluster
+does not have metrics.k8s.io/v1beta1, the metrics API will not work with this release unless:
+
+Option A:
+
+  You complete your metrics-server release by running:
+
+  helm upgrade --namespace metrics-server metrics-server oci://registry-1.docker.io/bitnamicharts/metrics-server \
+    --set apiService.create=true
+
+Option B:
+
+   You configure the metrics API service outside of this Helm chart
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
+  - resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+#+end_src
+
+* 2回目(helm upgrade)
+
+** helm upgrade
+
+Option A を実行してみます。
+
+#+begin_src bash
+helm upgrade --namespace metrics-server metrics-server oci://registry-1.docker.io/bitnamicharts/metrics-server --set apiService.create=true
+#+end_src
+
+** 結果
+
+下記のような結果になりました。
+
+#+begin_src bash
+Pulled: registry-1.docker.io/bitnamicharts/metrics-server:7.2.8
+Digest: sha256:b073d345be3bfe9d55bafd194338f3aa95f9f136cc999d3e2ea5cb71136a6ad6
+Release "metrics-server" has been upgraded. Happy Helming!
+NAME: metrics-server
+LAST DEPLOYED: Sun Jul 21 22:38:19 2024
+NAMESPACE: metrics-server
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+CHART NAME: metrics-server
+CHART VERSION: 7.2.8
+APP VERSION: 0.7.1
+
+\** Please be patient while the chart is being deployed **
+
+The metric server has been deployed.
+In a few minutes you should be able to list metrics using the following
+command:
+
+  kubectl get --raw "/apis/metrics.k8s.io/v1beta1/nodes"
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
+  - resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+#+end_src
+
+** podがREADYにならず
+
+しかし、いつになっても下記のapiが有効にならず、pod がREADYになりません。
+
+#+begin_src bash
+$ kubectl get --raw "/apis/metrics.k8s.io/v1beta1/nodes"
+Error from server (ServiceUnavailable): the server is currently unable to handle the request
+#+end_src
+
+#+begin_src 
+$ k get pod
+NAME                              READY   STATUS    RESTARTS   AGE
+metrics-server-56fcf7dc77-x2qpn   0/1     Running   0          5m33s
+#+end_src
+
+** log確認
+
+logを見てみます。
+
+ノード間の通信ができていない模様。
+
+#+begin_src bash
+$ kubectl logs metrics-server-56fcf7dc77-x2qpn --namespace=metrics-server
+I0721 13:35:48.585951       1 serving.go:374] Generated self-signed cert (apiserver.local.config/certificates/apiserver.crt, apiserver.local.config/certificates/apiserver.key)
+I0721 13:35:59.373537       1 handler.go:275] Adding GroupVersion metrics.k8s.io v1beta1 to ResourceManager
+E0721 13:35:59.776228       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:35:59.871436       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:35:59.871470       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:35:59.875311       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+E0721 13:35:59.875728       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+E0721 13:35:59.877540       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+I0721 13:35:59.986446       1 requestheader_controller.go:169] Starting RequestHeaderAuthRequestController
+I0721 13:35:59.986519       1 shared_informer.go:311] Waiting for caches to sync for RequestHeaderAuthRequestController
+I0721 13:35:59.986549       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::client-ca-file"
+I0721 13:35:59.986571       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file"
+I0721 13:35:59.986602       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I0721 13:35:59.986626       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I0721 13:35:59.990317       1 secure_serving.go:213] Serving securely on [::]:8443
+I0721 13:35:59.990444       1 dynamic_serving_content.go:132] "Starting controller" name="serving-cert::apiserver.local.config/certificates/apiserver.crt::apiserver.local.config/certificates/apiserver.key"
+I0721 13:35:59.990827       1 tlsconfig.go:240] "Starting DynamicServingCertificateController"
+I0721 13:36:00.087076       1 shared_informer.go:318] Caches are synced for RequestHeaderAuthRequestController
+I0721 13:36:00.087406       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I0721 13:36:00.090150       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I0721 13:36:04.172238       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:14.087916       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:24.172206       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:34.272485       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:44.084814       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:54.087545       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:36:57.519842       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:36:59.600462       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+E0721 13:36:59.671402       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:36:59.675075       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:36:59.774566       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:36:59.775402       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+E0721 13:36:59.776404       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+I0721 13:37:04.174950       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:37:14.087252       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:37:24.090033       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:37:34.271902       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:37:44.088338       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:37:54.087566       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:37:59.593493       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+E0721 13:37:59.594046       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+E0721 13:37:59.676860       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:37:59.771319       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:37:59.773973       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:37:59.776458       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+I0721 13:38:04.089431       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:10.520999       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:14.172022       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:24.086920       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:34.085004       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:44.086110       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:38:54.085712       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:38:59.601377       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+E0721 13:38:59.601810       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:38:59.675161       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:38:59.775026       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:38:59.775352       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+E0721 13:38:59.775636       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+I0721 13:39:04.172176       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:14.090188       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:19.519952       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:24.085394       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:34.087621       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:44.085905       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:39:54.089128       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:39:59.591158       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+E0721 13:39:59.599024       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+E0721 13:39:59.676404       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:39:59.775303       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:39:59.775925       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:39:59.776091       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+I0721 13:40:04.089972       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:14.087070       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:24.090763       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:31.520141       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:34.172195       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:44.175687       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:40:54.085295       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:40:59.594309       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:40:59.671240       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": dial tcp: lookup k8s-worker3 on 10.96.0.10:53: no such host" node="k8s-worker3"
+E0721 13:40:59.671271       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": dial tcp: lookup k8s-worker2 on 10.96.0.10:53: no such host" node="k8s-worker2"
+E0721 13:40:59.774753       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+E0721 13:40:59.775725       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:40:59.776116       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial tcp: lookup k8s-ctrl3 on 10.96.0.10:53: no such host" node="k8s-ctrl3"
+I0721 13:41:04.087360       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:14.178879       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:24.086055       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:34.174599       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:43.518528       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:44.172084       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:41:54.087816       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:41:59.593739       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial tcp: lookup k8s-ctrl1 on 10.96.0.10:53: no such host" node="k8s-ctrl1"
+E0721 13:41:59.595605       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": dial tcp: lookup k8s-worker1 on 10.96.0.10:53: no such host" node="k8s-worker1"
+E0721 13:41:59.671272       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial tcp: lookup k8s-ctrl2 on 10.96.0.10:53: no such host" node="k8s-ctrl2"
+E0721 13:41:59.771447       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial E0721 13:41:59.774120       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": diaE0721 13:41:59.774946       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": diaI0721 13:42:04.087704       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:14.177970       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:24.089793       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:34.176912       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:44.177401       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:53.520447       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:42:54.174215       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+E0721 13:42:59.590989       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl3:10250/metrics/resource\": dial E0721 13:42:59.604431       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl2:10250/metrics/resource\": dial E0721 13:42:59.611141       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker3:10250/metrics/resource\": diaE0721 13:42:59.611431       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker2:10250/metrics/resource\": diaE0721 13:42:59.612691       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-ctrl1:10250/metrics/resource\": dial E0721 13:42:59.617809       1 scraper.go:149] "Failed to scrape node" err="Get \"https://k8s-worker1:10250/metrics/resource\": diaI0721 13:43:04.172117       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:43:14.083706       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+I0721 13:43:24.085370       1 server.go:191] "Failed probe" probe="metric-storage-ready" err="no metrics to serve"
+#+end_src
+
+* 3回目(helm upgrade)
+
+ - [[https://github.com/kubernetes-sigs/metrics-server/issues/1056][Metrics servers deployment fails "no metrics to serve" · Issue #1056 · kubernetes-sigs/metrics-server]]
+
+上記を見て理解しました。
+
+node間の通信のため、"--kubelet-preferred-address-types=InternalIP" と "--kubelet-insecure-tls" が必要と思われます。
+
+values.yaml を下記のように作成しました。
+
+#+begin_src yaml
+apiService:
+  create: true
+extraArgs:
+  - --kubelet-preferred-address-types=InternalIP
+  - --kubelet-insecure-tls
+namespaceOverride: metrics-server
+#+end_src
+
+** helm upgrade
+
+#+begin_src bash
+helm upgrade metrics-server bitnami/metrics-server --version 7.2.8 --namespace metrics-server -f values.yaml
+#+end_src
+
+** log確認
+
+大丈夫そうです。
+
+#+begin_src bash
+$ kubectl logs metrics-server-5d8d9f9c6d-cfz9l --namespace=metrics-server --namespace=metrics-server
+I0721 13:51:36.043372       1 serving.go:374] Generated self-signed cert (apiserver.local.config/certificates/apiserver.crt, apiserver.local.config/certificates/apiserver.key)
+I0721 13:51:46.246554       1 handler.go:275] Adding GroupVersion metrics.k8s.io v1beta1 to ResourceManager
+I0721 13:51:47.442032       1 requestheader_controller.go:169] Starting RequestHeaderAuthRequestController
+I0721 13:51:47.442054       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::client-ca-file"
+I0721 13:51:47.442100       1 shared_informer.go:311] Waiting for caches to sync for RequestHeaderAuthRequestController
+I0721 13:51:47.442114       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I0721 13:51:47.442155       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file"
+I0721 13:51:47.442227       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I0721 13:51:47.447962       1 dynamic_serving_content.go:132] "Starting controller" name="serving-cert::apiserver.local.config/certificates/apiserver.crt::apiserver.local.config/certificates/apiserver.key"
+I0721 13:51:47.542394       1 secure_serving.go:213] Serving securely on [::]:8443
+I0721 13:51:47.542489       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I0721 13:51:47.542626       1 tlsconfig.go:240] "Starting DynamicServingCertificateController"
+I0721 13:51:47.542649       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I0721 13:51:47.542715       1 shared_informer.go:318] Caches are synced for RequestHeaderAuthRequestController
+#+end_src
+
+** podのチェック
+
+READYになりました。
+
+#+begin_src bash
+$ k get pod
+NAME                              READY   STATUS    RESTARTS   AGE
+metrics-server-5d8d9f9c6d-cfz9l   1/1     Running   0          74s
+#+end_src
+
+* kubectl top
+
+実行できるようになりました。
+
+#+begin_src bash
+$ k top nodes
+NAME          CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+k8s-ctrl1     442m         11%    1241Mi          16%       
+k8s-ctrl2     437m         10%    1240Mi          16%       
+k8s-ctrl3     474m         11%    1253Mi          16%       
+k8s-worker1   383m         4%     3532Mi          22%       
+k8s-worker2   177m         2%     2519Mi          7%        
+k8s-worker3   322m         4%     2879Mi          9%        
+#+end_src
+
