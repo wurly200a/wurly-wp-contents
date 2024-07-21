@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2024-06-15 Sat 10:16]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Metallb (BGPモード) と OpenWrt FRR を組み合わせて使用する
