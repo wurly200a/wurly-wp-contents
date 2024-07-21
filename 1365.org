@@ -3,199 +3,242 @@
 #+ORG2BLOG:
 #+DATE: [2024-06-02 Sun 20:32]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: (Draft)postgresql-ha
+#+TITLE: helmチャートを使用して自宅K8Sに postgresql をデプロイ
 
-* インストールしてみる
+* 概要
+
+ - [[./?p=1389][HA おうちKubernetesクラスターの構築]]
+
+上記で構築したKubernetesクラスターに対し、デプロイをしてみます。
+
+ここでは、bitnami の helmチャートを使用して、postgresqlをデプロイします。
+
+* 事前準備
+
+Storage を使用しますので、default の StorageClass が存在することを確認します。
 
 #+begin_src bash
-$ helm install my-release oci://registry-1.docker.io/bitnamicharts/postgresql-ha
-Pulled: registry-1.docker.io/bitnamicharts/postgresql-ha:14.1.3
-Digest: sha256:9b87afce61e81de5ccaa5fefc19a3d4046816ff95ea3e7fc170e7978f4402f6b
-NAME: my-release
-LAST DEPLOYED: Sun Jun  2 14:10:52 2024
-NAMESPACE: default
+$ k get sc
+NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+ceph-block (default)   rook-ceph.rbd.csi.ceph.com      Delete          Immediate           true                   12d
+ceph-bucket            rook-ceph.ceph.rook.io/bucket   Delete          Immediate           false                  12d
+ceph-filesystem        rook-ceph.cephfs.csi.ceph.com   Delete          Immediate           true                   12d
+#+end_src
+
+* 手順
+
+** リポジトリの登録
+
+#+begin_src bash
+$ helm repo list
+NAME    URL                              
+metallb https://metallb.github.io/metallb
+#+end_src
+
+#+begin_src bash
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+"bitnami" has been added to your repositories
+#+end_src
+
+#+begin_src bash
+3:~$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "metallb" chart repository
+...Successfully got an update from the "bitnami" chart repository
+Update Complete. ⎈Happy Helming!⎈
+#+end_src
+
+** バージョンの確認
+
+2024.7.20現在、(postgresqlとしての)最新は 16.3.0
+
+#+begin_src bash
+$ helm search repo bitnami/postgresql --versions
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION                                       
+bitnami/postgresql      15.5.17         16.3.0          PostgreSQL (Postgres) is an open source object-...
+bitnami/postgresql      15.5.16         16.3.0          PostgreSQL (Postgres) is an open source object-...
+bitnami/postgresql      15.5.15         16.3.0          PostgreSQL (Postgres) is an open source object-...
+.
+.
+.
+#+end_src
+
+こちらはHA版
+
+#+begin_src bash
+$ helm search repo bitnami/postgresql-ha --versions
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION                                       
+bitnami/postgresql-ha   14.2.12         16.3.0          This PostgreSQL cluster solution includes the P...
+bitnami/postgresql-ha   14.2.11         16.3.0          This PostgreSQL cluster solution includes the P...
+bitnami/postgresql-ha   14.2.10         16.3.0          This PostgreSQL cluster solution includes the P...
+.
+.
+.
+#+end_src
+
+#+begin_src bash
+helm show values bitnami/postgresql --version 15.5.17 > values.yaml
+#+end_src
+
+** インストール
+
+#+begin_src bash
+$ helm install my-postgresql bitnami/postgresql --version 15.5.17 --namespace postgresql --create-namespace --set global.defaultStorageClass=ceph-block
+#+end_src
+
+#+begin_src bash
+$ helm install my-postgresql bitnami/postgresql --version 15.5.17 --namespace postgresql --create-namespace --set global.defaultStorageClass=ceph-block
+NAME: my-postgresql
+LAST DEPLOYED: Sat Jul 20 16:20:58 2024
+NAMESPACE: postgresql
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
 NOTES:
-CHART NAME: postgresql-ha
-CHART VERSION: 14.1.3
+CHART NAME: postgresql
+CHART VERSION: 15.5.17
 APP VERSION: 16.3.0
-** Please be patient while the chart is being deployed **
-PostgreSQL can be accessed through Pgpool via port 5432 on the following DNS name from within your cluster:
 
-    my-release-postgresql-ha-pgpool.default.svc.cluster.local
+\** Please be patient while the chart is being deployed **
 
-Pgpool acts as a load balancer for PostgreSQL and forward read/write connections to the primary node while read-only connections
- are forwarded to standby nodes.
+PostgreSQL can be accessed via port 5432 on the following DNS names from within your cluster:
+
+    my-postgresql.postgresql.svc.cluster.local - Read/Write connection
 
 To get the password for "postgres" run:
 
-    export POSTGRES_PASSWORD=$(kubectl get secret --namespace default my-release-postgresql-ha-postgresql -o jsonpath="{.data.pa
-ssword}" | base64 -d)
-
-To get the password for "repmgr" run:
-
-    export REPMGR_PASSWORD=$(kubectl get secret --namespace default my-release-p
-gr-password}" | base64 -d)
+    export POSTGRES_PASSWORD=$(kubectl get secret --namespace postgresql my-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
 
 To connect to your database run the following command:
 
-    kubectl run my-release-postgresql-ha-client --rm --tty -i --restart='Never' 
-stgresql-repmgr:16.3.0-debian-12-r9 --env="PGPASSWORD=$POSTGRES_PASSWORD"  \
-        --command -- psql -h my-release-postgresql-ha-pgpool -p 5432 -U postgres
+    kubectl run my-postgresql-client --rm --tty -i --restart='Never' --namespace postgresql --image docker.io/bitnami/postgresql:16.3.0-debian-12-r19 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
+      --command -- psql --host my-postgresql -U postgres -d postgres -p 5432
 
-To connect to your database from outside the cluster execute the following comma
+    > NOTE: If you access the container using bash, make sure that you execute "/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash" in order to avoid the error "psql: local user with ID 1001} does not exist"
 
-    kubectl port-forward --namespace default svc/my-release-postgresql-ha-pgpool
-    psql -h 127.0.0.1 -p 5432 -U postgres -d postgres
+To connect to your database from outside the cluster execute the following commands:
 
-WARNING: There are "resources" sections in the chart not set. Using "resourcesPr
-duction installations, please set the following values according to your workloa
-  - pgpool.resources
-  - postgresql.resources
-  - witness.resources
-+info https://kubernetes.io/docs/concepts/configuration/manage-resources-contain
+    kubectl port-forward --namespace postgresql svc/my-postgresql 5432:5432 &
+    PGPASSWORD="$POSTGRES_PASSWORD" psql --host 127.0.0.1 -U postgres -d postgres -p 5432
+
+WARNING: The configured password will be ignored on new installation in case when previous PostgreSQL release was deleted through the helm command. In that case, old PVC will have an old password, and setting it through helm won't take effect. Deleting persistent volumes (PVs) will solve the issue.
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production.
+ For production installations, please set the following values according to your workload needs:
+  - primary.resources
+  - readReplicas.resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 #+end_src
 
-* Pendingのまま
+後で確かめましたが、ceph-block StorageClass の default として設定されていますので、明示的に指定しなくても helm install できました。
+
+#+begin_src bash
+$ helm install my-postgresql bitnami/postgresql --version 15.5.17 --namespace postgresql --create-namespace
+#+end_src
+
+** 確認
+
+#+begin_src bash
+$ kubens postgresql 
+Context "kubernetes-admin@kubernetes" modified.
+Active namespace is "postgresql".
+#+end_src
 
 #+begin_src bash
 $ k get pod
-NAME                                               READY   STATUS    RESTARTS   
-my-release-postgresql-ha-pgpool-86c9dfffd8-kf8dx   0/1     Running   0          
-my-release-postgresql-ha-postgresql-0              0/1     Pending   0          
-my-release-postgresql-ha-postgresql-1              0/1     Pending   0          
-my-release-postgresql-ha-postgresql-2              0/1     Pending   0          
-#+end_src
-
-* describeしてみる
-
-#+begin_src
-0/4 nodes are available: pod has unbound immediate Persist
+NAME              READY   STATUS    RESTARTS   AGE
+my-postgresql-0   1/1     Running   0          49s
 #+end_src
 
 #+begin_src bash
-$ k describe pod my-release-postgresql-ha-postgresql-0
-Name:             my-release-postgresql-ha-postgresql-0
-Namespace:        default
-Priority:         0
-Service Account:  my-release-postgresql-ha
-Node:             <none>
-Labels:           app.kubernetes.io/component=postgresql
-                  app.kubernetes.io/instance=my-release
-                  app.kubernetes.io/managed-by=Helm
-                  app.kubernetes.io/name=postgresql-ha
-                  app.kubernetes.io/version=16.3.0
-                  apps.kubernetes.io/pod-index=0
-                  controller-revision-hash=my-release-postgresql-ha-postgresql-766577447c
-                  helm.sh/chart=postgresql-ha-14.1.3
-                  role=data
-                  statefulset.kubernetes.io/pod-name=my-release-postgresql-ha-postgresql-0
-Annotations:      <none>
-Status:           Pending
-IP:               
-IPs:              <none>
-Controlled By:    StatefulSet/my-release-postgresql-ha-postgresql
-Containers:
-  postgresql:
-    Image:           docker.io/bitnami/postgresql-repmgr:16.3.0-debian-12-r9
-    Port:            5432/TCP
-    Host Port:       0/TCP
-    SeccompProfile:  RuntimeDefault
-    Limits:
-      cpu:                375m
-      ephemeral-storage:  1Gi
-      memory:             384Mi
-    Requests:
-      cpu:                250m
-      ephemeral-storage:  50Mi
-      memory:             256Mi
-    Liveness:             exec [bash -ec PGPASSWORD=$POSTGRES_PASSWORD psql -w -U "postgres" -d "postgres" -h 127.0.0.1 -p 5432 -c "SELECT 1"] delay=30s timeout=5s period=10s #success=1 #failure=6
-    Readiness:            exec [bash -ec exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
-[ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
-] delay=5s timeout=5s period=10s #success=1 #failure=6
-    Environment:
-      BITNAMI_DEBUG:                           false
-      POSTGRESQL_VOLUME_DIR:                   /bitnami/postgresql
-      PGDATA:                                  /bitnami/postgresql/data
-      POSTGRES_USER:                           postgres
-      POSTGRES_PASSWORD:                       <set to the key 'password' in secret 'my-release-postgresql-ha-postgresql'>  Optional: false
-      POSTGRES_DB:                             postgres
-      POSTGRESQL_LOG_HOSTNAME:                 true
-      POSTGRESQL_LOG_CONNECTIONS:              false
-      POSTGRESQL_LOG_DISCONNECTIONS:           false
-      POSTGRESQL_PGAUDIT_LOG_CATALOG:          off
-      POSTGRESQL_CLIENT_MIN_MESSAGES:          error
-      POSTGRESQL_SHARED_PRELOAD_LIBRARIES:     pgaudit, repmgr
-      POSTGRESQL_ENABLE_TLS:                   no
-      POSTGRESQL_PORT_NUMBER:                  5432
-      REPMGR_PORT_NUMBER:                      5432
-      REPMGR_PRIMARY_PORT:                     5432
-      MY_POD_NAME:                             my-release-postgresql-ha-postgresql-0 (v1:metadata.name)
-      REPMGR_UPGRADE_EXTENSION:                no
-      REPMGR_PGHBA_TRUST_ALL:                  no
-      REPMGR_MOUNTED_CONF_DIR:                 /bitnami/repmgr/conf
-      REPMGR_NAMESPACE:                        default (v1:metadata.namespace)
-      REPMGR_PARTNER_NODES:                    my-release-postgresql-ha-postgresql-0.my-release-postgresql-ha-postgresql-headless.$(REPMGR_NAMESPACE).svc.cluster.local,my-release-postgresql-ha-postgresql-1.my-release-postgresql-ha-postgresql-headless.$(REPMGR_NAMESPACE).svc.cluster.local,my-release-postgresql-ha-postgresql-2.my-release-postgresql-ha-postgresql-headless.$(REPMGR_NAMESPACE).svc.cluster.local,
-      REPMGR_PRIMARY_HOST:                     my-release-postgresql-ha-postgresql-0.my-release-postgresql-ha-postgresql-headless.$(REPMGR_NAMESPACE).svc.cluster.local
-      REPMGR_NODE_NAME:                        $(MY_POD_NAME)
-      REPMGR_NODE_NETWORK_NAME:                $(MY_POD_NAME).my-release-postgresql-ha-postgresql-headless.$(REPMGR_NAMESPACE).svc.cluster.local
-      REPMGR_NODE_TYPE:                        data
-      REPMGR_LOG_LEVEL:                        NOTICE
-      REPMGR_CONNECT_TIMEOUT:                  5
-      REPMGR_RECONNECT_ATTEMPTS:               2
-      REPMGR_RECONNECT_INTERVAL:               3
-      REPMGR_USERNAME:                         repmgr
-      REPMGR_PASSWORD:                         <set to the key 'repmgr-password' in secret 'my-release-postgresql-ha-postgresql      REPMGR_DATABASE:                         repmgr
-      REPMGR_FENCE_OLD_PRIMARY:                no
-      REPMGR_CHILD_NODES_CHECK_INTERVAL:       5
-      REPMGR_CHILD_NODES_CONNECTED_MIN_COUNT:  1
-      REPMGR_CHILD_NODES_DISCONNECT_TIMEOUT:   30
-    Mounts:
-      /bitnami/postgresql from data (rw)
-      /opt/bitnami/postgresql/conf from empty-dir (rw,path="app-conf-dir")
-      /opt/bitnami/postgresql/tmp from empty-dir (rw,path="app-tmp-dir")
-      /opt/bitnami/repmgr/conf from empty-dir (rw,path="repmgr-conf-dir")
-      /opt/bitnami/repmgr/logs from empty-dir (rw,path="repmgr-logs-dir")
-      /opt/bitnami/repmgr/tmp from empty-dir (rw,path="repmgr-tmp-dir")
-      /pre-stop.sh from hooks-scripts (rw,path="pre-stop.sh")
-      /readiness-probe.sh from hooks-scripts (rw,path="readiness-probe.sh")
-      /tmp from empty-dir (rw,path="tmp-dir")
-Conditions:
-  Type           Status
-  PodScheduled   False 
-Volumes:
-  data:
-    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
-    ClaimName:  data-my-release-postgresql-ha-postgresql-0
-    ReadOnly:   false
-  empty-dir:
-    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
-    Medium:     
-    SizeLimit:  <unset>
-  hooks-scripts:
-    Type:        ConfigMap (a volume populated by a ConfigMap)
-    Name:        my-release-postgresql-ha-postgresql-hooks-scripts
-    Optional:    false
-QoS Class:       Burstable
-Node-Selectors:  <none>
-Tolerations:     node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
-                 node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
-Events:
-  Type     Reason            Age                  From               Message
-  ----     ------            ----                 ----               -------
-  Warning  FailedScheduling  2m8s (x2 over 2m9s)  default-scheduler  0/4 nodes are available: pod has unbound immediate Persist
+$ k get svc
+NAME               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+my-postgresql      ClusterIP   10.98.136.15   <none>        5432/TCP   55s
+my-postgresql-hl   ClusterIP   None           <none>        5432/TCP   55s
 #+end_src
 
-* pod has unbound immediate Persist
+#+begin_src bash
+$ k get pvc
+NAME                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+data-my-postgresql-0   Bound    pvc-33d8cd14-fcad-4dc0-b1c7-590b884c2b73   8Gi        RWO            ceph-block     <unset>                 65s
+#+end_src
 
- - [[https://stackoverflow.com/questions/74741993/0-1-nodes-are-available-1-pod-has-unbound-immediate-persistentvolumeclaims][kubernetes - 0/1 nodes are available: 1 pod has unbound immediate PersistentVolumeClaims - Stack Overflow]]
+#+begin_src bash
+$ k get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                             STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-33d8cd14-fcad-4dc0-b1c7-590b884c2b73   8Gi        RWO            Delete           Bound    postgresql/data-my-postgresql-0   ceph-block     <unset>                          66s
+#+end_src
+
+#+begin_src bash
+$ k get deployment
+No resources found in postgresql namespace.
+#+end_src
+
+#+begin_src bash
+$ k get statefulsets
+NAME            READY   AGE
+my-postgresql   1/1     89s
+#+end_src
+
+#+begin_src bash
+$ helm get values my-postgresql
+USER-SUPPLIED VALUES:
+global:
+  defaultStorageClass: ceph-block
+#+end_src
+
+* アクセス
+
+** インストール
+
+#+begin_src bash
+$ sudo apt install postgresql-client postgresql-client-common
+#+end_src
+
+** ポートフォワード
+
+#+begin_src bash
+$ kubectl port-forward svc/my-postgresql 5432:5432
+#+end_src
+
+** パスワードの取得
+
+#+begin_src bash
+$ kubectl get secret --namespace postgresql my-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d
+#+end_src
+
+** psqlコマンドによるアクセス
+
+#+begin_src bash
+$ psql -h localhost -p 5432 -U postgres -W
+#+end_src
+
+** 実行例
+
+#+begin_src bash
+$ psql -h localhost -p 5432 -U postgres -W
+Password: 
+psql (14.12 (Ubuntu 14.12-0ubuntu0.22.04.1), server 16.3)
+WARNING: psql major version 14, server major version 16.
+         Some psql features might not work.
+Type "help" for help.
+
+postgres=# \d
+Did not find any relations.
+#+end_src
+
+* アンインストール
+
+#+begin_src bash
+$ helm uninstall my-postgresql
+$ kubectl delete namespace postgresql
+#+end_src
 
 * 参考
  - [[https://kubernetes.io/docs/tasks/configure-pod-container/configure-projected-volume-storage/][Configure a Pod to Use a Projected Volume for Storage | Kubernetes]]
  - [[https://github.com/bitnami/charts/tree/main/bitnami/postgresql-ha][charts/bitnami/postgresql-ha at main · bitnami/charts]]
  - [[https://artifacthub.io/packages/helm/bitnami/postgresql-ha][postgresql-ha 14.2.8 · bitnami/bitnami]]
+
