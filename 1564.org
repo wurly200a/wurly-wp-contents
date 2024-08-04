@@ -8,6 +8,20 @@
 #+DESCRIPTION:
 #+TITLE: Replace my motherboard
 
+* Competition
+
+ - [[https://www.asus.com/jp/product-compare?ProductID=14763,15553,14747,15551&LevelId=motherboards-components-motherboards][PRIME B460M-A、PRIME H470M-PLUS、TUF GAMING B560M-PLUS、PRIME H510M-A Product different Compare｜ASUS 日本]]
+https://www.asus.com/jp/product-compare?ProductID=14763,15553,14747,15551&LevelId=motherboards-components-motherboards
+
+
+* Conclusion
+
+ - [[https://www.asus.com/jp/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b560m-plus/][TUF GAMING B560M-PLUS｜マザーボード｜ASUS 日本]]
+https://www.asus.com/jp/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b560m-plus/
+
+ - [[https://ascii.jp/elem/000/004/058/4058305/][ASCII.jp：コスパ自作のお供に！ASUS「TUF GAMING」と「PRIME」で予算を抑えてPCを組む (1/3)]]
+https://ascii.jp/elem/000/004/058/4058305/
+
 * Links
 
  - [[https://jisaku.com/article/2020/12/3][第10世代に対応したチップセット比較｜H410、B460、H470、Z490、Q470、W480｜自作.com]]
