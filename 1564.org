@@ -1,0 +1,33 @@
+#+BLOG: wurly-blog
+#+POSTID: 1564
+#+ORG2BLOG:
+#+DATE: [2024-08-04 日 09:19]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Replace my motherboard
+
+* Links
+
+ - [[https://jisaku.com/article/2020/12/3][第10世代に対応したチップセット比較｜H410、B460、H470、Z490、Q470、W480｜自作.com]]
+ - [[http://cha.la.coocan.jp/doc/PcBuy20210925.html][メインデスクトップPC パーツ変更 202109 (Kingston SSD 導入 ＆ ケース変更)]]
+ - [[https://aucpay.yahoo.co.jp/detail-front/PaymentDetailList?_indication=202309&_menu=3][支払い一覧 - Yahoo!かんたん決済]]
+ - [[https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&p=H470M-PLUS&x=0&y=0][【2024年最新】Yahoo!オークション -H470M-PLUSの中古品・新品・未使用品一覧]]
+ - [[https://www.amazon.co.jp/dp/B093BN64ZJ/][Amazon | ASUSTek Intel 第10世代・11世代 CPU 対応 (LGA1200 )対応 H510 チップセット microATXマザーボード PRIME H510M-A | ASUS | マザーボード 通販]]
+ - [[https://www.amazon.co.jp/s?k=ASUS+%E3%83%9E%E3%82%B6%E3%83%BC%E3%83%9C%E3%83%BC%E3%83%89+intel+10%E4%B8%96%E4%BB%A3&__mk_ja_JP=%E3%82%AB%E3%82%BF%E3%82%AB%E3%83%8A&crid=3FZFH7XSUQ6CI&sprefix=asus+%E3%83%9E%E3%82%B6%E3%83%BC%E3%83%9C%E3%83%BC%E3%83%89+intel+10%E4%B8%96%E4%BB%A3%2Caps%2C171&ref=nb_sb_noss_2][Amazon.co.jp : ASUS マザーボード intel 10世代]]
+ - [[https://www.pc-koubou.jp/magazine/49036][Z590・H570・H510・B560 チップセットの機能をスペックから徹底比較！ | パソコン工房 NEXMAG]]
+ - [[https://www.asus.com/jp/motherboards-components/motherboards/prime/prime-h510m-a/][PRIME H510M-A｜マザーボード｜ASUS 日本]]
+ - [[https://www.asus.com/jp/motherboards-components/motherboards/prime/prime-h470m-plus/][PRIME H470M-PLUS｜マザーボード｜ASUS 日本]]
+ - [[https://www.google.com/search?q=10%E4%B8%96%E4%BB%A3intel+%E3%83%81%E3%83%83%E3%83%97%E3%82%BB%E3%83%83%E3%83%88&oq=10%E4%B8%96%E4%BB%A3intel+%E3%83%81%E3%83%83%E3%83%97%E3%82%BB%E3%83%83%E3%83%88&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIKCAEQABiABBiiBDIKCAIQABiiBBiJBTIKCAMQABiABBiiBNIBCDc0NjVqMGo0qAIAsAIA&sourceid=chrome&ie=UTF-8][10世代intel チップセット - Google Search]]
+ - [[https://www.pc-koubou.jp/magazine/37972][Z490・H470・H410・B460・Q470・W480チップセットの機能をスペックから徹底比較！ | パソコン工房 NEXMAG]]
+ - [[http://cha.la.coocan.jp/wp/?p=1564&preview=true][Hello, World! | Wurly's blog]]
+
+* Old Links
+
+ - [[https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&exflg=1&p=B460M-plus+wi-fi&x=0&y=0][【2024年最新】Yahoo!オークション -B460M-plus wi-fiの中古品・新品・未使用品一覧]]
+ - [[https://www.asus.com/jp/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b460m-plus-wi-fi/][TUF GAMING B460M-PLUS (WI-FI)｜マザーボード｜ASUS 日本]]
+ - [[https://paypayfleamarket.yahoo.co.jp/search/b460m-plus?page=1][b460m-plusの新品・未使用品・中古品｜Yahoo!フリマ（旧PayPayフリマ）]]
+ - [[https://page.auctions.yahoo.co.jp/jp/auction/o1104411442][Yahoo!オークション - S1557 80 マザーボード B460H6-M22/win11Home/ C...]]
+ - [[https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&p=DDR4+2933&x=0&y=0][【2024年最新】Yahoo!オークション -DDR4 2933の中古品・新品・未使用品一覧]]
+ - [[https://www.ecs.com.tw/cn/Product/Motherboard/B460H6-M22/specification][B460H6-M22｜Motherboard｜产品｜ECS 精英电脑]]

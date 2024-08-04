@@ -1,0 +1,29 @@
+#+BLOG: wurly-blog
+#+POSTID: 1560
+#+ORG2BLOG:
+#+DATE: [2024-08-04 日 09:08]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Autoware
+
+* リンク
+ - [[https://autoware.org/autoware-overview/][Autoware Overview - Autoware]]
+ - [[https://tieriv.medium.com/][TIER IV – Medium]]
+ - [[https://medium.com/tier-iv-tech-blog/autoware%E3%81%AE%E3%83%81%E3%83%A5%E3%83%BC%E3%83%88%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%A8component%E3%81%AE%E3%83%8F%E3%82%A4%E3%83%AC%E3%83%99%E3%83%AB%E3%81%AA%E8%A8%AD%E8%A8%88-67a8a2a1b9ba][AutowareのチュートリアルとComponentのハイレベルな設計 | by Yukihiro Saito | TIER IV MEDIA | Medium]]
+ - [[https://autowarefoundation.github.io/autoware-documentation/main/installation/autoware/docker-installation/][Open AD Kit: containerized workloads for Autoware - Autoware Documentation]]
+ - [[https://autowarefoundation.github.io/autoware-documentation/main/tutorials/ad-hoc-simulation/planning-simulation/][Planning simulation - Autoware Documentation]]
+ - [[https://github.com/autowarefoundation/autoware_launch/blob/c03bd4bdb70117efffc328e5fe6e57426f169b3b/autoware_launch/config/planning/scenario_planning/common/common.param.yaml#L3][autoware_launch/autoware_launch/config/planning/scenario_planning/common/common.param.yaml at c03bd4bdb70117efffc328e5fe6e57426f169b3b · autowarefoundation/autoware_launch]]
+ - [[https://qiita.com/tf63/items/0c6da72fe749319423b4][UbuntuでCUDA，NVIDIAドライバ，cudnnをインストールし，PyTorchでGPU環境を使えるようにするまで #Python - Qiita]]
+ - [[https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_network][CUDA Toolkit 12.6 Downloads | NVIDIA Developer]]
+ - [[https://github.com/orgs/autowarefoundation/discussions/2541][Planning Simulator TF2 Issues · autowarefoundation · Discussion #2541]]
+ - [[https://autowarefoundation.github.io/autoware-documentation/main/support/troubleshooting/][Troubleshooting - Autoware Documentation]]
+ - [[https://docs.ros.org/en/rolling/How-To-Guides/DDS-tuning.html][DDS tuning information — ROS 2 Documentation: Rolling documentation]]
+ - [[https://answers.ros.org/question/349882/empty-rqt_image_view-display/][empty rqt_image_view display - ROS Answers: Open Source Q&A Forum]]
+ - [[https://qiita.com/porizou1/items/74d8264d6381ee2941bd][ubuntuにCUDA、nvidiaドライバをインストールするメモ #Ubuntu - Qiita]]
+ - [[https://kp-ft.com/504][Ubuntuで何もしていないのにデュアルディスプレイが使えなくなった時の対応 | Kapok＆Fintech]]
+ - [[https://ubuntu.com/server/docs/nvidia-drivers-installation][NVIDIA drivers installation | Ubuntu]]
+ - [[https://askubuntu.com/questions/1443039/cant-use-2-external-monitors-on-ubuntu-22-04-using-nvidia-drivers][Can't use 2 external monitors on Ubuntu 22.04 using nvidia drivers - Ask Ubuntu]]
+ - [[https://askubuntu.com/questions/1467777/nvidia-rtx-2060-max-q-ubuntu-22-04-lts][drivers - Nvidia RTX 2060 Max Q - Ubuntu 22.04 LTS - Ask Ubuntu]]
+ - [[https://github.com/wurly200a/copy-alltab-link][wurly200a/copy-alltab-link: Copy link string from all tabs (Chrome Extension)]]

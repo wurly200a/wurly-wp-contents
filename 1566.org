@@ -1,0 +1,74 @@
+#+BLOG: wurly-blog
+#+POSTID: 1566
+#+ORG2BLOG:
+#+DATE: [2024-08-04 日 09:21]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Links from Desktop PC
+
+
+* Git
+
+ - [[https://qiita.com/tmyn470/items/c8359e4ec92d1f462bdf][untracked fileを削除するためにはgit cleanを使う #Git - Qiita]]
+ - [[https://karoten512.hatenablog.com/entry/2017/11/09/013845][git cloneしたあとに--recursiveを付け忘れたことに気づいた。あとからsubmoduleをcloneしたい。 - 君は心理学者なのか？]]
+ - [[http://cha.la.coocan.jp/doc/GitUsageMemo.html][Git 使い方メモ]]
+
+
+* fcitx
+ - [[https://www.clear-code.com/blog/2015/6/6.html][Fcitxで「直接入力」する入力メソッドを簡単に切り替える方法 - 2015-06-06 - ククログ]]
+ - [[https://scrapbox.io/programming-notes/Ubuntu18.04:_%E5%85%A8%E8%A7%92%E5%8D%8A%E8%A7%92%E3%82%AD%E3%83%BC%E3%81%A7%E6%97%A5%E6%9C%AC%E8%AA%9E%E5%85%A5%E5%8A%9B%E3%82%92%E5%88%87%E3%82%8A%E6%9B%BF%E3%81%88%E3%82%89%E3%82%8C%E3%81%AA%E3%81%8F%E3%81%AA%E3%81%A3%E3%81%9F][Cosense]]
+ - [[https://qiita.com/vochicong/items/6452ac54bde56b0e0bb3][Ubuntu で日本語キーボードレイアウト #ubuntu18.04 - Qiita]]
+ - [[https://kledgeb.blogspot.com/2014/01/ubuntu-fcitx-50-ctrl-space.html][Ubuntu Fcitx その50 - Ctrl + Spaceで入力メソッドがオンにならない時は - kledgeb]]
+ - [[https://kledgeb.blogspot.com/2022/05/ubuntu-2204-98.html#google_vignette][Ubuntu 22.04 その98 - 入力ソースとキーボートレイアウトと日本語入力のカスタマイズ - kledgeb]]
+ - [[https://www.archlinux.site/2019/12/linux.html][Linuxでキーボードレイアウトが日本語配列にならない時の対処法 | 普段使いのArch Linux]]
+ - [[https://www.archlinux.site/2017/11/waylandfcitx.html][WaylandでFcitxを使う | 普段使いのArch Linux]]
+
+* Rust
+
+ - [[https://rust-analyzer.github.io/manual.html#rust-analyzer-language-server-binary][User Manual]]
+ - [[https://emacs-jp.github.io/env/rust][Rustプログラミングのための環境構築 | Emacs JP]]
+ - [[https://keens.github.io/blog/2020/12/01/rustnokankyoukouchiku_emacs_/][Rustの環境構築（Emacs） | κeenのHappy Hacκing Blog]]
+ - [[https://zenn.dev/yukit/articles/25a88b33a35633][Rust環境設定（Emacs,LSP環境）]]
+
+* ESP32
+ - [[https://qiita.com/sawara123/items/969345b167b6b41f44bf][Ubuntu 22.04.2 LTSでのUSB-シリアル 接続について #Linux - Qiita]]
+ - [[https://qiita.com/baggio/items/3db759da67c0123e993e][はじめてminicomを使うとき #Ubuntu - Qiita]]
+ - [[https://github.com/espressif/esptool/issues/343][esptool.py: command not found · Issue #343 · espressif/esptool]]
+ - [[https://denshikit.main.jp/topf/technology97.html][カラー有機ＥＬ SSD1331を動かしてみた！]]
+ - [[https://lcd-image-converter.riuson.com/en/about/][About project | LCD Image Converter]]
+ - [[https://github.com/riuson/lcd-image-converter][riuson/lcd-image-converter: Tool to create bitmaps and fonts for embedded applications, v.2]]
+
+* Emacs
+ - [[https://www.grugrut.net/posts/my-emacs-init-el/][My Emacs Config - ぐるっとぐりっど]]
+ - [[https://www.grugrut.net/posts/202211242303/][Emacs 29で導入される予定のおもしろい機能の紹介 - ぐるっとぐりっど]]
+ - [[https://misohena.jp/blog/2020-12-12-how-to-escape-symbols-in-org-mode.html][org-modeで文字をエスケープする方法 | Misohena Blog]]
+ - [[https://qiita.com/mopemope/items/d1658a4ac72d85db9ccf][EmacsでJavaを書くという話 #Java - Qiita]]
+ - [[https://mhatta.wordpress.com/2018/09/25/%E3%83%A2%E3%83%BC%E3%83%AC%E3%83%84-org-mode%E6%95%99%E5%AE%A4-%E3%81%9D%E3%81%AE7-org2blog-%E3%81%A7-wordpress-%E3%81%AB%E6%8A%95%E7%A8%BF%E3%81%99%E3%82%8B/][モーレツ! Org mode教室 その7: org2blog で WordPress に投稿する – mhatta's outpost]]
+ - [[https://qiita.com/nobuyuki86/items/dc26cebbc022573ef8cf][備忘録（init.el）- Emacs #Emacs - Qiita]]
+ - [[https://grugrut.hatenablog.jp/entry/2019/08/04/222015][emacs on WSLでSuper/Hyperキーを使う方法 - ぐるっとぐりっど]]
+ - [[https://emacs-jp.github.io/tips/emacs-in-2020][2020年代のEmacs入門 | Emacs JP]]
+ - [[https://qiita.com/mamo3gr/items/1c6862cba09d5876e52c][Emacsの行番号表示にモヤモヤした話 #Emacs - Qiita]]
+ - [[https://garaemon.hatenadiary.jp/entry/2018/07/08/181003][emacs 26で入ったdisplay-line-numbersを利用する - `(blog ,garaemon)]]
+
+* lsp
+
+ - [[https://github.com/emacs-lsp/lsp-mode/issues/293][[Discussion] project root detection logic · Issue #293 · emacs-lsp/lsp-mode]]
+ - [[https://www.ncaq.net/2019/11/08/12/39/59/][EmacsでJava開発をする時eglotではなくlsp-modeを使えば割とあっさり構築完了しました - ncaq]]
+ - [[https://github.com/yyoncho/lsp-mode/blob/master/clients/lsp-pylsp.el#L426][lsp-mode/clients/lsp-pylsp.el at master · yyoncho/lsp-mode]]
+ - [[https://github.com/emacs-lsp/lsp-mode/discussions/3095][What are workspaces in emacs-lsp? What about multi-root? · emacs-lsp/lsp-mode · Discussion #3095]]
+ - [[https://emacs-lsp.github.io/lsp-mode/page/settings/mode/][Core - LSP Mode - LSP support for Emacs]]
+ - [[https://joaotavora.github.io/eglot/#Setting-Up-LSP-Servers][Eglot: The Emacs Client for the Language Server Protocol]]
+ - [[https://melpa.org/#/eglot-java][eglot-java - MELPA]]
+ - [[https://github.com/yveszoundi/eglot-java/tree/ee319cf87a7caaed52acbeb1b3ea00aa44d116b7][yveszoundi/eglot-java at ee319cf87a7caaed52acbeb1b3ea00aa44d116b7]]
+ - [[https://github.com/joaotavora/eglot][joaotavora/eglot: A client for Language Server Protocol servers]]
+
+* Json
+ - [[https://www.tohoho-web.com/ex/jq.html#key-1][とほほのjq入門 - とほほのWWW入門]]
+ - [[https://products.sint.co.jp/topsic/blog/json][【初心者向け】JSONとは？データ形式の基礎や書き方、使用例などを解説]]
+
+* Ubuntu
+ - [[https://zenn.dev/takahiro_kawai/articles/afd96c2e8407d9][WindowsからUbuntu 20.04 LTSにリモート接続する]]
+ - [[https://blog.treedown.net/entry/2022/05/31/010000][Ubuntu 22.04 LTS標準のRDP接続を試してみる - treedown’s Report]]
+ - [[https://qiita.com/j0306043/items/fcc9546056eeca5b025a][Ubuntu Linux 22.04 設定メモ #Linux - Qiita]]
