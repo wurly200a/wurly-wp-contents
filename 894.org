@@ -16,81 +16,125 @@ Ubuntu 22.04 で各種開発を行う環境を構築する際のインストー�
 
 基本的には Linuxネイティブ/WSL いずれにおいてもほぼ共通ですが、一部異なります。
 
+* Ubuntu Desktop インストール
+
+日本語版をインストールします。
+
 * Google Chrome
  - [[./?p=484][Ubuntu Google Chrome Install]]
 
 #+begin_src bash
-$ sudo apt install curl
-$ curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
-$ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-$ sudo apt update
-$ sudo apt install google-chrome-stable
+sudo apt install curl
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+sudo apt update
+sudo apt install google-chrome-stable
 #+end_src
 
-* Emacs
- - [[./?p=563][Ubuntu 22.04 (WSL) に Emacs 29.01 をインストール]]
+* localectl
+
+日本語版をインストールしておきながらも、システムメッセージが日本語だと違和感があるので変更します。
+
+インストール後、何もしていない状態で下記となっていました。
+
+#+begin_src bash
+localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: n/a
+      X11 Layout: jp
+       X11 Model: pc105
+#+end_src
+
+#+begin_src bash
+localectl set-x11-keymap jp jp106
+#+end_src
+
+こうなります。
+
+#+begin_src bash
+localectl
+   System Locale: LANG=ja_JP.UTF-8
+       VC Keymap: jp106
+      X11 Layout: jp
+       X11 Model: jp106
+#+end_src
 
 #+begin_src 
-$ git clone --depth 1 --branch emacs-29.4 git://git.sv.gnu.org/emacs.git emacs-29.4
-$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
-$ sudo apt install zlib1g-dev \
-$ cd emacs-29.4
-$ make -j$(nproc)
-$ sudo make install
+sudo vi /etc/locale.gen
 #+end_src
 
-# https://github.com/ucoka/emacs.d
-# http://192.168.1.101:8008/ConfGr/emacs.private.d
-# https://github.com/wurly200a/wurly-wp-contents
+下記のコメントアウトを外します。
 
-* Ubuntu で 変換、無変換キーをCtrlキーに割り当てる
+#+begin_src 
+# C.UTF-8 UTF-8
+#+end_src
+
+下記を実行します。
+
+#+begin_src bash
+sudo update-locale LANG=C.UTF-8
+#+end_src
+
+#+begin_src bash
+localectl
+   System Locale: LANG=C.UTF-8
+       VC Keymap: jp106
+      X11 Layout: jp
+       X11 Model: jp106
+#+end_src
+
+再起動します。
+
+* Keyboard関連
+
+** Ubuntu で 変換、無変換キーをCtrlキーに割り当てる
  - [[./?p=658][Ubuntu で 変換、無変換キーをCtrlキーに割り当てる]]
 
 #+begin_src 
-$ sudo vi /usr/share/X11/xkb/symbols/jphenk
-$ sudo vi /usr/share/X11/xkb/rules/evdev 
-$ sudo vi /usr/share/X11/xkb/rules/evdev 
+sudo vi /usr/share/X11/xkb/symbols/jphenk
+sudo vi /usr/share/X11/xkb/rules/evdev 
+sudo vi /usr/share/X11/xkb/rules/evdev 
 #+end_src
 
 #+begin_src 
-$ sudo apt install dconf-editor
-$ dconf-editor
+sudo apt install dconf-editor
+dconf-editor
 #+end_src
 
-* Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (ibus-mozc)
+** Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (ibus-mozc)
 
  - [[./?p=677][Ubuntu 22.04 Ctrl + ; のショートカットの無効化 (ibus-mozc)]]
 
 #+begin_src 
-$ ibus-setup
+ibus-setup
 #+end_src
+
+* Git
+
+#+begin_src bash
+sudo apt install git
+#+end_src
+
+* Emacs
+ - [[./?p=1480][Ubuntu 22.04 (WSL) に Emacs 29.4 をインストール]]
+
+* Node.js
+
+lspのインストールに必要
+ - [[./?p=1496][Ubuntu 22.04 LTS(WSL)へのNode.js LTS のインストール]]
 
 * Vterm
  - [[./?p=1098][emacs-libvterm (vterm)]]
 
 #+begin_src 
-$ sudo apt install cmake libtool-bin
+sudo apt install cmake libtool-bin
 #+end_src
 
 #+begin_src 
-$ sudo apt install emacs-mozc
+sudo apt install emacs-mozc
 #+end_src
 
-* openssh-server
- - [[./?p=720][Ubuntu 22.04 SSHサーバー設定及びクライアントからのX11接続]]
-
-#+begin_src bash
-sudo apt install openssh-server
-#+end_src
-
-** update snap
-
-#+begin_src bash
-$ sudo snap refresh
-$ snap-store --quit && sudo snap refresh snap-store
-#+end_src
-
-** Wayland
+* Wayland
  - [[./?p=1250][Ubuntu 22.04 で Wayland を有効にする]]
 
 #+begin_src bash
@@ -102,22 +146,35 @@ WaylandEnable=true
 #+end_src
 
 #+begin_src 
-$ sudo systemctl restart gdm3
+sudo systemctl restart gdm3
 #+end_src
 
-* Node.js
+* openssh-server
+ - [[./?p=720][Ubuntu 22.04 SSHサーバー設定及びクライアントからのX11接続]]
 
-lspのインストールに必要
- - [[./?p=1496][Ubuntu 22.04 LTS(WSL)へのNode.js LTS のインストール]]
+#+begin_src bash
+sudo apt install openssh-server
+#+end_src
 
-* Docker/Kubernetes/Azure
+* update snap
+
+#+begin_src bash
+sudo snap refresh
+snap-store --quit && sudo snap refresh snap-store
+#+end_src
+
+* Docker
  - [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]]
+
+* Kubernetes
 
  - [[./?p=1356][Ubuntu 22.04 に kubectl をインストール・アップデート (2024年5月時点)]]
 
  - [[./?p=856][Ubuntu 22.04 に helm をインストール]]
 
  - [[./?p=903][Ubuntu 22.04 に kind をインストール]]
+
+* Azure
 
  - [[./?p=860][Ubuntu 22.04 に Azure CLI をインストール]]
 
@@ -151,60 +208,6 @@ sudo cp ./kubectx-temp/completion/kubectx.bash $COMPDIR/kubectx
 rm -Rf ./kubectx-temp
 #+end_src
 
-* localectl
-
-システムメッセージが日本語だと違和感があるので変更します。
-
-インストール後、何もしていない状態で下記となっていました。
-
-#+begin_src bash
-$ localectl
-   System Locale: LANG=ja_JP.UTF-8
-       VC Keymap: n/a
-      X11 Layout: jp
-       X11 Model: pc105
-#+end_src
-
-#+begin_src bash
-$ localectl set-x11-keymap jp jp106
-#+end_src
-
-こうなります。
-
-#+begin_src bash
-$ localectl
-   System Locale: LANG=ja_JP.UTF-8
-       VC Keymap: jp106
-      X11 Layout: jp
-       X11 Model: jp106
-#+end_src
-
-#+begin_src 
-sudo vi /etc/locale.gen
-#+end_src
-
-下記のコメントアウトを外します。
-
-#+begin_src 
-# C.UTF-8 UTF-8
-#+end_src
-
-下記を実行します。
-
-#+begin_src bash
-sudo update-locale LANG=C.UTF-8
-#+end_src
-
-#+begin_src bash
-$ localectl
-   System Locale: LANG=C.UTF-8
-       VC Keymap: jp106
-      X11 Layout: jp
-       X11 Model: jp106
-#+end_src
-
-再起動します。
-
 * Zoom
 
 * Outloook for Linux
@@ -226,6 +229,6 @@ $ localectl
 * Memo
 
 #+begin_src 
-$ ibus-setup
-$ sudo apt install cmake libtool-bin
+ibus-setup
+sudo apt install cmake libtool-bin
 #+end_src
