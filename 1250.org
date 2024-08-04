@@ -42,4 +42,4 @@ WaylandEnable=true
 $ sudo systemctl restart gdm3
 #+end_src
 
-Ubuntuを再起動し、ログイン時に Wayland を選んでログインしました。
+Ubuntuを再起動し、ログイン時に右下に表示される歯車マークのところから Wayland を選んでログインしました。
