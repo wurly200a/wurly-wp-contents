@@ -70,7 +70,6 @@ $ sudo apt install docker-ce
 #+end_src
 
 dockerグループにユーザを追加します。
-(Ubuntu 22.04 Native インストール時にはこの後、OSの再起動が必要でした)
 
 #+begin_src 
 $ sudo usermod -a -G docker ${USER}
@@ -101,6 +100,13 @@ Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067374922+09:00" lev
 Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.067496800+09:00" level=info msg="Daemon has completed initialization"
 Apr 30 18:37:44 LT1 systemd[1]: Started Docker Application Container Engine.
 Apr 30 18:37:44 LT1 dockerd[792]: time="2023-04-30T18:37:44.082524031+09:00" level=info msg="API listen on /run/docker.sock"
+#+end_src
+
+docker container ls コマンドを実行して、下記のメッセージが出るようであれば、OSを再起動します。
+
+#+begin_src 
+$ docker container ls
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.46/containers/json": dial unix /var/run/docker.sock: connect: permission denied
 #+end_src
 
 * 参考
