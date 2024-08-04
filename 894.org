@@ -158,6 +158,13 @@ sudo apt install openssh-server
 
 * update snap
 
+#+begin_quote
+Unable to install updates:
+(null):cannot refresh "snap-store":snap "snap-store" has running apps (ubuntu-software),pids: xxxxx
+#+end_quote
+
+上記のメッセージが出る場合、下記を実行
+
 #+begin_src bash
 sudo snap refresh
 snap-store --quit && sudo snap refresh snap-store
