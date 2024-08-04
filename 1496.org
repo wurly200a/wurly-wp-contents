@@ -35,12 +35,26 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x -o nodesource_setup.sh
 sudo -E bash nodesource_setup.sh
 #+end_src
 
-下記ファイルが作成されます。
+(参考)下記ファイルが作成されます。
 
 #+begin_src 
 /usr/share/keyrings/nodesource.gpg
 /etc/apt/sources.list.d/nodesource.list
 #+end_src
+
+インストールされるバージョンを確認します。
+
+#+begin_src bash
+sudo apt list | grep nodejs
+#+end_src
+
+インストールします。
+
+#+begin_src bash
+sudo apt install nodejs
+#+end_src
+
+* 実行例(参考)
 
 #+begin_src bash
 $ curl -fsSL https://deb.nodesource.com/setup_lts.x -o nodesource_setup.sh
