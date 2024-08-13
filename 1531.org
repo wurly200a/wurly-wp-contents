@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2024-07-15 Mon 15:59]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: Ceph, Kubernetes
+#+CATEGORY: Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Rook Ceph で Storageのプロビジョニング
@@ -25,7 +25,21 @@
 
 * 状態の確認
 
-helmチャートを使い、defaultのvalues.yamlでデプロイした場合、既にストレージが用意されるようです。
+helmチャートを使い、defaultのvalues.yamlでデプロイした場合、自動的にストレージクラスが用意されるようです。
+
+つまり、pvcを定義すればpvが確保される状態になるということです。
+
+** kubectl get sc
+
+下記は、StorageClassとして、Block Storage (RDB)、Object Storage (RGW)のBucket、Shared Filesystem(CephFS) が既に用意された状態です。
+
+#+begin_src bash
+$ k get sc -n rook-ceph
+NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+ceph-block (default)   rook-ceph.rbd.csi.ceph.com      Delete          Immediate           true                   8d
+ceph-bucket            rook-ceph.ceph.rook.io/bucket   Delete          Immediate           false                  8d
+ceph-filesystem        rook-ceph.cephfs.csi.ceph.com   Delete          Immediate           true                   8d
+#+end_src
 
 ** ceph status
 
@@ -103,16 +117,4 @@ ceph-objectstore.rgw.buckets.data    12   32      0 B        0      0 B      0  
 $ k get pod -n rook-ceph | grep mds
 rook-ceph-mds-ceph-filesystem-a-7b4d7b9dc4-hvx95        2/2     Running     6 (13h ago)    8d
 rook-ceph-mds-ceph-filesystem-b-6d45c6f856-v97xb        2/2     Running     6 (13h ago)    8d
-#+end_src
-
-** kubectl get sc
-
-StorageClassとして、Block Storage (RDB)、Object Storage (RGW)のBucket、Shared Filesystem(CephFS) が既に用意されています。
-
-#+begin_src bash
-$ k get sc -n rook-ceph
-NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
-ceph-block (default)   rook-ceph.rbd.csi.ceph.com      Delete          Immediate           true                   8d
-ceph-bucket            rook-ceph.ceph.rook.io/bucket   Delete          Immediate           false                  8d
-ceph-filesystem        rook-ceph.cephfs.csi.ceph.com   Delete          Immediate           true                   8d
 #+end_src
