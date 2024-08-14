@@ -1,0 +1,25 @@
+#+BLOG: wurly-blog
+#+POSTID: 1594
+#+ORG2BLOG:
+#+DATE: [2024-08-14 Wed 20:50]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: PC
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ASUS ThunderboltEX 4
+
+* 内容
+
+最近、ASUS TUF GAMING B560M-PLUS を入手しました。
+
+このマザーボードが良いと思う理由の一つが、Thunderbolt拡張ボードに対応していることです。
+
+なかなか、自作PC(マザーボード)でThunderboltに対応しているものは少ないので。
+
+ただ実際のところ、用途もあまり思いつくところはなく、なんとなく欲しいと理由だったりするのですが。
+
+下記リンクのpdfに対応機種が記載されています。
+
+ - [[https://www.asus.com/jp/motherboards-components/motherboards/accessories/thunderboltex-4/techspec/][ThunderboltEX 4 - スペック｜マザーボード｜ASUS 日本]]
+ - [[https://www.asus.com/motherboards-components/motherboards/accessories/thunderboltex-4/helpdesk_compatibility?model2Name=ThunderboltEX-4][ThunderboltEX 4｜Motherboards｜ASUS Global]]
+ - [[https://dlcdnets.asus.com/pub/ASUS/mb/Add-on_card/ThunderboltEX_4/ThunderboltEX_4_Card_Compatible_Model_List_add_B760_strix_20240715.pdf?model=ThunderboltEX%204][ThunderboltEX_4_Card_Compatible_Model_List_add_B760_strix_20240715.pdf]]
