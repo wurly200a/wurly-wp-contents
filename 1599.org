@@ -1,0 +1,84 @@
+#+BLOG: wurly-blog
+#+POSTID: 1599
+#+ORG2BLOG:
+#+DATE: [2024-08-16 Fri 16:35]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: DevcontainerをEmacsで使用する
+
+* はじめに
+
+DevcontainerはVSCodeの拡張機能として使用される開発環境という認識でしたが、Emacsから使用できないか調査しました。
+
+下記を参考にしました。
+
+ - [[https://happihacking.com/blog/posts/2023/dev-containers/][Dev Containers: Consistency in Development]]
+ - [[https://happihacking.com/blog/posts/2023/dev-containers-emacs/][Dev Containers Part 2: Setup, the devcontainer CLI & Emacs]]
+
+ここで説明されている方法は、Dev Container CLI を使ってコンテナを立ち上げ、Tramp を使ってコンテナ内部をブラウズするというものです。
+
+ - [[https://github.com/devcontainers/cli][devcontainers/cli: A reference implementation for the specification that can create and configure a dev container from a devcontainer.json.]]
+https://github.com/devcontainers/cli
+
+このCLIというのは devcontainers公式のものなんですね。
+
+また、公式の仕様を見る限り、VSCodeでの使用を前提としているわけではないと理解しました。
+
+ - [[https://containers.dev/][Development containers]]
+https://containers.dev/
+
+LSP(Language Server Protocol)同様、オープンな仕様を定義して導入することでVSCode以外の開発環境の改善に貢献しており、このあたりのMicrosoftの取り組みは素晴らしいですね！
+
+* インストール
+
+npmでインストールします。
+
+#+begin_src bash
+npm install -g @devcontainers/cli
+#+end_src
+
+* コンテナの立ち上げ
+
+ここでは、既存のdevcontainer環境を使用する例を紹介します。
+
+.devcontainer があるディレクトリで、下記のように実行します。
+
+#+begin_src bash
+devcontainer up --workspace-folder .
+#+end_src
+
+必要に応じてDockerイメージがビルドされ、コンテナが立ち上がります。
+
+* コンテナ内のコマンド実行
+
+ビルドコマンドがmakeであれば、下記のように実行できます。
+
+#+begin_src bash
+devcontainer exec --workspace-folder . make
+#+end_src
+
+もちろん、bash等を使い、シェルに入ることもできます。
+
+#+begin_src bash
+devcontainer exec --workspace-folder . /usr/bin/bash
+#+end_src
+
+* コンテナ内のファイルシステムへのアクセス
+
+Emacsでは(どのバージョンからサポートしているかの情報が見当たらなかったのですが、私の記憶では Emacs29 から) tramp で直接 dockerコンテナのファイルシステムにアクセスできます。
+
+docker ps でコンテナのIDを取得し(下記の例ではa66888630fb0)、ファイルシステムを参照することができます。
+
+#+begin_src 
+/docker:a66888630fb0:
+#+end_src
+
+#+begin_src bash
+/docker:ユーザ名@a66888630fb0:
+#+end_src
+
+* おわりに
+
+このように、EmacsでもDevcontainerが使えます！
