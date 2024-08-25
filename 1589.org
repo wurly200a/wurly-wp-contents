@@ -1,0 +1,182 @@
+#+BLOG: wurly-blog
+#+POSTID: 1589
+#+ORG2BLOG:
+#+DATE: [2024-08-13 Tue 13:32]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: オンプレK8SクラスターにHelmチャートを使ってThingsBoardをデプロイ
+
+* はじめに
+
+オンプレKubernetesクラスターにHelmチャートを使ってThingsBoardをデプロイします。
+
+ThingsBoard公式のKubernetesリソースは下記にあります。
+こちらには、AWS、Azure、GCP、Minikube、OpenShiftに対応するインストールスクリプトと、Helmチャートが用意されているのですが、Helmチャートはメンテナンスされておらず古い(ThingsBoardのバージョンがv3.4.0)です。
+
+ - [[https://github.com/thingsboard/thingsboard-ce-k8s][GitHub - thingsboard/thingsboard-ce-k8s: ThingsBoard Community Edition Kubernetes scripts and docs]]
+https://github.com/thingsboard/thingsboard-ce-k8s
+
+Midokuraという組織が上記をforkしており、こちらの方が少し新しい(ThingsBoardのバージョンがv3.5.1)ので、こちらを使用します。
+
+ - [[https://github.com/midokura/thingsboard-ce-k8s][GitHub - midokura/thingsboard-ce-k8s: ThingsBoard Community Edition Kubernetes scripts and docs]]
+https://github.com/midokura/thingsboard-ce-k8s
+
+* Helmチャートの登録、values.yamlの準備 
+
+#+begin_src bash
+helm repo add thingsboard https://midokura.github.io/thingsboard-ce-k8s
+#+end_src
+
+#+begin_src bash
+helm repo update
+#+end_src
+
+本来、最新の 0.1.4-rc.43 が表示されるはずですが、何故かバージョンが古いです。
+
+#+begin_src bash
+$ helm search repo thingsboard
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION                 
+thingsboard/thingsboard 0.1.3           3.4.1           A Helm chart for Thingsboard
+#+end_src
+
+下記で、デフォルトのvalues.yamlが取得できます。
+
+#+begin_src bash
+helm show values thingsboard/thingsboard --version 0.1.4-rc.43 > values.0.1.4-rc.43.yaml
+#+end_src
+
+実際にデプロイするvalues.yamlは下記としました。
+
+#+begin_src yaml
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  hosts:
+    - thingsboard.local
+
+jsexecutor:
+  replicaCount: 1
+
+mqtt:
+  service:
+    type: LoadBalancer
+
+http:
+  replicaCount: 0
+
+coap:
+  replicaCount: 0
+
+postgresInitDB:
+  job:
+    check:
+      timeout: 10
+#+end_src
+
+* インストール
+
+helm installします。
+
+#+begin_src bash
+helm install my-thingsboard thingsboard/thingsboard --version 0.1.4-rc.43 --namespace thingsboard --create-namespace -f values.yaml
+#+end_src
+
+実行結果
+
+#+begin_src bash
+$ helm install my-thingsboard thingsboard/thingsboard --version 0.1.4-rc.43 --namespace thingsboard --create-namespace -f values.yaml
+NAME: my-thingsboard
+LAST DEPLOYED: Wed Aug 14 22:52:13 2024
+NAMESPACE: thingsboard
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get node URL by running these commands:
+http://thingsboard.local
+#+end_src
+
+もし、この後、valuesを書き換える場合は、下記を実行します。
+
+#+begin_src bash
+helm upgrade my-thingsboard thingsboard/thingsboard --version 0.1.4-rc.43 --namespace thingsboard -f values.yaml
+#+end_src
+
+* podの状態確認
+
+#+begin_src bash
+$ k get pod
+NAME                                          READY   STATUS    RESTARTS      AGE
+my-thingsboard-jsexecutor-6bbbbdfc47-nnwm5    1/1     Running   0             40m
+my-thingsboard-kafka-0                        1/1     Running   1 (40m ago)   40m
+my-thingsboard-mqtt-transport-0               1/1     Running   0             40m
+my-thingsboard-node-0                         1/1     Running   0             40m
+my-thingsboard-pg-pgpool-74579b6687-jdlnv     1/1     Running   0             40m
+my-thingsboard-pg-postgresql-0                1/1     Running   0             40m
+my-thingsboard-redis-master-b44c99b96-pbsb8   1/1     Running   0             40m
+my-thingsboard-web-ui-768b458dcf-5zs6j        1/1     Running   0             40m
+my-thingsboard-zookeeper-0                    1/1     Running   0             40m
+#+end_src
+
+#+begin_src bash
+$ k get svc
+NAME                                    TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
+my-thingsboard-coap                     ClusterIP      10.101.193.180   <none>          8083/UDP                     43m
+my-thingsboard-http                     ClusterIP      10.100.117.173   <none>          8082/TCP                     43m
+my-thingsboard-kafka                    ClusterIP      10.107.239.86    <none>          9092/TCP                     43m
+my-thingsboard-kafka-headless           ClusterIP      None             <none>          9092/TCP,9093/TCP            43m
+my-thingsboard-mqtt                     LoadBalancer   10.97.246.74     192.168.10.61   8883:30765/TCP               43m
+my-thingsboard-node                     ClusterIP      10.110.157.220   <none>          8080/TCP                     43m
+my-thingsboard-pg-pgpool                ClusterIP      10.100.176.65    <none>          5432/TCP                     43m
+my-thingsboard-pg-postgresql            ClusterIP      10.98.180.166    <none>          5432/TCP                     43m
+my-thingsboard-pg-postgresql-headless   ClusterIP      None             <none>          5432/TCP                     43m
+my-thingsboard-redis-headless           ClusterIP      None             <none>          6379/TCP                     43m
+my-thingsboard-redis-master             ClusterIP      10.103.14.234    <none>          6379/TCP                     43m
+my-thingsboard-webui                    ClusterIP      10.107.77.196    <none>          8084/TCP                     43m
+my-thingsboard-zookeeper                ClusterIP      10.104.174.148   <none>          2181/TCP,2888/TCP,3888/TCP   43m
+my-thingsboard-zookeeper-headless       ClusterIP      None             <none>          2181/TCP,2888/TCP,3888/TCP   43m
+#+end_src
+
+#+begin_src bash
+$ k get ingress
+NAME             CLASS    HOSTS               ADDRESS         PORTS   AGE
+my-thingsboard   <none>   thingsboard.local   192.168.10.62   80      43m
+#+end_src
+
+K8Sが所属するネットワークセグメントのOpenWrtルーターのhaproxyの設定( /etc/haproxy.cfg )
+
+#+begin_src
+frontend http_front
+    bind 192.168.1.100:8080
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server k8s-ingress 192.168.10.62:80 check
+#+end_src
+
+ただし、http://192.168.1.100:8080 とすると、404 Not Found になるため、大元のルーター(ONU F660A)のDNS機能にて、"thingsboard.local" を 192.168.1.100 に設定する。
+
+これで、http://thingsboard.local:8080 でWebUIにアクセスできるようになった。
+
+* アクセス方法
+
+#+begin_src bash
+kubectl port-forward -n thingsboard svc/my-thingsboard-node 8888:8080
+#+end_src
+
+* アンインストール
+
+#+begin_src bash
+helm uninstall my-thingsboard thingsboard/thingsboard --namespace thingsboard
+#+end_src
+
+#+begin_src bash
+k delete pvc data-my-thingsboard-tb-postgresql-0
+#+end_src
+
+
+* おわりに
