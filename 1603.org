@@ -1,0 +1,201 @@
+#+BLOG: wurly-blog
+#+POSTID: 1603
+#+ORG2BLOG:
+#+DATE: [2024-09-01 Sun 18:28]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: NuttX, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Hello, World! on NuttX / ESP32
+
+* はじめに
+
+これまで、下記の投稿に NuttX / ESP32 を使ったビルド方法について記載していました。
+
+ - [[./?p=389][NuttX ビルトインアプリケーションの作成]]
+ - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
+ - [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
+ - [[./?p=455][ESP-IDF で hello world]]
+
+試行錯誤していた為、内容が分散されており、洗練されていない部分もありますので、改めてプロジェクトを作成し、説明を作成しました。
+
+* 作成したプロジェクト
+
+ターゲットを起動(電源ON)すると、"Hello, World!!" とコンソールに出力するプログラムとなります。
+
+ - [[https://github.com/wurly200a/hello-world-on-nuttx-esp32][wurly200a/hello-world-on-nuttx-esp32: Hello world on NuttX ESP32]]
+https://github.com/wurly200a/hello-world-on-nuttx-esp32
+
+* ビルド方法、FlushROMへの書き込み方法
+
+READMEの通りですが、今回はビルドスクリプトは build.sh にまとめました。
+環境の要件を満たしていればそのまま実行してビルドできるはずですが、別途作成したビルド用Dockerコンテナを使ってビルドする手順となっています。
+(Dockerfileへのリンクも記載しています)
+
+また、Python の venv を使って esptool をインストールし、FlushROMへの書き込み方法も合わせて記載しました。
+
+* build.sh の説明
+
+** ディレクトリ名、シンボル名等の定義
+
+src/hello にユーザープログラムを格納します。
+
+NuttXのビルドは、下記の名称にて並べてディレクトリを配置し、nuttx以下で make を実行するというのが定められた方法です。
+
+ - incubator-nuttx -> nuttx
+ - incubator-nuttx-apps -> apps
+
+これに基づき、下記のように設定します。
+
+#+begin_src bash
+MY_APP_NAME=hello
+BUILD_PREFIX_DIR=src
+
+MY_APP_DIR=${BUILD_PREFIX_DIR}/${MY_APP_NAME}
+
+NUTTX_DIR=${BUILD_PREFIX_DIR}/nuttx
+NUTTX_GIT_URL=https://github.com/apache/incubator-nuttx
+NUTTX_GIT_TAG=nuttx-12.0.0
+
+NUTTX_APPS_DIR=${BUILD_PREFIX_DIR}/apps
+NUTTX_APPS_GIT_URL=https://github.com/apache/incubator-nuttx-apps
+NUTTX_APPS_GIT_TAG=nuttx-12.0.0
+NUTTX_APPS_EXTERNAL_DIR=${NUTTX_APPS_DIR}/external
+#+end_src
+
+** 引数による処理
+
+build.sh の引数として、allclean/clean/configure/build を用意しました。
+指定しない場合には、configure/build を順に実行します。
+
+#+begin_src bash
+case "$1" in
+    allclean)
+        allclean
+        ;;
+    clean)
+        clean
+        ;;
+    configure)
+        configure
+        ;;
+    build)
+        build
+        ;;
+    *)
+        configure
+        build
+        ;;
+esac
+#+end_src
+
+** configure(nuttx、appsのclone)
+
+指定されたタグのソースコードをcloneします。
+
+#+begin_src bash
+    # clone incubator-nuttx
+    if [ ! -d ${NUTTX_DIR} ]; then
+        mkdir -p $(dirname ${NUTTX_DIR})
+        git clone ${NUTTX_GIT_URL} -b ${NUTTX_GIT_TAG} ${NUTTX_DIR}
+    fi
+
+    # clone incubator-nuttx-apps
+    if [ ! -d ${NUTTX_APPS_DIR} ]; then
+        mkdir -p $(dirname ${NUTTX_APPS_DIR})
+        git clone ${NUTTX_APPS_GIT_URL} -b ${NUTTX_APPS_GIT_TAG} ${NUTTX_APPS_DIR}
+    fi
+#+end_src
+
+** configure(ビルトインアプリケーションの作成)
+ - [[./?p=389][NuttX ビルトインアプリケーションの作成]]
+
+上記投稿に記載の通り、apps(incubator-nuttx-apps)以下にディレクトリを作成し、ソースファイルと設定ファイルを置いてビルドすることで、ビルトインアプリケーションを作成することができます。
+今回の場合、NuttXシェル(nsh)から"hello"と入力することで、"Hello, World!!"が出力されるようなものとなります。
+ただ、appsディレクトリに直接ファイルを作成するのはスマートではありません。
+
+ - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
+
+appsディレクトリに external ディレクトリを作成し、Makefile と makde.defs を作成することで、external/ 以下にあるディレクトリをアプリケーションとしてビルドすることができます。
+テクニックとして、自分で作成したアプリケーションのソースコードディレクトリを、ここにシンボリックリンクとして配置するのがスマートです。
+
+cloneしたappsディレクトリに対し、下記の通り必要なファイルを作成し、シンボリックリンクを作成します。
+
+#+begin_src bash
+    # apps/external setting
+    if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR} ]; then
+        mkdir -p ${NUTTX_APPS_EXTERNAL_DIR}
+        cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Makefile
+MENUDESC = "External"
+
+include $(APPDIR)/Directory.mk
+EOS
+        cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Make.defs
+include $(wildcard $(APPDIR)/external/*/Make.defs)
+EOS
+    fi
+
+    if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME} ]; then
+        ln -s $(pwd)/${MY_APP_DIR} ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME}
+    fi
+#+end_src
+
+** configure(configure.sh、kconfig)
+
+nuttxディレクトリに入り、configure と kconfig の設定を行います。
+
+#+begin_src bash
+    cd ${NUTTX_DIR}
+
+    ./tools/configure.sh -l esp32-devkitc:nsh
+
+    kconfig-tweak --file .config --enable CONFIG_BOARDCTL_ROMDISK
+    kconfig-tweak --file .config --set-str CONFIG_NSH_SCRIPT_REDIRECT_PATH ""
+    kconfig-tweak --file .config --set-val CONFIG_FS_ROMFS_CACHE_FILE_NSECTORS 1
+
+    kconfig-tweak --file .config --disable CONFIG_NSH_CONSOLE_LOGIN
+
+    kconfig-tweak --file .config --enable CONFIG_FS_ROMFS
+    kconfig-tweak --file .config --enable CONFIG_NSH_ROMFSETC
+    kconfig-tweak --file .config --enable CONFIG_NSH_ARCHROMFS
+
+    kconfig-tweak --file .config --enable CONFIG_FS_FAT
+
+    kconfig-tweak --file .config --enable CONFIG_APP_HELLO
+    kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_PRIORITY 100
+    kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_STACKSIZE 2048
+#+end_src
+
+** configure(NuttX ビルトインアプリケーションの自動起動)
+ - [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
+
+前述の通りビルトインアプリケーションはコマンドとして実行できますが、起動時に自動的に"Hello, World!!"を表示したいと思います。
+これを行うためには、NuttXのファイルシステム上の /etc/init.d/rcS に、下記のように記載する必要があります。
+
+#+begin_src bash
+#! /bin/nsh
+hello
+#+end_src
+
+nuttx/ ディレクトリに用意されているツールを実行します。
+
+#+begin_src bash
+    cd boards/xtensa/esp32/esp32-devkitc/include
+
+    if [ -e rc.sysinit.template ]; then
+        rm rc.sysinit.template
+    fi
+    if [ -e rcS.template ]; then
+        rm rcS.template
+    fi
+    
+    touch rc.sysinit.template
+    touch rcS.template
+    echo "#! /bin/nsh" > rcS.template
+    echo "hello" >> rcS.template
+    ../../../../../tools/mkromfsimg.sh ../../../../../
+    cd ../../../../..
+#+end_src
+
+* おわりに
+
