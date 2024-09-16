@@ -6,35 +6,76 @@
 #+CATEGORY: NuttX, ESP32
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Hello, World! on NuttX / ESP32
+#+TITLE: ESP32 x NuttXで Hello, world!
 
 * はじめに
 
-これまで、下記の投稿に NuttX / ESP32 を使ったビルド方法について記載していました。
+これまで、下記の投稿に ESP32 x NuttX を使ったビルド方法について記載していました。
 
  - [[./?p=389][NuttX ビルトインアプリケーションの作成]]
  - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
  - [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
  - [[./?p=455][ESP-IDF で hello world]]
 
-試行錯誤していた為、内容が分散されており、洗練されていない部分もありますので、改めてプロジェクトを作成し、説明を作成しました。
+当時、試行錯誤しながら作成したため、内容が分散されており改善が必要な部分もありましたので、改めてプロジェクトを作成し説明を作成しました。
+
+* 使用したハードウェア
+
+ESP32-WROOM-32E を使用した、ESP32-DevKitC というシングルボードコンピュータのキットを使用しました。
+
+ - [[https://www.espressif.com/en/products/devkits/esp32-devkitc/overview][ESP DevKits | Espressif Systems]]
+https://www.espressif.com/en/products/devkits/esp32-devkitc/overview
+
+ - [[https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/index.html][ESP32-DevKitC - - — esp-dev-kits latest documentation]]
+https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/index.html
+
+ - [[./?p=237][ESP32-DevKitC-32Dボード]]
+
+* ソフトウェア開発環境
+
+ここではWSL等を使用しない、ネイティブのUbuntu環境を前提とします。
+
+- Ubuntu 22.04
+ - Docker
+ - Python3
+  - Python3-venv
+
+ただ、ネイティブの環境を前提としているのはFlashROMの書き込みの際、ハードウェアへのアクセスを直接行うことで手順をシンプルにしたい為です。
+下記のようにFlashROMの書き込みはWindows環境で行う、またはWSLからハードウェアにアクセスするような仕組み(usbipd-win等)を使うことで、WSLも使用可能です。
+
+ - [[./?p=189][Python インストール(3.10.8、複数のバージョン共存前提)]]
 
 * 作成したプロジェクト
 
 ターゲットを起動(電源ON)すると、"Hello, World!!" とコンソールに出力するプログラムとなります。
 
- - [[https://github.com/wurly200a/hello-world-on-nuttx-esp32][wurly200a/hello-world-on-nuttx-esp32: Hello world on NuttX ESP32]]
+- [[https://github.com/wurly200a/hello-world-on-nuttx-esp32][wurly200a/hello-world-on-nuttx-esp32: Hello world on NuttX ESP32]]
 https://github.com/wurly200a/hello-world-on-nuttx-esp32
 
-* ビルド方法、FlushROMへの書き込み方法
+file:images/1603_01.png
 
-READMEの通りですが、今回はビルドスクリプトは build.sh にまとめました。
-環境の要件を満たしていればそのまま実行してビルドできるはずですが、別途作成したビルド用Dockerコンテナを使ってビルドする手順となっています。
-(Dockerfileへのリンクも記載しています)
+* ビルド方法(build.sh)、FlushROMへの書き込み方法
 
-また、Python の venv を使って esptool をインストールし、FlushROMへの書き込み方法も合わせて記載しました。
+READMEの通りですが、ここに日本語で解説します。
+
+ビルドスクリプトは build.sh にまとめました。
+Prerequisitesに記載した環境の要件を満たしていればそのまま実行してビルドできるはずです。
+別途作成したビルド用Dockerコンテナ(Builder)を使ってビルドする手順となっています。
+DockerfileへのリンクはREADMEに記載しています。
+
+FlushROMへの書き込み方法は、venv を使ったPython仮想環境に esptool をインストールして行う手順となっています。
+これにより、任意のesptoolのバージョンを使うことができます。
 
 * build.sh の説明
+
+** ハードウェアの定義
+nuttxのソースの boards/boards のディレクトリ名に基づきます。
+こちらを変更することで、他のキットにも対応できるはずです。
+
+#+begin_src bash
+  ESP32_MODULE_NAME=esp32
+  ESP32_BOARD_NAME=esp32-devkitc
+#+end_src
 
 ** ディレクトリ名、シンボル名等の定義
 
@@ -42,25 +83,25 @@ src/hello にユーザープログラムを格納します。
 
 NuttXのビルドは、下記の名称にて並べてディレクトリを配置し、nuttx以下で make を実行するというのが定められた方法です。
 
- - incubator-nuttx -> nuttx
- - incubator-nuttx-apps -> apps
+- incubator-nuttx -> nuttx
+- incubator-nuttx-apps -> apps
 
 これに基づき、下記のように設定します。
 
 #+begin_src bash
-MY_APP_NAME=hello
-BUILD_PREFIX_DIR=src
+  MY_APP_NAME=hello
+  BUILD_PREFIX_DIR=src
 
-MY_APP_DIR=${BUILD_PREFIX_DIR}/${MY_APP_NAME}
+  MY_APP_DIR=${BUILD_PREFIX_DIR}/${MY_APP_NAME}
 
-NUTTX_DIR=${BUILD_PREFIX_DIR}/nuttx
-NUTTX_GIT_URL=https://github.com/apache/incubator-nuttx
-NUTTX_GIT_TAG=nuttx-12.0.0
+  NUTTX_DIR=${BUILD_PREFIX_DIR}/nuttx
+  NUTTX_GIT_URL=https://github.com/apache/incubator-nuttx
+  NUTTX_GIT_TAG=nuttx-12.0.0
 
-NUTTX_APPS_DIR=${BUILD_PREFIX_DIR}/apps
-NUTTX_APPS_GIT_URL=https://github.com/apache/incubator-nuttx-apps
-NUTTX_APPS_GIT_TAG=nuttx-12.0.0
-NUTTX_APPS_EXTERNAL_DIR=${NUTTX_APPS_DIR}/external
+  NUTTX_APPS_DIR=${BUILD_PREFIX_DIR}/apps
+  NUTTX_APPS_GIT_URL=https://github.com/apache/incubator-nuttx-apps
+  NUTTX_APPS_GIT_TAG=nuttx-12.0.0
+  NUTTX_APPS_EXTERNAL_DIR=${NUTTX_APPS_DIR}/external
 #+end_src
 
 ** 引数による処理
@@ -69,24 +110,24 @@ build.sh の引数として、allclean/clean/configure/build を用意しまし�
 指定しない場合には、configure/build を順に実行します。
 
 #+begin_src bash
-case "$1" in
-    allclean)
-        allclean
-        ;;
-    clean)
-        clean
-        ;;
-    configure)
-        configure
-        ;;
-    build)
-        build
-        ;;
-    *)
-        configure
-        build
-        ;;
-esac
+  case "$1" in
+      allclean)
+          allclean
+          ;;
+      clean)
+          clean
+          ;;
+      configure)
+          configure
+          ;;
+      build)
+          build
+          ;;
+      ,*)
+          configure
+          build
+          ;;
+  esac
 #+end_src
 
 ** configure(nuttx、appsのclone)
@@ -94,27 +135,27 @@ esac
 指定されたタグのソースコードをcloneします。
 
 #+begin_src bash
-    # clone incubator-nuttx
-    if [ ! -d ${NUTTX_DIR} ]; then
-        mkdir -p $(dirname ${NUTTX_DIR})
-        git clone ${NUTTX_GIT_URL} -b ${NUTTX_GIT_TAG} ${NUTTX_DIR}
-    fi
+  # clone incubator-nuttx
+  if [ ! -d ${NUTTX_DIR} ]; then
+      mkdir -p $(dirname ${NUTTX_DIR})
+      git clone ${NUTTX_GIT_URL} -b ${NUTTX_GIT_TAG} ${NUTTX_DIR}
+  fi
 
-    # clone incubator-nuttx-apps
-    if [ ! -d ${NUTTX_APPS_DIR} ]; then
-        mkdir -p $(dirname ${NUTTX_APPS_DIR})
-        git clone ${NUTTX_APPS_GIT_URL} -b ${NUTTX_APPS_GIT_TAG} ${NUTTX_APPS_DIR}
-    fi
+  # clone incubator-nuttx-apps
+  if [ ! -d ${NUTTX_APPS_DIR} ]; then
+      mkdir -p $(dirname ${NUTTX_APPS_DIR})
+      git clone ${NUTTX_APPS_GIT_URL} -b ${NUTTX_APPS_GIT_TAG} ${NUTTX_APPS_DIR}
+  fi
 #+end_src
 
 ** configure(ビルトインアプリケーションの作成)
- - [[./?p=389][NuttX ビルトインアプリケーションの作成]]
+- [[./?p=389][NuttX ビルトインアプリケーションの作成]]
 
 上記投稿に記載の通り、apps(incubator-nuttx-apps)以下にディレクトリを作成し、ソースファイルと設定ファイルを置いてビルドすることで、ビルトインアプリケーションを作成することができます。
 今回の場合、NuttXシェル(nsh)から"hello"と入力することで、"Hello, World!!"が出力されるようなものとなります。
 ただ、appsディレクトリに直接ファイルを作成するのはスマートではありません。
 
- - [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
+- [[./?p=414][NuttX ESP32 アプリケーションのDockerビルド]]
 
 appsディレクトリに external ディレクトリを作成し、Makefile と makde.defs を作成することで、external/ 以下にあるディレクトリをアプリケーションとしてビルドすることができます。
 テクニックとして、自分で作成したアプリケーションのソースコードディレクトリを、ここにシンボリックリンクとして配置するのがスマートです。
@@ -122,22 +163,22 @@ appsディレクトリに external ディレクトリを作成し、Makefile と
 cloneしたappsディレクトリに対し、下記の通り必要なファイルを作成し、シンボリックリンクを作成します。
 
 #+begin_src bash
-    # apps/external setting
-    if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR} ]; then
-        mkdir -p ${NUTTX_APPS_EXTERNAL_DIR}
-        cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Makefile
-MENUDESC = "External"
+  # apps/external setting
+  if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR} ]; then
+      mkdir -p ${NUTTX_APPS_EXTERNAL_DIR}
+      cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Makefile
+  MENUDESC = "External"
 
-include $(APPDIR)/Directory.mk
-EOS
-        cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Make.defs
-include $(wildcard $(APPDIR)/external/*/Make.defs)
-EOS
-    fi
+  include $(APPDIR)/Directory.mk
+  EOS
+      cat << 'EOS' > ${NUTTX_APPS_EXTERNAL_DIR}/Make.defs
+  include $(wildcard $(APPDIR)/external/*/Make.defs)
+  EOS
+  fi
 
-    if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME} ]; then
-        ln -s $(pwd)/${MY_APP_DIR} ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME}
-    fi
+  if [ ! -d ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME} ]; then
+      ln -s $(pwd)/${MY_APP_DIR} ${NUTTX_APPS_EXTERNAL_DIR}/${MY_APP_NAME}
+  fi
 #+end_src
 
 ** configure(configure.sh、kconfig)
@@ -145,57 +186,70 @@ EOS
 nuttxディレクトリに入り、configure と kconfig の設定を行います。
 
 #+begin_src bash
-    cd ${NUTTX_DIR}
+  cd ${NUTTX_DIR}
 
-    ./tools/configure.sh -l esp32-devkitc:nsh
+  ./tools/configure.sh -l esp32-devkitc:nsh
 
-    kconfig-tweak --file .config --enable CONFIG_BOARDCTL_ROMDISK
-    kconfig-tweak --file .config --set-str CONFIG_NSH_SCRIPT_REDIRECT_PATH ""
-    kconfig-tweak --file .config --set-val CONFIG_FS_ROMFS_CACHE_FILE_NSECTORS 1
+  kconfig-tweak --file .config --enable CONFIG_BOARDCTL_ROMDISK
+  kconfig-tweak --file .config --set-str CONFIG_NSH_SCRIPT_REDIRECT_PATH ""
+  kconfig-tweak --file .config --set-val CONFIG_FS_ROMFS_CACHE_FILE_NSECTORS 1
 
-    kconfig-tweak --file .config --disable CONFIG_NSH_CONSOLE_LOGIN
+  kconfig-tweak --file .config --disable CONFIG_NSH_CONSOLE_LOGIN
 
-    kconfig-tweak --file .config --enable CONFIG_FS_ROMFS
-    kconfig-tweak --file .config --enable CONFIG_NSH_ROMFSETC
-    kconfig-tweak --file .config --enable CONFIG_NSH_ARCHROMFS
+  kconfig-tweak --file .config --enable CONFIG_FS_ROMFS
+  kconfig-tweak --file .config --enable CONFIG_NSH_ROMFSETC
+  kconfig-tweak --file .config --enable CONFIG_NSH_ARCHROMFS
 
-    kconfig-tweak --file .config --enable CONFIG_FS_FAT
+  kconfig-tweak --file .config --enable CONFIG_FS_FAT
 
-    kconfig-tweak --file .config --enable CONFIG_APP_HELLO
-    kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_PRIORITY 100
-    kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_STACKSIZE 2048
+  kconfig-tweak --file .config --enable CONFIG_APP_HELLO
+  kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_PRIORITY 100
+  kconfig-tweak --file .config --set-val CONFIG_APP_HELLO_STACKSIZE 2048
 #+end_src
 
 ** configure(NuttX ビルトインアプリケーションの自動起動)
- - [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
+- [[./?p=396][NuttX ビルトインアプリケーションの自動起動]]
 
 前述の通りビルトインアプリケーションはコマンドとして実行できますが、起動時に自動的に"Hello, World!!"を表示したいと思います。
 これを行うためには、NuttXのファイルシステム上の /etc/init.d/rcS に、下記のように記載する必要があります。
 
 #+begin_src bash
-#! /bin/nsh
-hello
+  #! /bin/nsh
+  hello
 #+end_src
 
 nuttx/ ディレクトリに用意されているツールを実行します。
 
 #+begin_src bash
-    cd boards/xtensa/esp32/esp32-devkitc/include
+  cd boards/xtensa/esp32/esp32-devkitc/include
 
-    if [ -e rc.sysinit.template ]; then
-        rm rc.sysinit.template
-    fi
-    if [ -e rcS.template ]; then
-        rm rcS.template
-    fi
-    
-    touch rc.sysinit.template
-    touch rcS.template
-    echo "#! /bin/nsh" > rcS.template
-    echo "hello" >> rcS.template
-    ../../../../../tools/mkromfsimg.sh ../../../../../
-    cd ../../../../..
+  if [ -e rc.sysinit.template ]; then
+      rm rc.sysinit.template
+  fi
+  if [ -e rcS.template ]; then
+      rm rcS.template
+  fi
+
+  touch rc.sysinit.template
+  touch rcS.template
+  echo "#! /bin/nsh" > rcS.template
+  echo "hello" >> rcS.template
+  ../../../../../tools/mkromfsimg.sh ../../../../../
+  cd ../../../../..
 #+end_src
+
+* FlushROMへの書き込み方法
+
+wget で bootloader-esp32.bin と partition-table-esp32.bin を src/nuttx/ にダウンロードします。
+
+次に、venv を使ったPython仮想環境に esptool をインストールし、上記のbinファイルとnuttx.binを合わせて書き込みます。
+
+仮想環境(venvディレクトリ)を作った後は、". venv/bin/activate" と "deactivate" を実行して通常の環境と仮想環境を切り替えて使用することができます。
 
 * おわりに
 
+シングルボードコンピュータでのソフトウェア開発を行うのはいろいろとノウハウが必要です。
+Arduinoなどはかなりよくできていて、手順通りやれば動かせるようになっていますが、OSSのRTOSを使って同様のことを行おうとするとなかなかハードルが高いです。
+環境は限定されるものの、今回、手順通りやれば動かせる、というものを作成できたと考えています。
+
+# images/1603_01.png http://cha.la.coocan.jp/wp/wp-content/uploads/2024/09/1603_01.png
