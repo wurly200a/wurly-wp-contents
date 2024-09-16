@@ -1,0 +1,98 @@
+#+BLOG: wurly-blog
+#+POSTID: 1607
+#+ORG2BLOG:
+#+DATE: [2024-09-01 Sun 21:37]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)SunFounder ESP32カメラプロキット
+
+* はじめに
+ - [[https://www.amazon.co.jp/gp/product/B0D7ZY6ZS8][Amazon.co.jp: SunFounder ESP32カメラプロキット - ESP32 WROOM 32Eモジュール搭載、拡張開発ボード、ESP32CAM、充電式バッテリー、Micro SDカードスロット（Arduino互換） : パソコン・周辺機器]]
+https://www.amazon.co.jp/gp/product/B0D7ZY6ZS8
+
+
+ - [[https://docs.sunfounder.com/projects/esp32-camera-pro-kit/en/latest/component_esp32.html][ESP32 WROOM 32E — SunFounder ESP32 Starter Kit documentation]]
+https://docs.sunfounder.com/projects/esp32-camera-pro-kit/en/latest/component_esp32.html
+
+
+* リンク
+
+ - [[https://docs.sunfounder.com/projects/esp32-camera-pro-kit/en/latest/index.html][SunFounder ESP32 Camera Pro Kit — SunFounder ESP32 Starter Kit documentation]]
+ - [[https://docs.sunfounder.com/projects/esp32-camera-pro-kit/en/latest/component_esp32_extension.html][ESP32 Camera Extension — SunFounder ESP32 Starter Kit documentation]]
+ - [[https://www.google.com/search?q=ILI9341+esp32&sca_esv=ceb67ca9dc8f108c&sxsrf=ADLYWIK59BBkhbiXMPlwKp3m6E4xks_fMg%3A1726308380967&ei=HGDlZrrjOuaOvr0P18LYiQk&ved=0ahUKEwi64cful8KIAxVmh68BHVchNpEQ4dUDCA8&uact=5&oq=ILI9341+esp32&gs_lp=Egxnd3Mtd2l6LXNlcnAiDUlMSTkzNDEgZXNwMzIyCBAAGIAEGMsBMgUQABiABDIFEAAYgAQyBRAAGIAEMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeSPwWUP4GWIoVcAJ4AJABAJgBmgGgAfEGqgEDMi42uAEDyAEA-AEBmAIJoALzBsICChAAGLADGNYEGEfCAg0QABiABBiwAxhDGIoFwgIFECEYoAGYAwCIBgGQBgqSBwMyLjegB7Am&sclient=gws-wiz-serp][ILI9341 esp32 - Google Search]]
+ - [[https://yokahiyori.com/esp32-devkitc_ili9341-lcd_tft_espi/][ESP32-DevKitCと2.8インチ液晶モジュール(240×320、タッチパネル、SDカード)をSPI接続して動作確認 | よかひより]]
+ - [[https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf][esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf]]
+ - [[https://github.com/nopnop2002/esp-idf-ili9340/tree/master][nopnop2002/esp-idf-ili9340: SPI TFT and XPT2046 touch screen controller driver for esp-idf]]
+ - [[http://nopnop2002.starfree.jp/esp-idf/esp-idf-31.html][ESP-IDFを使ってみる]]
+ - [[https://www.uctronics.com/download/cam_module/OV2640DS.pdf][OV2640_DS (1.6).fm]]
+ - [[https://github.com/lexus2k/lcdgfx][lexus2k/lcdgfx: Driver for LCD displays running on Arduino/Avr/ESP32/Linux (including Rasperry) platforms]]
+
+
+* ch341-uart converter が disconnected になる
+
+** 事象
+
+最初の接続時
+
+now attached to ttyUSB0 となるのですが、その後 disconnected となってしまいます。
+
+#+begin_src bash
+[39602.621482] usb 1-6: new full-speed USB device number 12 using xhci_hcd
+[39602.748419] usb 1-6: New USB device found, idVendor=1a86, idProduct=7523, bcdDevice= 2.64
+[39602.748428] usb 1-6: New USB device strings: Mfr=0, Product=2, SerialNumber=0
+[39602.748433] usb 1-6: Product: USB Serial
+[39602.783920] usbserial: USB Serial support registered for generic
+[39602.789865] usbserial: USB Serial support registered for ch341-uart
+[39602.793620] usb 1-6: ch341-uart converter now attached to ttyUSB0
+[39603.356513] ch341-uart ttyUSB0: ch341-uart converter now disconnected from ttyUSB0
+[39764.456750] usb 1-6: USB disconnect, device number 12
+#+end_src
+
+その後の接続時も同じです。
+
+#+begin_src bash
+[39778.234302] usb 1-6: new full-speed USB device number 13 using xhci_hcd
+[39778.361389] usb 1-6: New USB device found, idVendor=1a86, idProduct=7523, bcdDevice= 2.64
+[39778.361416] usb 1-6: New USB device strings: Mfr=0, Product=2, SerialNumber=0
+[39778.361431] usb 1-6: Product: USB Serial
+[39778.365318] usb 1-6: ch341-uart converter now attached to ttyUSB0
+[39778.962648] ch341-uart ttyUSB0: ch341-uart converter now disconnected from ttyUSB0
+[39862.142762] usb 1-6: USB disconnect, device number 13
+#+end_src
+
+** 対処方法
+
+ - [[https://stackoverflow.com/questions/70123431/why-would-ch341-uart-be-disconnected-from-ttyusb][embedded - Why would ch341-uart be disconnected from ttyUSB? - Stack Overflow]]
+https://stackoverflow.com/questions/70123431/why-would-ch341-uart-be-disconnected-from-ttyusb
+
+上記にある通り、Ubuntu 22.04 でとりあえず対策するのであれば、brltty を削除すればよいのことです。
+
+#+begin_src bash
+$ sudo apt remove brltty
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libwpe-1.0-1 libwpebackend-fdo-1.0-1
+Use 'sudo apt autoremove' to remove them.
+The following packages will be REMOVED:
+  brltty
+0 upgraded, 0 newly installed, 1 to remove and 0 not upgraded.
+After this operation, 8294 kB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 275815 files and directories currently installed.)
+Removing brltty (6.4-4ubuntu3) ...
+Processing triggers for man-db (2.10.2-1) ...
+#+end_src
+
+実際に削除してみたところ、確かに disconnected にならなくなりました。
+
+#+begin_src bash
+[40065.772731] usb 1-6: new full-speed USB device number 15 using xhci_hcd
+[40065.900050] usb 1-6: New USB device found, idVendor=1a86, idProduct=7523, bcdDevice= 2.64
+[40065.900074] usb 1-6: New USB device strings: Mfr=0, Product=2, SerialNumber=0
+[40065.900084] usb 1-6: Product: USB Serial
+[40065.905438] usb 1-6: ch341-uart converter now attached to ttyUSB0
+#+end_src
