@@ -10,9 +10,33 @@
 
 * はじめに
 
-* 便利な設定(はじめる前に)
+Kubernetesをはじめるにあたって、必要なナレッジへのリンクをまとめました。
 
-** kubectl の alias 設定
+* 使用するクラスター
+
+** ローカルクラスター
+
+ - [[./?p=903][Ubuntu 22.04 に kind をインストール]]
+ - [[./?p=1104][kind (Kubernetes in Docker) でクラスターを作成]]
+
+** クラウドサービス
+
+AzureのAKS、AWSのEKS、GCPのGKE など。
+
+** オンプレクラスター(おうちKubernetes)
+ - [[./?p=1011][おうちKubernetesをはじめる(その1)]]
+ - [[./?p=1035][おうちKubernetesをはじめる(その2)]]
+ - [[./?p=1055][おうちKubernetesをはじめる(その3)]]
+ - [[./?p=1389][HA おうちKubernetesクラスターの構築]]
+
+* 接続
+ - [[./?p=1081][kubectl でリモートクラスタに接続]]
+
+* kubectl
+ - [[./?p=1356][Ubuntu 22.04 に kubectl をインストール・アップデート (2024年5月時点)]]
+ - [[./?p=1635][kubectx/kubens]]
+
+* kubectl の alias 設定
 
 業務でKubernetesに携わっているエンジニアは、常に kubectl を叩くことになりますので、'k' で実行できるようにしている人が多いようです。
 
@@ -22,38 +46,6 @@
 #+begin_src sh
 alias k='kubectl'
 #+end_src
-
-** kubectx/kubens
-
-複数のKubernetesクラスターを扱う場合、その都度コンテキストの切り替えを行う必要があります。
-
-また、namespaceの切り替え(またはコマンドごとに指定)も頻繁に発生します。
-
-下記のツールをインストールすると非常に便利です。
-
- - [[https://github.com/ahmetb/kubectx?tab=readme-ov-file#manual-installation-macos-and-linux][ahmetb/kubectx: Faster way to switch between clusters and namespaces in kubectl]]
-https://github.com/ahmetb/kubectx?tab=readme-ov-file#manual-installation-macos-and-linux
-
-kubectx/kubensは補完機能があってこそ、その真価を発揮します。
-公式ドキュメントによると、補完を行う場合には手動でインストールする必要があるとのことで、Gitのプロジェクトをクローンしてaliasを設定する方法が記載されています。
-
-私は下記のように、直接コピーしてインストールしました。
-
-bashを使用する場合の例となります。
-
-#+begin_src bash
-git clone https://github.com/ahmetb/kubectx.git ./kubectx-temp
-sudo cp ./kubectx-temp/kubens /usr/local/bin/kubens
-sudo cp ./kubectx-temp/kubectx /usr/local/bin/kubectx
-COMPDIR=$(pkg-config --variable=completionsdir bash-completion)
-sudo cp ./kubectx-temp/completion/kubens.bash $COMPDIR/kubens
-sudo cp ./kubectx-temp/completion/kubectx.bash $COMPDIR/kubectx
-rm -Rf ./kubectx-temp
-#+end_src
-
-* 参考
- - [[https://dev.classmethod.jp/articles/kubectx-and-kubens/][kubectlのcontextとnamespace周りの操作をkubectxとkubensでちょっと楽する | DevelopersIO]]
-https://dev.classmethod.jp/articles/kubectx-and-kubens/
 
 * おわりに
 
