@@ -41,7 +41,15 @@ $ sudo apt install nvidia-container-toolkit
  - [[https://autowarefoundation.github.io/autoware-documentation/main/installation/autoware/docker-installation/][Open AD Kit: containerized workloads for Autoware - Autoware Documentation]]
 
 #+begin_src bash
-./setup-dev-env.sh -y docker
+cd ~/
+git clone https://github.com/autowarefoundation/autoware.git
+cd autoware
+#+end_src
+
+root権限でないとエラーになる模様。
+
+#+begin_src bash
+sudo ./setup-dev-env.sh -y docker
 #+end_src
 
 * Mapのダウンロード
@@ -58,7 +66,6 @@ unzip -d ~/autoware_map ~/autoware_map/sample-map-planning.zip
 #+end_src
 
  - [[https://github.com/autowarefoundation/autoware/tree/main/ansible/roles/artifacts][autoware/ansible/roles/artifacts at main · autowarefoundation/autoware · GitHub]]
-
 
 * autoware_data のダウンロード
 
@@ -82,6 +89,24 @@ password は root(su) のものを入れればよいようだ。
 
 #+begin_src bash
 ./docker/run.sh --map-path ~/autoware_map/sample-map-planning ros2 launch autoware_launch planning_simulator.launch.xml map_path:=/autoware_map vehicle_model:=sample_vehicle sensor_model:=sample_sensor_kit
+#+end_src
+
+
+* Rosbag replay simulation#
+ - https://autowarefoundation.github.io/autoware-documentation/main/tutorials/ad-hoc-simulation/rosbag-replay-simulation/
+
+#+begin_src bash
+gdown -O ~/autoware_map/ 'https://docs.google.com/uc?export=download&id=1A-8BvYRX3DhSzkAnOcGWFw5T30xTlwZI'
+unzip -d ~/autoware_map/ ~/autoware_map/sample-map-rosbag.zip
+#+end_src
+
+#+begin_src bash
+gdown -O ~/autoware_map/ 'https://docs.google.com/uc?export=download&id=1sU5wbxlXAfHIksuHjP3PyI2UVED8lZkP'
+unzip -d ~/autoware_map/ ~/autoware_map/sample-rosbag.zip
+#+end_src
+
+#+begin_src bash
+./docker/run.sh --map-path ~/autoware_map/sample-map-rosbag ros2 launch autoware_launch logging_simulator.launch.xml map_path:=/autoware_map vehicle_model:=sample_vehicle sensor_model:=sample_sensor_kit
 #+end_src
 
 * リンク
