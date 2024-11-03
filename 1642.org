@@ -1,0 +1,70 @@
+#+BLOG: wurly-blog
+#+POSTID: 1642
+#+ORG2BLOG:
+#+DATE: [2024-11-03 Sun 21:00]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL,Docker
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL・Docker使用時にストレージの空き容量が少なくなった場合の対処方法
+
+* 概要
+
+WSL・Dockerを常用していると、見た目上はそれほど消費していないにも関わらず、ストレージが消費され、空き容量が少なくなってしまう現象に遭遇することがあります。
+
+以前も同様な経験があり、なんらか対処した記憶はあるのですがすっかり忘れてしまい、再度調べて対処しました。その記録です。
+
+* 全体
+
+下記2つの事象に起因して、見た目上はそれほど消費していないにも関わらずストレージが消費される現象が発生することがあります。
+
+ - Dockerビルド時のキャッシュが残る(明示的に実行しないとキャッシュが削除されない)
+ - WSLのファイルシステムはWindows上では.vhdxファイルに格納されているが、一度サイズが増えるとファイルシステムの容量が縮小しても.vhdxファイルが縮小しない
+
+この現象に陥っている場合には、Dockerのキャッシュを削除し、.vhdxファイルの圧縮(適正化)をすれば対処ができます。
+
+* 具体的な作業
+
+WSL上のLinux(Dockerを使用している)で実施します。
+
+"docker builder prune" が大きな効果があることが多いようです。
+
+#+begin_src bash
+docker container prune
+docker image prune
+docker volume prune
+docker builder prune
+docker system prune
+#+end_src
+
+Windows上で下記コマンドにてWSLを終了します。
+
+#+begin_src bash
+wsl --shutdown
+#+end_src
+
+次に、管理者権限でWindows PowerShellを起動し、下記を実行します。
+
+diskpartを起動して実行するという意味になります。
+
+"compact vdisk" が実際に.vhdxファイルを圧縮するコマンドとなりますが、実行した際に不測の事態によりファイルが壊れることにより復帰できなくなる可能性があります。
+実行の際には自己責任でお願い致します。
+
+#+begin_src bash
+diskpart
+select vdisk file="ext4.vhdxへのパス"
+attach vdisk readonly
+compact vdisk
+detach vdisk
+exit
+#+end_src
+
+上記において、"ext4.vhdxへのパス" は例えば下記のようなものです。ユーザ名やLinuxのバージョン、任意に付加される文字列によって環境毎に異なります。
+
+#+begin_src 
+C:\Users\ユーザ名\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\LocalState\ext4.vhdx
+#+end_src
+
+* 参考
+ - [[https://01futabato10.hateblo.jp/entry/2022/12/02/095031][【WSL2】容量が圧迫されているのでディスクスペースを解放したい - アルゴリズム弱太郎]]
+ - [[https://qiita.com/siruku6/items/c91a40d460095013540d][[wsl2] ディスク容量が満タンで困った！＞＜でも、Optimize-VHDなんて存在しないとき #Windows - Qiita]]
