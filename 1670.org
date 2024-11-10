@@ -1,0 +1,33 @@
+#+BLOG: wurly-blog
+#+POSTID: 1670
+#+ORG2BLOG:
+#+DATE: [2024-11-10 Sun 20:23]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: MusicalInstruments
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: iLoud Micro Monitor Pro
+
+* iLoud Micro Monitor Pro
+
+なにかの広告でこちらがローンチされたことを知りました。
+
+ - [[https://www.snrec.jp/entry/PR/report/rmr75][IK MULTIMEDIA iLoud Micro Monitor Pro 〜Rock oN Monthly Recommend vol.75 - サンレコ 〜音楽制作と音響のすべてを届けるメディア]]
+https://www.snrec.jp/entry/PR/report/rmr75
+
+ - [[https://hookup.co.jp/products/ik-multimedia/iloud-micro-monitor-pro][iLoud Micro Monitor Pro - IK Multimedia | Hookup, Inc.]]
+https://hookup.co.jp/products/ik-multimedia/iloud-micro-monitor-pro
+
+今年、中古でiLoud Micro Monitor買いました。
+印象としては、音がいい、というよりも「音源そのままの音として聴こえる」という感じです(もちろんいい音です)。
+サイズも小さく、モニタースピーカーとして優秀だと思います。
+
+* 無印モデル(Proじゃないもの)との違い等
+
+無印モデルは最初はスタジオ向けとして企画したものではないんでしょうね。
+その証拠に入力がRCAとステレオミニしかありません。
+また、ACアダプタがあり、左右をリンクするケーブルがあります。
+
+Proは左右それぞれが独立したスピーカーとなっており、ある意味、一般的なモニタースピーカーと同じような構成になっています。
+
+お値段は倍ですか。。もう少し安いといいんですが。
