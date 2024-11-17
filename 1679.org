@@ -1,0 +1,46 @@
+#+BLOG: wurly-blog
+#+POSTID: 1679
+#+ORG2BLOG:
+#+DATE: [2024-11-17 Sun 13:58]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: GTKTerm
+
+* 概要
+
+ - [[https://github.com/wvdakker/gtkterm][wvdakker/gtkterm: GTKTerm: A GTK+ Serial Port Terminal]]
+https://github.com/wvdakker/gtkterm
+
+* インストール方法
+
+#+begin_src bash
+sudo apt install gtkterm
+#+end_src
+
+* 使用前の設定
+
+一般ユーザーの権限でアプリケーションを起動すると下記のようなメッセージが表示され、ハードウェアにアクセスできません。
+
+#+begin_quote
+Cannot open /dev/ttyS0: Permisson denied
+#+end_quote
+
+#+begin_quote
+Cannot open /dev/ttyUSB0: Permisson denied
+#+end_quote
+
+下記コマンドでdialoutグループにユーザーを所属させます。
+
+#+begin_src bash
+sudo gpasswd -a ユーザ名 dialout
+#+end_src
+
+この後、マシンを再起動すればアクセスできるようになるはずです。
+(私の環境では、ログアウトして再ログインでは不十分でした。)
+
+* 使い方
+
+ - F5 Open Port
+ - F6 Close Port
