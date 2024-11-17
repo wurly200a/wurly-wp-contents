@@ -1,0 +1,113 @@
+#+BLOG: wurly-blog
+#+POSTID: 1675
+#+ORG2BLOG: Emacs
+#+DATE: [2024-11-16 Sat 12:59]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs, C
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: C/C++ で Emacs lsp-mode
+
+* 概要
+
+C/C++でlspを使用します。
+以前、clangdを試用したのですが、あまり良くなかったのでC/C++では無効にしていました。
+最近Cのソースを読むことが多くなったので、再度検討してみます。
+
+ - [[https://nobiruwa.github.io/posts/2019-04-07-emacs-as-cpp-ide.html][My Hakyll Blog - EmacsでのC/C++開発]]
+https://nobiruwa.github.io/posts/2019-04-07-emacs-as-cpp-ide.html
+
+バックエンドとしてcclsを使うのが良さそうですのでこちらにトライします。
+
+
+#+begin_src bash
+$ sudo apt list | grep ccls
+ccls/jammy 0.20210330-1 amd64
+#+end_src
+
+* Ubuntuでのビルド及びインストール
+
+まずはclangをインストールします。
+
+#+begin_src bash
+sudo apt install clang
+#+end_src
+
+clang-14 と llvm-14 関連がインストールされます。
+
+#+begin_src bash
+$ sudo apt install clang
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libffi8:i386 libnvidia-egl-wayland1 libnvidia-egl-wayland1:i386 libwayland-client0:i386 libwayland-server0:i386 libwpe-1.0-1
+  libwpebackend-fdo-1.0-1 nvidia-firmware-560-560.28.03
+Use 'sudo apt autoremove' to remove them.
+The following additional packages will be installed:
+  binfmt-support clang-14 lib32gcc-s1 lib32stdc++6 libc6-i386 libclang-common-14-dev libclang-cpp14 libclang1-14 libllvm14
+  libobjc-11-dev libobjc4 libpfm4 libz3-4 libz3-dev llvm-14 llvm-14-dev llvm-14-linker-tools llvm-14-runtime llvm-14-tools
+  python3-pygments
+Suggested packages:
+  clang-14-doc llvm-14-doc python-pygments-doc ttf-bitstream-vera
+The following NEW packages will be installed:
+  binfmt-support clang clang-14 lib32gcc-s1 lib32stdc++6 libc6-i386 libclang-common-14-dev libclang-cpp14 libclang1-14 libllvm14
+  libobjc-11-dev libobjc4 libpfm4 libz3-4 libz3-dev llvm-14 llvm-14-dev llvm-14-linker-tools llvm-14-runtime llvm-14-tools
+  python3-pygments
+0 upgraded, 21 newly installed, 0 to remove and 3 not upgraded.
+#+end_src
+
+libclang-dev も必要そうなのでインストールします。
+
+#+begin_src 
+sudo apt install libclang-dev
+#+end_src
+
+(下記は必要かどうか不明)
+
+#+begin_src bash
+# sudo apt install clang-format clang-tools clangd
+#+end_src
+
+#+begin_quote
+To build from source you'll need sudo apt install zlib1g-dev libncurses-dev. To use system rapidjson, install rapidjson-dev. 
+#+end_quote
+
+上記とあるので、下記をインストールします。
+
+#+begin_src bash
+sudo apt install zlib1g-dev libncurses-dev rapidjson-dev
+#+end_src
+
+ソースをクローンします。
+
+#+begin_src bash
+git clone --recursive https://github.com/MaskRay/ccls
+cd ccls
+#+end_src
+
+ビルドします。llvm-14 を指定します。
+
+#+begin_src bash
+cmake -S. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/lib/llvm-14
+cmake --build Release
+#+end_src
+
+できたバイナリをコピーします。
+
+#+begin_src 
+mkdir -p ~/bin
+cp ./Release/ccls ~/bin/
+#+end_src
+
+* 設定
+
+#+begin_src emacs-lisp
+(use-package ccls
+  :ensure t
+  :hook ((c-mode c++-mode objc-mode cuda-mode) .
+         (lambda () (require 'ccls) (lsp))))
+
+(setq ccls-executable "~/bin/ccls")
+(setq ccls-args '("--init={\"cache\": {\"directory\": \"/tmp/ccls-cache\"}}"))
+#+end_src
