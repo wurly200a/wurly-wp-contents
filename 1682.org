@@ -1,0 +1,76 @@
+#+BLOG: wurly-blog
+#+POSTID: 1682
+#+ORG2BLOG:
+#+DATE: [2024-11-24 Sun 18:39]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: NuttX, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32 x NuttXで SSD1306 を動かす
+
+* はじめに
+
+ESP32 x NuttXで何らかを作成する上で、LCDを使えるようにしたいと考えました。
+
+Arduino又はArduino互換、ESP-IDFのcomponentsとして作成されたプロジェクトは、[[./?p=613][ESP32-DevKitC-32E で OLEDディスプレイ SSD1331 を使う (lcdgfxライブラリのdemoを動かす)]] のように、githubにいくつかあります。
+同様に探してみたところ、そういったプロジェクトでNuttX向けのものは見つかりませんでした。
+
+一方で、NuttXのドライバーやExampleアプリケーションとしていくつかLCDの対応は組み込まれており、これを Kconfig で有効にすれば使えそうであることがわかりました。
+
+[[yt:TZ4i71ArtRo]]
+
+上記動画を参考に、ILI9341 を使って軽く試したのですが、Exception が発生してしまったので、腰を据えて見ることにします。
+
+ - [[https://qiita.com/yunkya2/items/fdc5d53b05e3cf5be290][NuttX for Raspberry Pi PicoでSSD1306 OLEDに画像表示 (I2C接続) #RaspberryPi - Qiita]]
+https://qiita.com/yunkya2/items/fdc5d53b05e3cf5be290
+
+上記も参考になりました。
+
+* ハードウェア
+
+秋月電子にて、1.と2.はを新たに購入しました。
+3.と4.は以前Amazonで購入したものです。
+
+ESP32-DevKitC-VEは、オンボードで FlashROM/PSRAM 共に8MB搭載しており、多くの用途に使用できそうです。
+OLEDディスプレイは、制御チップSSD1306を使用しているものです。
+より配線が少ない方がわかりやすいと考え、今回はSPIでなく、I2C のものを選びました。
+
+ 1. ESP32-DevKitC-VE ESP32-WROVER-E開発ボード 8MB/ESP32-DevKitC-VE ¥1,770
+ 2. 0.96インチ 128×64ドット有機ELディスプレイ(OLED) 白色/ ¥580
+ 3. サンハヤト SAD-101 ニューブレッドボード ¥529
+ 4. サンハヤト ジャンプワイヤキット SKS-100 単線タイプでよく使用する短めジャンプワイヤのセット品 ¥866
+
+* 完成品(配線)
+
+下記のように配線しました。ジャンプワイヤのみで配線することですっきりしています！
+
+file:images/1682_01.jpg
+
+ブレッドボードのGNDと電源ラインをGND/3.3Vを引き出し、LCDの下部分に隠れる形で、真ん中に配線をし逆側のLCDにGND/3.3Vを渡しています。
+またこの向きであれば、ぎりぎり22,23pinがジャンプワイヤでSCK,SDAに届きました。
+
+file:images/1682_02.jpg
+
+* 作成したプロジェクト
+
+動作したものをgithubに置きました。
+
+NuttX(nuttx/nuttx-apps)は12.6を使用しています。
+
+Exampleで nxdemo, nxhello, nxtext が実行できるようにしています。
+
+ - [[https://github.com/wurly200a/ssd1306-on-nuttx-esp32][wurly200a/ssd1306-on-nuttx-esp32: Using LCD on NuttX]]
+https://github.com/wurly200a/ssd1306-on-nuttx-esp32
+
+前記の写真は nxhello を実行しているところです。
+
+* コンフィギュレーション作業及びデバッグ
+
+graphics/nxmu/nxmu_start.c の nx_server() 付近で飛んでいることがわかりました。
+
+boards/xtensa/esp32/common/src/esp32_ssd1306.c
+
+* おわりに
+
+# images/1682_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2024/11/1682_01-scaled.jpg
+# images/1682_02.jpg https://blog.wurlyhub.com/wp-content/uploads/2024/11/1682_02-scaled.jpg
