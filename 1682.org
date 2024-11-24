@@ -66,6 +66,46 @@ https://github.com/wurly200a/ssd1306-on-nuttx-esp32
 
 * コンフィギュレーション作業及びデバッグ
 
+#+begin_src bash
+nsh> nxhello
+xtensa_user_panic: User Exception: EXCCAUSE=001c task: nxhello
+_assert: Current Version: NuttX  12.6.0 7a865b2479-dirty Nov 24 2024 14:51:57 xtensa
+_assert: Assertion failed user panic: at file: common/xtensa_assert.c:187 task: nxhello process: nxhello 0x400f7b44
+up_dump_register:    PC: 400f5c35    PS: 00060230
+up_dump_register:    A0: 800f4e4e    A1: 3f803650    A2: 3f803670    A3: 000000d0
+up_dump_register:    A4: 00002000    A5: 400fff2c    A6: 3f8036b0    A7: 3ffcae28
+up_dump_register:    A8: 400f5bcc    A9: 3f803650   A10: 3f802798   A11: 3f803670
+up_dump_register:   A12: 3ffb103c   A13: 00000480   A14: 00000018   A15: 3ffcae28
+up_dump_register:   SAR: 00000004 CAUSE: 0000001c VADDR: 000000fc
+up_dump_register:  LBEG: 400014fd  LEND: 4000150d  LCNT: ffffffff
+dump_stack: User Stack:
+dump_stack:   base: 0x3f8027b8
+dump_stack:   size: 00004056
+dump_stack:     sp: 0x3f803650
+stack_dump: 0x3f803630: 3ffcae74 00060622 3f803650 3ffcae28 80102ec6 3f803670 000000d0 3f402063
+stack_dump: 0x3f803650: 00000fd8 3f802798 3f8027b8 0000006e 800f7b78 3f8036c0 3f402063 0000000c
+stack_dump: 0x3f803670: 00000fd8 400f5c00 400f5bcc 00000000 00000000 00000000 00000000 00000000
+stack_dump: 0x3f803690: 3f8036f0 3f8036d0 00000004 00000000 3f8036f0 3f8036d0 00000004 000000d0
+stack_dump: 0x3f8036b0: 800d57a8 3f803710 00000001 3f8027a8 3f8036f0 3f8036d0 00000004 00000000
+stack_dump: 0x3f8036d0: 00000000 0000000c 00060f20 3f800da0 3f800fa8 3f402030 00000001 3f8027a8
+stack_dump: 0x3f8036f0: 00060f20 3f800da0 3f800fa8 3f402030 800d36ef 3f803750 400f7b44 00000001
+stack_dump: 0x3f803710: 00000000 00000000 00000000 00000000 00000064 3f803770 00000000 00000000
+stack_dump: 0x3f803730: 400d4194 3ffb0ec4 3ffcaee8 3ffb48f4 00000000 3f803770 00000000 00000000
+stack_dump: 0x3f803750: 3f8027a8 3f405bac 3ffcaf40 3f405bac 00000000 00000000 00000000 00000000
+stack_dump: 0x3f803770: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+stack_dump: 0x3f803790: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+dump_tasks:    PID GROUP PRI POLICY   TYPE    NPX STATE   EVENT      SIGMASK          STACKBASE  STACKSIZE   COMMAND
+dump_tasks:   ----   --- --- -------- ------- --- ------- ---------- ---------------- 0x3ffbf510      2048   irq
+dump_task:       0     0   0 FIFO     Kthread - Ready              0000000000000000 0x3ffbe920      3056   Idle_Task
+dump_task:       1     0 100 RR       Kthread - Waiting Semaphore  0000000000000000 0x3ffae978      4024   lpwork 0x3ffb100c 0x3ffb1020
+dump_task:       2     2 100 RR       Task    - Waiting Semaphore  0000000000000000 0x3f8003d0      3024   nsh_main
+dump_task:       3     0 223 RR       Kthread - Waiting Semaphore  0000000000000000 0x3ffc2a00      2000   rt_timer
+dump_task:       4     0 253 RR       Kthread - Waiting MQ empty   0000000000000000 0x3ffc38b8      6616   wifi
+dump_task:       5     5 100 RR       Task    - Waiting Semaphore  0000000000000000 0x3f801598      4056   telnetd
+dump_task:       6     6 100 RR       Task    - Running            0000000000000000 0x3f8027b8      4056   nxhello
+dump_task:       7     0 110 RR       Kthread - Waiting Signal     0000000000000000 0x3ffcb3a8      8136   NX_Server 0 0
+#+end_src
+
 graphics/nxmu/nxmu_start.c の nx_server() 付近で飛んでいることがわかりました。
 
 boards/xtensa/esp32/common/src/esp32_ssd1306.c
