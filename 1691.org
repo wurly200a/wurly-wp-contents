@@ -1,0 +1,80 @@
+#+BLOG: wurly-blog
+#+POSTID: 1691
+#+ORG2BLOG:
+#+DATE: [2024-12-28 Sat 11:30]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: kubernetes 1.29 aptで使用されるGPG鍵の有効期限切れ(The following signatures were invalid: EXPKEYSIG 234654DA9A296436)
+
+* 概要
+
+apt updateをしたところ署名が無効というメッセージが表示されました。
+
+#+begin_src bash
+$ sudo apt update
+(略)
+Get:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.29/deb  InRelease [1189 B]
+Err:3 https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v1.29/deb  InRelease
+  The following signatures were invalid: EXPKEYSIG 234654DA9A296436 isv:kubernetes OBS Project <isv:kubernetes@build.opensuse.org>
+(略)
+#+end_src
+
+GPG鍵の有効期限切れだったようで、その対処の仕方としては、GPG鍵を以前と同じやり方で取得すればよいようです。
+
+* 作業
+
+** ファイルの確認
+
+2024-06-17付
+
+#+begin_src bash
+$ ls -la /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg 
+-rw-r--r-- 1 root root 1200 Jun 17  2024 /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+#+end_src
+
+** 有効期限の確認
+
+2024-11-02にexpiredしています。
+
+#+begin_src bash
+$ gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg --list-keys
+gpg: /home/wurly/.gnupg/trustdb.gpg: trustdb created
+/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+-------------------------------------------------
+pub   rsa2048 2022-08-25 [SC] [expired: 2024-11-02]
+      DE15B14486CD377B9E876E1A234654DA9A296436
+uid           [ expired] isv:kubernetes OBS Project <isv:kubernetes@build.opensuse.org>
+#+end_src
+
+** ファイルの更新
+
+#+begin_src 
+$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+File '/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg' exists. Overwrite? (y/N) y
+#+end_src
+
+** 更新後のファイルの確認
+
+2024-12-28付となりました。
+
+#+begin_src 
+$ ls -la /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg 
+-rw-r--r-- 1 root root 1200 Dec 28 11:29 /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+#+end_src
+
+** 有効期限の確認
+
+2026-12-29まで有効
+
+#+begin_src bash
+$ gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg --list-keys
+/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+-------------------------------------------------
+pub   rsa2048 2022-08-25 [SC] [expires: 2026-12-29]
+      DE15B14486CD377B9E876E1A234654DA9A296436
+uid           [ unknown] isv:kubernetes OBS Project <isv:kubernetes@build.opensuse.org>
+#+end_src
+
+上記を行った結果、apt updateが正常にできました。
