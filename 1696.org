@@ -1,0 +1,189 @@
+#+BLOG: wurly-blog
+#+POSTID: 1696
+#+ORG2BLOG:
+#+DATE: [2024-12-28 Sat 15:12]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ciliumのアップグレード(1.15 to 1.16)
+
+* 概要
+
+Kubernetesのアップグレードを行うにあたりバージョンをチェックしました。
+
+ - [[https://docs.cilium.io/en/stable/network/kubernetes/compatibility/][Kubernetes Compatibility — Cilium 1.16.5 documentation]]
+
+Kubernetes Compatibility としては、k8sの1.27/1.28/1.29/1.30 でテストが行われており、Cilium CRD schema validation としては Ciliumのlatest(v1.16.5)が k8s 1.30.6 に対応しているとのことで、latestまでアップグレードすることにしました。
+
+- [[https://docs.cilium.io/en/stable/operations/upgrade/][Upgrade Guide — Cilium 1.16.5 documentation]]
+
+ただし、上記によると、v1.16以降はClassic installation modeでのアップグレードには対応していないとのこと。
+
+#+begin_quote
+Upgrade Cilium CLI to v0.15.0 or later to switch to Helm installation mode to install and manage Cilium v1.16. Classic installation mode is not supported with Cilium v1.16.
+
+Helm and classic mode installations are not compatible with each other. Do not use Cilium CLI in Helm mode to manage classic mode installations, and vice versa.
+
+To migrate a classic mode Cilium installation to Helm mode, you need to uninstall Cilium using classic mode Cilium CLI, and then re-install Cilium using Helm mode Cilium CLI.
+#+end_quote
+
+移行する場合は、アンインストールして再インストールする必要があるとのこと。
+
+稼働中のクラスターからCNIをアンインストールすると上手く動かないのでは？と想像し、ワンチャン、駄目元でやってみたつもりだったのですが、あっさり動作しました。
+
+(すごい。。K8S内部はどういうふうに動いているんだろう？)
+
+* アップグレード前
+
+** pod
+
+#+begin_src bash
+NAMESPACE        NAME                                                    READY   STATUS      RESTARTS         AGE
+kube-system      cilium-2zpfl                                            1/1     Running     18 (6h35m ago)   179d
+kube-system      cilium-gdzzp                                            1/1     Running     26 (6h35m ago)   189d
+kube-system      cilium-lq477                                            1/1     Running     23 (6h35m ago)   189d
+kube-system      cilium-nmk75                                            1/1     Running     19 (6h35m ago)   179d
+kube-system      cilium-operator-f45f4975f-cgzg6                         1/1     Running     29 (6h35m ago)   189d
+kube-system      cilium-qd4rz                                            1/1     Running     22 (6h35m ago)   187d
+kube-system      cilium-rjtsm                                            1/1     Running     25 (6h35m ago)   189d
+#+end_src
+
+** cilium status
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    disabled (using embedded mode)
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+Deployment             cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium             Running: 6
+                       cilium-operator    Running: 1
+Cluster Pods:          36/36 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.15.6@sha256:6aad3162f0c0def: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.15.6@5cf6909300cd82fd513c3d: 1
+
+#+end_src
+
+* アンインストール
+
+#+begin_src bash
+cilium uninstall
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium uninstall
+🔥 Deleting pods in cilium-test namespace...
+🔥 Deleting cilium-test namespace...
+⌛ Uninstalling Cilium
+#+end_src
+
+* 再インストール(v1.16.5)
+
+#+begin_src bash
+helm repo add cilium https://helm.cilium.io/
+#+end_src
+
+#+begin_src bash
+helm install cilium cilium/cilium --version 1.16.5 --namespace kube-system
+#+end_src
+
+#+begin_src bash
+$ helm install cilium cilium/cilium --version 1.16.5 --namespace
+NAME: cilium
+LAST DEPLOYED: Sat Dec 28 15:27:32 2024
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+You have successfully installed Cilium with Hubble.
+
+Your release version is 1.16.5.
+
+For any further help, visit https://docs.cilium.io/en/v1.16/gettinghelp
+#+end_src
+
+* 再インストール後の状態
+
+** 立ち上げ中
+
+#+begin_src bash
+NAMESPACE        NAME                                                    READY   STATUS              RESTARTS         AGE
+kube-system      cilium-8nzzf                                            0/1     Init:0/6            0                16s
+kube-system      cilium-bhhph                                            0/1     Init:0/6            0                16s
+kube-system      cilium-cgrpp                                            0/1     Init:0/6            0                16s
+kube-system      cilium-envoy-2q6r5                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-envoy-bd4qp                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-envoy-d69z2                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-envoy-fd99p                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-envoy-pfw89                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-envoy-tmndl                                      0/1     ContainerCreating   0                16s
+kube-system      cilium-hgrmk                                            0/1     Init:0/6            0                16s
+kube-system      cilium-nhnrg                                            0/1     Init:0/6            0                16s
+kube-system      cilium-operator-67b979fbc8-4m2q6                        0/1     ContainerCreating   0                16s
+kube-system      cilium-operator-67b979fbc8-fq7fj                        0/1     ContainerCreating   0                16s
+kube-system      cilium-rh7dx                                            0/1     Init:0/6            0                16s
+#+end_src
+
+** 立ち上げ完了
+
+podが全て READY, Running となりました。
+
+#+begin_src bash
+NAMESPACE        NAME                                                    READY   STATUS      RESTARTS        AGE
+kube-system      cilium-8nzzf                                            1/1     Running     0               108m
+kube-system      cilium-bhhph                                            1/1     Running     1 (107m ago)    108m
+kube-system      cilium-cgrpp                                            1/1     Running     0               108m
+kube-system      cilium-envoy-2q6r5                                      1/1     Running     0               108m
+kube-system      cilium-envoy-bd4qp                                      1/1     Running     0               108m
+kube-system      cilium-envoy-d69z2                                      1/1     Running     0               108m
+kube-system      cilium-envoy-fd99p                                      1/1     Running     0               108m
+kube-system      cilium-envoy-pfw89                                      1/1     Running     0               108m
+kube-system      cilium-envoy-tmndl                                      1/1     Running     0               108m
+kube-system      cilium-hgrmk                                            1/1     Running     0               108m
+kube-system      cilium-nhnrg                                            1/1     Running     0               108m
+kube-system      cilium-operator-67b979fbc8-4m2q6                        1/1     Running     0               108m
+kube-system      cilium-operator-67b979fbc8-fq7fj                        1/1     Running     0               108m
+kube-system      cilium-rh7dx                                            1/1     Running     0               108m
+#+end_src
+
+** cilium status
+
+こちらも正常でした。
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+                       cilium             Running: 6
+Cluster Pods:          36/36 managed by Cilium
+Helm chart version:    
+Image versions         cilium-operator    quay.io/cilium/operator-generic:v1.16.5@sha256:f7884848483bbcd7b1e0ccfd34ba4546f258b460cb4b7e2f06a1bcc96ef88039: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.30.8-1733837904-eaae5aca0fb988583e5617170a65ac5aa51c0aa8@sha256:709c08ade3d17d52da4ca2af33f431360ec26268d288d9a6cd1d98acc9a1dced: 6
+                       cilium             quay.io/cilium/cilium:v1.16.5@sha256:758ca0793f5995bb938a2fa219dcce63dc0b3fa7fc4ce5cc851125281fb7361d: 6
+#+end_src
+
+** helm
+
+#+begin_src bash
+$ helm list -n kube-system
+NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+cilium  kube-system     1               2024-12-28 15:27:32.272400883 +0900 JST deployed        cilium-1.16.5   1.16.5     
+#+end_src
