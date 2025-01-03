@@ -6,7 +6,7 @@
 #+CATEGORY: Emacs
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: C/C++ で Emacs lsp-mode
+#+TITLE: C/C++ で Emacs lsp-mode (clangd)
 
 * インストール
 
