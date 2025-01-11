@@ -88,3 +88,8 @@ clang
 #+end_src
 
 M-x lsp-workspace-restart を行うことで、設定変更内容を反映させることができます。
+
+* 参考
+ - [[https://github.com/MaskRay/ccls/wiki/Project-Setup#ccls-file][Project Setup · MaskRay/ccls Wiki · GitHub]]
+ - [[https://github.com/MaskRay/ccls/wiki/Customization][Customization · MaskRay/ccls Wiki · GitHub]]
+ - [[https://granddaifuku.hatenablog.com/entry/emacs-ccls][Emacs で ccls 導入して競プロ - 雄大な大福]]
