@@ -44,3 +44,7 @@ sudo gpasswd -a ユーザ名 dialout
 
  - F5 Open Port
  - F6 Close Port
+
+* 参考
+ - [[https://qiita.com/chromabox/items/b3ceaab6efa6edde2bda][[小ネタ]Ubuntu でttyUSB0(USBシリアル変換)が権限関連で使えない場合の対処方法 #Ubuntu - Qiita]]
+https://qiita.com/chromabox/items/b3ceaab6efa6edde2bda
