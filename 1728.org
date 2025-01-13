@@ -1,0 +1,44 @@
+#+BLOG: wurly-blog
+#+POSTID: 1728
+#+ORG2BLOG:
+#+DATE: [2025-01-13 Mon 10:37]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: JavaScript
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: GAS CLI : clasp (Command Line Apps Script Projects)
+
+* 概要
+
+ - [[https://github.com/google/clasp][google/clasp: 🔗 Command Line Apps Script Projects]]
+https://github.com/google/clasp
+
+ - [[https://qiita.com/HeRo/items/4e65dcc82783b2766c03#%E6%97%A2%E5%AD%98%E3%81%AE%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%97%E3%83%88%E3%81%8B%E3%82%89%E3%81%AE%E3%82%AF%E3%83%AD%E3%83%BC%E3%83%B3][GAS のGoogle製CLIツール clasp #GAS - Qiita]]
+https://qiita.com/HeRo/items/4e65dcc82783b2766c03#%E6%97%A2%E5%AD%98%E3%81%AE%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%97%E3%83%88%E3%81%8B%E3%82%89%E3%81%AE%E3%82%AF%E3%83%AD%E3%83%BC%E3%83%B3
+
+* インストール
+
+#+begin_src bash
+$ sudo npm i @google/clasp -g
+#+end_src
+
+* 既存プロジェクトの取り出し(Clone)
+
+#+begin_src bash
+clasp clone [Script ID]
+#+end_src
+
+* バージョンの確認
+
+#+begin_src bash
+clasp versions
+#+end_src
+
+事例
+
+#+begin_src bash
+clasp versions
+~ 2 Versions ~
+1 - (no description)
+2 - (no description)
+#+end_src
