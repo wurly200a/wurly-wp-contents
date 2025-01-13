@@ -1,0 +1,108 @@
+#+BLOG: wurly-blog
+#+POSTID: 1738
+#+ORG2BLOG:
+#+DATE: [2025-01-13 Mon 17:47]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)Webアプリ
+
+
+#+begin_src bash
+sh-4.4$ cd
+sh-4.4$ mkdir python_venv
+sh-4.4$ cd python_venv/
+sh-4.4$ pwd
+/home/wurlyhub/python_venv
+sh-4.4$ python3.6 -m venv --without-pip venv_testapp
+sh-4.4$ python -V
+Python 2.7.18
+sh-4.4$ source venv_testapp/bin/activate
+(venv_testapp) sh-4.4$ python -V
+Python 3.6.8
+#+end_src
+
+#+begin_src bash
+(venv_testapp) sh-4.4$ curl -O https://bootstrap.pypa.io/pip/3.6/get-pip.py
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 2108k  100 2108k    0     0  1728k      0  0:00:01  0:00:01 --:--:-- 1728k
+(venv_testapp) sh-4.4$ python get-pip.py
+Collecting pip<22.0
+  Downloading pip-21.3.1-py3-none-any.whl (1.7 MB)
+     |████████████████████████████████| 1.7 MB 448 kB/s            
+Collecting setuptools
+  Downloading setuptools-59.6.0-py3-none-any.whl (952 kB)
+     |████████████████████████████████| 952 kB 39.9 MB/s            
+Collecting wheel
+  Downloading wheel-0.37.1-py2.py3-none-any.whl (35 kB)
+Installing collected packages: wheel, setuptools, pip
+Successfully installed pip-21.3.1 setuptools-59.6.0 wheel-0.37.1
+(venv_testapp) sh-4.4$ which pip
+~/python_venv/venv_testapp/bin/pip
+(venv_testapp) sh-4.4$ pip list
+Package    Version
+---------- -------
+pip        21.3.1
+setuptools 59.6.0
+wheel      0.37.1
+(venv_testapp) sh-4.4$ pip install flask
+Collecting flask
+  Downloading Flask-2.0.3-py3-none-any.whl (95 kB)
+     |████████████████████████████████| 95 kB 591 kB/s            
+Collecting click>=7.1.2
+  Downloading click-8.0.4-py3-none-any.whl (97 kB)
+     |████████████████████████████████| 97 kB 2.0 MB/s            
+Collecting Jinja2>=3.0
+  Downloading Jinja2-3.0.3-py3-none-any.whl (133 kB)
+     |████████████████████████████████| 133 kB 3.3 MB/s            
+Collecting Werkzeug>=2.0
+  Downloading Werkzeug-2.0.3-py3-none-any.whl (289 kB)
+     |████████████████████████████████| 289 kB 4.6 MB/s            
+Collecting itsdangerous>=2.0
+  Downloading itsdangerous-2.0.1-py3-none-any.whl (18 kB)
+Collecting importlib-metadata
+  Downloading importlib_metadata-4.8.3-py3-none-any.whl (17 kB)
+Collecting MarkupSafe>=2.0
+  Downloading MarkupSafe-2.0.1-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl (30 kB)
+Collecting dataclasses
+  Downloading dataclasses-0.8-py3-none-any.whl (19 kB)
+Collecting zipp>=0.5
+  Downloading zipp-3.6.0-py3-none-any.whl (5.3 kB)
+Collecting typing-extensions>=3.6.4
+  Downloading typing_extensions-4.1.1-py3-none-any.whl (26 kB)
+Installing collected packages: zipp, typing-extensions, MarkupSafe, importlib-metadata, dataclasses, Werkzeug, Jinja2, itsdangerous, click, flask
+Successfully installed Jinja2-3.0.3 MarkupSafe-2.0.1 Werkzeug-2.0.3 click-8.0.4 dataclasses-0.8 flask-2.0.3 importlib-metadata-4.8.3 itsdangerous-2.0.1 typing-extensions-4.1.1 zipp-3.6.0
+#+end_src
+
+#+begin_src bash
+pip install flask flask-sqlalchemy flask-login flask-wtf pymysql bcrypt
+#+end_src
+
+
+#+begin_src bash
+mysql -u wurlyhub_testapp -p -h localhost -P 3306 wurlyhub_testapp
+#+end_src
+
+#+begin_src bash
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+#+end_src
+
+#+begin_src bash
+SHOW DATABASES;
+#+end_src
+
+#+begin_src bash
+SHOW TABLES;
+#+end_src
+
+
+#+begin_src bash
+source ~/python_venv/venv_testapp/bin/activate
+#+end_src
