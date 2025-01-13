@@ -1,0 +1,39 @@
+#+BLOG: wurly-blog
+#+POSTID: 1735
+#+ORG2BLOG:
+#+DATE: [2025-01-13 Mon 11:45]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: LSP
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: JavaScript で Emacs lsp-mode
+
+* 概要
+
+JavaScript で Emacs lsp-mode を使う方法です。
+
+* Language Serverのインストール
+
+typescript-language-server のインストール
+以下のコマンドを実行して、必要なツールをインストールします。
+
+#+begin_src bash
+sudo npm install -g typescript typescript-language-server
+#+end_src
+
+* 設定
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :ensure t
+  :hook
+  (java-mode . lsp)
+  (rust-mode . lsp)
+  (python-mode . lsp)
+  (sh-mode . lsp)
+  (js-mode . lsp)
+  (typescript-mode . lsp)
+  .
+  .
+  .
+#+end_src
