@@ -1,0 +1,69 @@
+#+BLOG: wurly-blog
+#+POSTID: 1722
+#+ORG2BLOG:
+#+DATE: [2025-01-13 Mon 08:04]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: golang
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に Go(golang) をインストール
+
+* 概要
+
+Ubuntu 22.04 に Go(golang) をインストールする方法です。
+下記の環境に 2025年1月13日時点での最新バージョンをインストールした事例となります。
+
+ - Ubuntu 22.04 x86-64 (Native)
+
+* インストールする対象バージョンの確認
+
+apt でインストールされるバージョンは 1.18 となっています。
+
+#+begin_src bash
+$ sudo apt list | grep golang-go/
+golang-go/jammy 2:1.18~0ubuntu2 amd64
+#+end_src
+
+最新をインストールしたいので手動で作業します。
+
+* インストール
+
+** インストール方法の概要
+
+下記手順の通り行えばよいようです。"Linux"のタブの内容を参照します。
+
+- [[https://go.dev/doc/install][Download and install - The Go Programming Language]]
+
+https://go.dev/doc/install
+
+ダウンロードしたファイルを /usr/local 以下に /go ディレクトリとして展開し、コマンド実行ファイルへのパスを、通すという形になっています。
+既存のバージョンの /usr/local/go は削除してから実行します。
+
+(わかりやすいですが、/usr/local 以下をコマンドで直接操作するのは注意が必要です。)
+
+** ファイルのダウンロード
+
+#+begin_src bash
+wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+#+end_src
+
+** 既存ファイルツリーの削除と新規ファイルツリーのコピー
+
+#+begin_src bash
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+#+end_src
+
+** パスの追加
+
+公式の手順には $HOME/.profile or /etc/profile に追記するよう記載されていますが、私は .bashrc に記載しました。
+
+#+begin_src
+export PATH=$PATH:/usr/local/go/bin
+#+end_src
+
+** インストールされたバージョンの確認
+
+#+begin_src bash
+$ go version
+go version go1.23.4 linux/amd64
+#+end_src
