@@ -1,0 +1,227 @@
+#+BLOG: wurly-blog
+#+POSTID: 1740
+#+ORG2BLOG:
+#+DATE: [2025-01-19 Sun 13:00]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ripgrep
+
+* インストール
+
+#+begin_src bash
+git clone https://github.com/BurntSushi/ripgrep
+git checkout 14.1.1
+cargo build --release --features pcre2
+#+end_src
+
+#+begin_src 
+mkdir -p ~/bin
+cp ./target/release/rg ~/bin/
+#+end_src
+
+
+* PCRE2 is not available in this build of ripgrep.
+
+#+begin_src bash
+$ cargo build --release
+#+end_src
+
+#+begin_src bash
+$ target/release/rg --version
+ripgrep 14.1.1 (rev 4649aa9700)
+
+features:-pcre2
+simd(compile):+SSE2,-SSSE3,-AVX2
+simd(runtime):+SSE2,+SSSE3,+AVX2
+
+PCRE2 is not available in this build of ripgrep.
+#+end_src
+
+#+begin_src bash
+rg --version
+ripgrep 14.1.1 (rev 4649aa9700)
+
+features:+pcre2
+simd(compile):+SSE2,-SSSE3,-AVX2
+simd(runtime):+SSE2,+SSSE3,+AVX2
+
+PCRE2 10.43 is available (JIT is available)
+#+end_src
+
+* temp
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/source$ git clone https://github.com/BurntSushi/ripgrep
+wurly@rockers-ubuntu:~/source/ripgrep$ git checkout 14.1.1
+wurly@rockers-ubuntu:~/source/ripgrep$ cargo build --release
+    Updating crates.io index
+  Downloaded cfg-if v1.0.0
+  Downloaded crossbeam-deque v0.8.5
+  Downloaded encoding_rs_io v0.1.7
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded aho-corasick v1.1.3
+  Downloaded termcolor v1.4.1
+  Downloaded memmap2 v0.9.4
+  Downloaded crossbeam-utils v0.8.20
+  Downloaded itoa v1.0.11
+  Downloaded bstr v1.10.0
+  Downloaded walkdir v2.5.0
+  Downloaded serde_json v1.0.128
+  Downloaded lexopt v0.3.0
+  Downloaded serde v1.0.210
+  Downloaded ryu v1.0.18
+  Downloaded log v0.4.22
+  Downloaded same-file v1.0.6
+  Downloaded textwrap v0.16.1
+  Downloaded regex-automata v0.4.7
+  Downloaded libc v0.2.158
+  Downloaded memchr v2.7.4
+  Downloaded encoding_rs v0.8.34
+  Downloaded regex-syntax v0.8.4
+  Downloaded anyhow v1.0.87
+  Downloaded 24 crates (4.4 MB) in 0.79s (largest was `encoding_rs` at 1.4 MB)
+   Compiling memchr v2.7.4
+   Compiling regex-syntax v0.8.4
+   Compiling libc v0.2.158
+   Compiling log v0.4.22
+   Compiling cfg-if v1.0.0
+   Compiling serde v1.0.210
+   Compiling crossbeam-utils v0.8.20
+   Compiling serde_json v1.0.128
+   Compiling itoa v1.0.11
+   Compiling ryu v1.0.18
+   Compiling termcolor v1.4.1
+   Compiling same-file v1.0.6
+   Compiling anyhow v1.0.87
+   Compiling ripgrep v14.1.1 (/home/wurly/source/ripgrep)
+   Compiling textwrap v0.16.1
+   Compiling lexopt v0.3.0
+   Compiling encoding_rs v0.8.34
+   Compiling walkdir v2.5.0
+   Compiling aho-corasick v1.1.3
+   Compiling grep-matcher v0.1.7 (/home/wurly/source/ripgrep/crates/matcher)
+   Compiling crossbeam-epoch v0.9.18
+   Compiling memmap2 v0.9.4
+   Compiling crossbeam-deque v0.8.5
+   Compiling encoding_rs_io v0.1.7
+   Compiling regex-automata v0.4.7
+   Compiling bstr v1.10.0
+   Compiling globset v0.4.15 (/home/wurly/source/ripgrep/crates/globset)
+   Compiling grep-searcher v0.1.14 (/home/wurly/source/ripgrep/crates/searcher)
+   Compiling grep-regex v0.1.13 (/home/wurly/source/ripgrep/crates/regex)
+   Compiling grep-printer v0.2.2 (/home/wurly/source/ripgrep/crates/printer)
+   Compiling grep-cli v0.1.11 (/home/wurly/source/ripgrep/crates/cli)
+   Compiling ignore v0.4.23 (/home/wurly/source/ripgrep/crates/ignore)
+   Compiling grep v0.3.2 (/home/wurly/source/ripgrep/crates/grep)
+    Finished `release` profile [optimized + debuginfo] target(s) in 12.37s
+wurly@rockers-ubuntu:~/source/ripgrep$ ls -la
+total 292
+drwxrwxr-x 12 wurly wurly  4096 Jan 19 11:44 .
+drwxrwxr-x  5 wurly wurly  4096 Jan 19 11:41 ..
+drwxrwxr-x  2 wurly wurly  4096 Jan 19 11:41 .cargo
+drwxrwxr-x  8 wurly wurly  4096 Jan 19 11:42 .git
+drwxrwxr-x  4 wurly wurly  4096 Jan 19 11:41 .github
+-rw-rw-r--  1 wurly wurly   266 Jan 19 11:41 .gitignore
+-rw-rw-r--  1 wurly wurly    11 Jan 19 11:41 .ignore
+-rw-rw-r--  1 wurly wurly 82502 Jan 19 11:42 CHANGELOG.md
+-rw-rw-r--  1 wurly wurly   126 Jan 19 11:41 COPYING
+-rw-rw-r--  1 wurly wurly 13119 Jan 19 11:41 Cargo.lock
+-rw-rw-r--  1 wurly wurly  3364 Jan 19 11:41 Cargo.toml
+-rw-rw-r--  1 wurly wurly 41724 Jan 19 11:42 FAQ.md
+-rw-rw-r--  1 wurly wurly 40701 Jan 19 11:41 GUIDE.md
+lrwxrwxrwx  1 wurly wurly     8 Jan 19 11:41 HomebrewFormula -> pkg/brew
+-rw-rw-r--  1 wurly wurly  1081 Jan 19 11:41 LICENSE-MIT
+-rw-rw-r--  1 wurly wurly 21003 Jan 19 11:41 README.md
+-rw-rw-r--  1 wurly wurly  2986 Jan 19 11:41 RELEASE-CHECKLIST.md
+-rw-rw-r--  1 wurly wurly  1211 Jan 19 11:41 UNLICENSE
+drwxrwxr-x  3 wurly wurly  4096 Jan 19 11:41 benchsuite
+-rw-rw-r--  1 wurly wurly  1785 Jan 19 11:41 build.rs
+drwxrwxr-x  2 wurly wurly  4096 Jan 19 11:41 ci
+drwxrwxr-x 12 wurly wurly  4096 Jan 19 11:41 crates
+drwxrwxr-x  4 wurly wurly  4096 Jan 19 11:41 pkg
+-rw-rw-r--  1 wurly wurly    44 Jan 19 11:41 rustfmt.toml
+drwxrwxr-x  2 wurly wurly  4096 Jan 19 11:41 scripts
+drwxrwxr-x  3 wurly wurly  4096 Jan 19 11:44 target
+drwxrwxr-x  3 wurly wurly  4096 Jan 19 11:41 tests
+wurly@rockers-ubuntu:~/source/ripgrep$ cd target/release/
+wurly@rockers-ubuntu:~/source/ripgrep/target/release$ ls -la
+total 28268
+drwxrwxr-x  7 wurly wurly     4096 Jan 19 11:44 .
+drwxrwxr-x  3 wurly wurly     4096 Jan 19 11:44 ..
+-rw-rw-r--  1 wurly wurly        0 Jan 19 11:44 .cargo-lock
+drwxrwxr-x 47 wurly wurly     4096 Jan 19 11:44 .fingerprint
+drwxrwxr-x 14 wurly wurly     4096 Jan 19 11:44 build
+drwxrwxr-x  2 wurly wurly    12288 Jan 19 11:44 deps
+drwxrwxr-x  2 wurly wurly     4096 Jan 19 11:44 examples
+drwxrwxr-x  2 wurly wurly     4096 Jan 19 11:44 incremental
+-rwxrwxr-x  2 wurly wurly 28899400 Jan 19 11:44 rg
+-rw-rw-r--  1 wurly wurly     4526 Jan 19 11:44 rg.d
+wurly@rockers-ubuntu:~/source/ripgrep/target/release$ rg
+Command 'rg' not found, but can be installed with:
+sudo snap install ripgrep  # version 12.1.0, or
+sudo apt  install ripgrep  # version 13.0.0-2ubuntu0.1
+See 'snap info ripgrep' for additional versions.
+wurly@rockers-ubuntu:~/source/ripgrep/target/release$ ./rg
+rg: ripgrep requires at least one pattern to execute a search
+wurly@rockers-ubuntu:~/source/ripgrep/target/release$ ./rg
+rg: ripgrep requires at least one pattern to execute a search
+wurly@rockers-ubuntu:~/source/ripgrep/target/release$ cd ../..
+wurly@rockers-ubuntu:~/source/ripgrep$ cd ../..
+wurly@rockers-ubuntu:~$ cd source/ripgrep/
+wurly@rockers-ubuntu:~/source/ripgrep$ target/release/rg --version
+ripgrep 14.1.1 (rev 4649aa9700)
+
+features:-pcre2
+simd(compile):+SSE2,-SSSE3,-AVX2
+simd(runtime):+SSE2,+SSSE3,+AVX2
+
+PCRE2 is not available in this build of ripgrep.
+wurly@rockers-ubuntu:~/source/ripgrep$ sudo apt list | grep libpcre2-dev
+[sudo] password for wurly: 
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+libpcre2-dev/jammy-updates,jammy-security,now 10.39-3ubuntu0.1 amd64 [installed,automatic]
+libpcre2-dev/jammy-updates,jammy-security 10.39-3ubuntu0.1 i386
+wurly@rockers-ubuntu:~/source/ripgrep$ sudo apt install libpcre2-dev
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+libpcre2-dev is already the newest version (10.39-3ubuntu0.1).
+libpcre2-dev set to manually installed.
+The following packages were automatically installed and are no longer required:
+  libnvidia-egl-wayland1 libnvidia-egl-wayland1:i386 libwayland-client0:i386 libwpe-1.0-1 libwpebackend-fdo-1.0-1
+  nvidia-firmware-560-560.28.03 nvidia-firmware-560-560.35.03
+Use 'sudo apt autoremove' to remove them.
+0 upgraded, 0 newly installed, 0 to remove and 4 not upgraded.
+wurly@rockers-ubuntu:~/source/ripgrep$ cargo build --release --features pcre2
+  Downloaded jobserver v0.1.32
+  Downloaded cc v1.1.18
+  Downloaded shlex v1.3.0
+  Downloaded pcre2 v0.2.9
+  Downloaded pkg-config v0.3.30
+  Downloaded pcre2-sys v0.2.9
+  Downloaded 6 crates (878.6 KB) in 0.41s
+   Compiling libc v0.2.158
+   Compiling shlex v1.3.0
+   Compiling pkg-config v0.3.30
+   Compiling ripgrep v14.1.1 (/home/wurly/source/ripgrep)
+   Compiling jobserver v0.1.32
+   Compiling cc v1.1.18
+   Compiling pcre2-sys v0.2.9
+   Compiling pcre2 v0.2.9
+   Compiling grep-pcre2 v0.1.8 (/home/wurly/source/ripgrep/crates/pcre2)
+   Compiling grep v0.3.2 (/home/wurly/source/ripgrep/crates/grep)
+    Finished `release` profile [optimized + debuginfo] target(s) in 6.02s
+wurly@rockers-ubuntu:~/source/ripgrep$ target/release/rg --version
+ripgrep 14.1.1 (rev 4649aa9700)
+
+features:+pcre2
+simd(compile):+SSE2,-SSSE3,-AVX2
+simd(runtime):+SSE2,+SSSE3,+AVX2
+
+PCRE2 10.43 is available (JIT is available)
+wurly@rockers-ubuntu:~/source/ripgrep$ 
+#+end_src
