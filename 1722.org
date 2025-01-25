@@ -67,3 +67,13 @@ export PATH=$PATH:/usr/local/go/bin
 $ go version
 go version go1.23.4 linux/amd64
 #+end_src
+
+* 設定
+
+.bashrc等に下記を追加し、GOPATH の bin/ 以下にパスを通しておきます。
+go install したバイナリがここに格納される為です。
+
+#+begin_src bash
+export PATH=$PATH:$(go env GOPATH)/bin
+#+end_src
+
