@@ -1,0 +1,32 @@
+#+BLOG: wurly-blog
+#+POSTID: 1747
+#+ORG2BLOG:
+#+DATE: [2025-01-25 Sat 18:06]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: sharkdp/fd (fd-find)
+
+* 概要
+
+ - [[https://github.com/sharkdp/fd?tab=readme-ov-file][sharkdp/fd: A simple, fast and user-friendly alternative to 'find']]
+https://github.com/sharkdp/fd?tab=readme-ov-file
+
+* インストール
+
+#+begin_src bash
+git clone https://github.com/sharkdp/fd
+cd fd
+git checkout v10.2.0
+cargo install --path .
+#+end_src
+
+* ビルドとテスト(参考)
+
+#+begin_src bash
+git clone https://github.com/sharkdp/fd
+cd fd
+cargo build
+cargo test
+#+end_src
