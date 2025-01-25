@@ -133,7 +133,7 @@ https://rust-analyzer.github.io/manual.html#rust-analyzer-language-server-binary
 
 #+begin_src bash
 curl -L https://github.com/rust-lang/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz | gunzip -c - > ~/bin/rust-analyzer
-Chmod +x ~/bin/rust-analyzer
+chmod +x ~/bin/rust-analyzer
 #+end_src
 
 * lsp-mode の設定
