@@ -12,6 +12,7 @@
 
 #+begin_src bash
 git clone https://github.com/BurntSushi/ripgrep
+cd ripgrep
 git checkout 14.1.1
 cargo build --release --features pcre2
 #+end_src
