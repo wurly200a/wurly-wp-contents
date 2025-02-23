@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2025-01-19 Sun 13:00]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Rust
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: ripgrep
