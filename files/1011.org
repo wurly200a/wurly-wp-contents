@@ -98,21 +98,21 @@ PoEが不要なので少しコストが抑えられます。
  | サンワサプライ 電源タップ 10個口・2P (1m) たくさん挿せるレイアウト 雷ガード 個別スイッチ(2個口ごと)・一括集中スイッチ 裏面マグネット スイングプラグ ホワイト TAP-SP2110SW-1 | 2427 | 1 | 2427 | Amazon
  | 合計 | | | 42610 | 
 
-file:images/1011_01.jpg
+[[file:./images/1011_01.jpg]]
 
 * 完成品
 
 組み合わせた結果は、ほぼイメージ通りでした。
 
-file:images/1011_02.jpg
+[[file:./images/1011_02.jpg]]
 
 実際に設置した結果はこのようになりました。
 
-file:images/1011_03.jpg
+[[file:./images/1011_03.jpg]]
 
 ちなみに、HDMI出力のUSBキャプチャ(CHD202)は手持ちであったので、これとラズパイを接続するmicroHDMIケーブルも購入しましたが、今のところ出番なしです。
 
-file:images/1011_04.jpg
+[[file:./images/1011_04.jpg]]
 
 * ラズパイセットアップ
 
@@ -128,17 +128,17 @@ https://www.raspberrypi.com/software/
 
 Ubuntu Serer 22.04.3 LTS(64bit) を選びました。
 
-file:images/1011_05.jpg
+[[file:./images/1011_05.jpg]]
 
 一旦、Wi-Fiでアクセスできるようにします。
 
 参考： netplanには "wpa_passphrase ESSID パスフレーズ" で生成される暗号化された文字列がセットされるようです。 (https://raspberrypi.stackexchange.com/questions/139093/change-netplan-wifi-encrypted-password, wpa_passphraseコマンド https://atmarkit.itmedia.co.jp/ait/articles/1601/23/news008.html)
 
-file:images/1011_08.jpg
+[[file:./images/1011_08.jpg]]
 
 一旦、パスワード認証を使います。
 
-file:images/1011_07.jpg
+[[file:./images/1011_07.jpg]]
 
 なお、これらのネットワーク設定は /etc/netplan/50-cloud-init.yaml に書き込まれるようです。
 
@@ -148,7 +148,7 @@ file:images/1011_07.jpg
 DHCPが動いているルータにアクセスし、今回のマシンにIPアドレスが割り当てられているのを確認します。
 (下記はWi-Fiルータとして使用しているDeco M5のWeb管理画面)
 
-file:images/1011_09.jpg
+[[file:./images/1011_09.jpg]]
 
 各マシンにsshログインできることを確認しました。
 
