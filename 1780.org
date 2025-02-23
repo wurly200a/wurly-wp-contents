@@ -1,0 +1,89 @@
+#+BLOG: wurly-blog
+#+POSTID: 1780
+#+ORG2BLOG:
+#+DATE: [2025-01-26 Sun 11:11]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: yasnippet
+
+* 概要
+
+以前からyasnippetの名前は見かけていたのですが、具体的にはよく知らず、ふとしたきっかけで使ってみようと思い始めました。
+
+ - [[https://joppot.info/posts/fd05c10f-e966-4b96-81e0-f3eeb2caaa3a][yasnippetでコードのスニペットを登録して爆速でプログラミングする]]
+https://joppot.info/posts/fd05c10f-e966-4b96-81e0-f3eeb2caaa3a
+
+私がプログラミングコードを書く場合、よく知っている言語の基本的なところは何も見ずに書きますが、そうでない場合は大概の場合、既存のコードをコピペします。
+コピペ元のものは、以前自分が書いたものや、よく書けているものであったり、ググって探してみたりするわけですが、多くの場合「あれ」というように欲しい物はわかっています。
+これを、テンプレートとして保存しておき、すぐに使えるようにしておけば効率的です。
+アナロジーとしては、「自分の引き出しに入れておき、すぐに引き出せるようにする」という言い方ができると思います。
+yasnippetでこれが実現できます。
+
+また、近年では新たにプログラミング言語を学び、ユースケースに応じて何種類もの言語を使い分けることが普通になってきました。
+
+そこで、テンプレートを作成しつつ言語を学んでいくとより効率がよいのでは？ということを思いついたので、これを実践してみようと思います。
+
+* 設定
+
+一旦、init.el にはシンプルに下記のように設定しました。
+
+規定ではかなり良いポジションのキーマップが使われているので(C-c + C-s、C-c + C-n、C-c + C-v 等)、無効にしています。
+
+#+begin_src emacs-lisp
+(use-package yasnippet
+  :ensure t
+  :init
+  (yas-global-mode)
+  :config
+  (define-key yas-minor-mode-map (kbd "C-c & C-s") nil)
+  (define-key yas-minor-mode-map (kbd "C-c & C-n") nil)
+  (define-key yas-minor-mode-map (kbd "C-c & C-v") nil)
+  )
+#+end_src
+
+* snippetの登録方法
+
+対象のmajor-mode実行中のバッファ中で、下記を実行します。
+(例えばC言語の場合であれば、hello_world.c ファイルを編集中の状態で、下記を実行します。)
+
+#+begin_src emacs-lisp
+yas-new-snippet
+#+end_src
+
+すると、下記のような新しいバッファ \+new-snippet\+ が開きます
+
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: 
+# key: 
+# --
+#+end_src
+
+name に何か入力します。(例えばprintf)
+そして、任意のフィールドにしたい部分に下記のように ${1:param}, ${2:param} ... のように入力します。
+
+終了地点に $0 を入力しておきます。
+
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: printf
+# key: printf
+# --
+printf("${1:format}",${2:value});
+$0
+#+end_src
+
+ファイルを保存すると、ファイル名を尋ねられますので、ファイル名(ここではprintfなど)を入力します。
+
+下記にファイルが保存されます。(C言語の例)
+
+#+begin_src bash
+~/.emacs.d/snippets/c-mode/
+#+end_src
+
+* snippetの使用方法
+
+登録された名前を入力し、スペース等を入力せず、そのままTABを入力します。
+すると、登録したテンプレートが出力され、任意のフィールドとして指定した部分にカーソルが移動しますので、順次、任意の入力を行い、順次TABを入力することで、登録したテンプレートに従ったコードが完成します。
