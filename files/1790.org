@@ -6,5 +6,416 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Test
+#+TITLE: KinD ingress public
 
+
+* 手順
+
+** Create KinD Cluster
+
+#+begin_src bash
+cat >./kind-config.yaml <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+- role: worker
+- role: worker
+EOF
+#+end_src
+
+#+begin_src bash
+kind create cluster --name kind --config ./kind-config.yaml
+#+end_src
+
+** Install Ingress - nginx
+
+#+begin_src bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+#+end_src
+
+** Check
+
+#+begin_src bash
+kubectl --namespace ingress-nginx get all
+#+end_src
+
+** Deploy nginx(Web server) and make Ingress public
+
+#+begin_src bash
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - image: nginx:latest
+          name: nginx
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "100m"
+            limits:
+              memory: "64Mi"
+              cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nginx
+  name: nginx-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  selector:
+    app: nginx
+status:
+  loadBalancer: {}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+spec:
+  rules:
+    - http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+EOF
+#+end_src
+
+** Destory KinD Cluster
+
+#+begin_src bash
+kind delete cluster -n kind
+
+#+end_src
+
+* その他
+curl では、HTTP ヘッダーに Host を指定することで実現できます。例えば、IP アドレス 192.0.2.1 にアクセスしながらホスト名 example.com を指定する場合は、以下のようにします。
+
+#+begin_src bash
+curl -H "Host: example.com" http://192.0.2.1/
+#+end_src
+
+HTTPS を利用する場合、証明書の検証のためにホスト名と IP のマッピングを設定する必要があります。その場合は --resolve オプションを使います。
+
+#+begin_src bash
+curl --resolve example.com:443:192.0.2.1 https://example.com/
+#+end_src
+
+この方法で、接続先は IP アドレスとなりつつ、リクエストヘッダーには指定したホスト名が含まれるため、サーバー側で正しく処理されます。
+
+* 参考
+
+#+begin_src yaml
+$ docker inspect ef6584743c2f
+[
+    {
+        "Id": "ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167",
+        "Created": "2025-02-23T12:46:00.273377556Z",
+        "Path": "/usr/local/bin/entrypoint",
+        "Args": [
+            "/sbin/init"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 115919,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2025-02-23T12:46:03.247742947Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:f3e3747ca921699cdd8bb42b538f7ac77fff7f829474e8ab4d2911ae3a51afac",
+        "ResolvConfPath": "/var/lib/docker/containers/ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167/hostname",
+        "HostsPath": "/var/lib/docker/containers/ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167/hosts",
+        "LogPath": "/var/lib/docker/containers/ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167/ef6584743c2fbf1c853c37e2aa478030c1ccd54955a5ac0b728850542005a167-json.log",
+        "Name": "/kind-control-plane",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "unconfined",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/lib/modules:/lib/modules:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "kind",
+            "PortBindings": {
+                "443/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "443"
+                    }
+                ],
+                "6443/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "39705"
+                    }
+                ],
+                "80/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "80"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "on-failure",
+                "MaximumRetryCount": 1
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": true,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "seccomp=unconfined",
+                "apparmor=unconfined",
+                "label=disable"
+            ],
+            "Tmpfs": {
+                "/run": "",
+                "/tmp": ""
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": null,
+            "ReadonlyPaths": null,
+            "Init": false
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/2b5893b350db59c243f12133a735168bae896cbf2622365cae6fa386a995d430-init/diff:/var/lib/docker/overlay2/0bf4df1afc561f681996f63563c3c63a1aa6497c485edb2b40834d020573a385/diff:/var/lib/docker/overlay2/c23b982f2133fb10563a1f0fb91f340983a314b00866ec052a1bc82eb267a5fd/diff",
+                "MergedDir": "/var/lib/docker/overlay2/2b5893b350db59c243f12133a735168bae896cbf2622365cae6fa386a995d430/merged",
+                "UpperDir": "/var/lib/docker/overlay2/2b5893b350db59c243f12133a735168bae896cbf2622365cae6fa386a995d430/diff",
+                "WorkDir": "/var/lib/docker/overlay2/2b5893b350db59c243f12133a735168bae896cbf2622365cae6fa386a995d430/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/lib/modules",
+                "Destination": "/lib/modules",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "volume",
+                "Name": "7195599dced811be05f41cf9054cebd897778b99751be2f9075836480ef4e926",
+                "Source": "/var/lib/docker/volumes/7195599dced811be05f41cf9054cebd897778b99751be2f9075836480ef4e926/_data",
+                "Destination": "/var",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "kind-control-plane",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "443/tcp": {},
+                "6443/tcp": {},
+                "80/tcp": {}
+            },
+            "Tty": true,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "KUBECONFIG=/etc/kubernetes/admin.conf",
+                "KIND_EXPERIMENTAL_CONTAINERD_SNAPSHOTTER",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "container=docker",
+                "HTTP_PROXY=",
+                "HTTPS_PROXY=",
+                "NO_PROXY="
+            ],
+            "Cmd": null,
+            "Image": "kindest/node:v1.32.2@sha256:f226345927d7e348497136874b6d207e0b32cc52154ad8323129352923a3142f",
+            "Volumes": {
+                "/var": {}
+            },
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/usr/local/bin/entrypoint",
+                "/sbin/init"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "io.x-k8s.kind.cluster": "kind",
+                "io.x-k8s.kind.role": "control-plane"
+            },
+            "StopSignal": "SIGRTMIN+3"
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "730723e72af7a2e93a86a10999c2a1111fc218c3c0af710abb5e271ef424305d",
+            "SandboxKey": "/var/run/docker/netns/730723e72af7",
+            "Ports": {
+                "443/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "443"
+                    }
+                ],
+                "6443/tcp": [
+                    {
+                        "HostIp": "127.0.0.1",
+                        "HostPort": "39705"
+                    }
+                ],
+                "80/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "80"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "kind": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "MacAddress": "02:42:ac:12:00:04",
+                    "DriverOpts": null,
+                    "NetworkID": "eee21e1e8f387a1147ce1bea03e3948204215bcc262f73cac4ead6034b186e9f",
+                    "EndpointID": "741f2cbd7f7a231747ec730e3d8e26a784573098cf6a4b511f4332e4278b5225",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.4",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "fc00:f853:ccd:e793::1",
+                    "GlobalIPv6Address": "fc00:f853:ccd:e793::4",
+                    "GlobalIPv6PrefixLen": 64,
+                    "DNSNames": [
+                        "kind-control-plane",
+                        "ef6584743c2f"
+                    ]
+                }
+            }
+        }
+    }
+]
+#+end_src
