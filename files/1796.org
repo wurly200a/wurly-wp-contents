@@ -1,0 +1,172 @@
+#+BLOG: wurly-blog
+#+POSTID: 1796
+#+ORG2BLOG:
+#+DATE: [2025-02-26 Wed 23:20]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 に Emacs 30.1 をインストール
+
+* はじめに
+
+Ubuntu 22.04 に Emacs 30.1 をインストールしました。
+
+インストール環境は下記です。
+最初にWSL環境を使いましたが、これまでの経験上、ネイティブのUbuntuと特に変わりはありません。
+
+ - ハードウェア : Core i5-1235U, 32GB Memory, NVMe SSD
+ - OS : Windows11 / Ubuntu22.04(WSL)
+
+下記のコンフィギュレーションとなります。
+
+ - pgtk(Pure GTK)
+ - native-compilation
+ - (XWidgets 無効)
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src bash
+$ git clone --depth 1 --branch emacs-30.1 git://git.sv.gnu.org/emacs.git emacs-30.1
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+#+begin_src bash
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-10-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libm17n-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev
+#+end_src
+
+** Makefileの生成
+
+#+begin_src bash
+cd emacs-30.1
+./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils
+#+end_src
+
+なお、今回、configureにて下記のメッセージが表示されたため、--with-xwidgets は外しました。
+
+#+begin_src bash
+checking for webkit2gtk-4.1 >= 2.12 webkit2gtk-4.1 < 2.41.92... no
+checking for webkit2gtk-4.0 >= 2.12 webkit2gtk-4.0 < 2.41.92... no
+configure: error: xwidgets requested but WebKitGTK+ or WebKit framework not found.
+#+end_src
+
+また、こちらも気になるメッセージです。
+そろそろ、Ubuntu24.04LTSに乗り換えるべきかもしれません。
+
+#+begin_src bash
+checking for gtk+-3.0 >= 3.22.23 glib-2.0 >= 2.37.5... yes
+checking whether GTK compiles... yes
+configure: WARNING: Your version of Gtk+ will have problems with
+       closing open displays.  This is no problem if you just use
+       one display, but if you use more than one and close one of them
+       Emacs may crash.
+       See https://gitlab.gnome.org/GNOME/gtk/issues/221
+#+end_src
+
+configure結果
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/10/include -L/usr/lib/gcc/x86_64-linux-gnu/10 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Is Emacs being built for Android?                       no 
+  Does Emacs use the X Double Buffer Extension?           no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 -lz
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  no
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             no
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes (inotify)
+  Does Emacs use access control lists?                    yes -lacl -lattr
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ltree-sitter?                           no
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            no
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+#+end_src
+
+** make
+
+#+begin_src bash
+make -j$(nproc)
+#+end_src
+
+# Available configurations
+# Core i5-1235U, 32GB Memory, NVMe SSD, Windows11, WSL
+# 23:36 - 23:42 
+# Core i7-10700F, 16GB Memory, NVMe SSD
+
+** make install
+
+#+begin_src bash
+sudo make install
+#+end_src
+
+* おわりに
+
+まだ新機能はざっと見ただけですが、とりあえず使い始めました。
+早速、org2blogの投稿ができなかったり、互換性の問題もありそうです。
+ですが、久しぶりのメジャーバージョンアップということで期待しています。
+少しずつ新機能を試用してみようと思います。
