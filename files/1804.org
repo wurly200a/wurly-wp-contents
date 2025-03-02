@@ -1,0 +1,46 @@
+#+BLOG: wurly-blog
+#+POSTID: 1804
+#+ORG2BLOG:
+#+DATE: [2025-03-02 Sun 15:40]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Python
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Python3 PyQt6 で Tetris
+
+* 概要
+
+claude + claine でテトリスを作成する、という事例の話を聞いて、かつて知ったコードのことを思い出しました。
+
+(AIとは直接関係無いです。)
+
+下記のサイトに、Python で PyQt を使って少ないコード量でテトリスを書いている例があります。
+
+さくっと動きます。
+
+ライブラリとアルゴリズムの力ってすごいです。
+
+ - [[https://zetcode.com/pyqt6/tetris/][Tetris in PyQt6]]
+https://zetcode.com/pyqt6/tetris/
+
+* 動かし方
+
+適当にディレクトリを作成し、上記サンプルコードを tetris.py として作成します。
+
+PyQt6をこの場だけ使用したい場合は、venvを使って仮想環境を作成てインストールします。
+
+#+begin_src bash
+$ python3 -m venv ./venv
+$ . ./venv/bin/activate
+$ pip3 install PyQt6
+(venv) $ python3 tetris.py
+#+end_src
+
+* おわりに
+
+ふと、このサンプルコードを思い出したのですが、こちらが紹介されていたサイトは、いろんなプログラミング言語(Java,Spring,Spring Boot,JavaScript,Go,Rust...)で、部品的に使用できるコードが載っていてすごく良いです。
+ちょうどこんなのが欲しいと思っていたところでした。
+参考にしたいと思います。
+
+ - [[https://zetcode.com/][ZetCode - Go, C#, Python, Java, JavaScript programming]]
+https://zetcode.com/
