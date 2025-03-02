@@ -157,6 +157,7 @@ make -j$(nproc)
 # Core i5-1235U, 32GB Memory, NVMe SSD, Windows11, WSL
 # 23:36 - 23:42 
 # Core i7-10700F, 16GB Memory, NVMe SSD
+# 8:19 - 8:22
 
 ** make install
 
