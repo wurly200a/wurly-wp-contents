@@ -1,0 +1,225 @@
+#+BLOG: wurly-blog
+#+POSTID: 1808
+#+ORG2BLOG:
+#+DATE: [2025-03-06 Thu 08:01]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: WSL, Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: WSL Ubuntu-24.04 を Dドライブにインストール
+
+* 概要
+
+WSLを常用しています。
+WindowsとしてはCドライブをシステム・アプリケーション、Dドライブをデータ領域としてパーティションを2つに分けて使用しているのですが、WSLを標準的にインストールした場合、仮想PCイメージがCドライブに作成されます。
+そのため、Dドライブには十分に空きがあるにも関わらず、Cドライブが空き容量が少なくなり、仕方なく、その都度何かしら行って空き領域を増やしていました。
+
+仮想PCイメージをCドライブ以外に作成する方法は前から知っていたのですが、WSL上のLinuxが動作しなくなると困るので、行うことを躊躇していました。
+
+今回、他の用途でもう少し空き容量を増やしたかったこと、別途、そろそろ Ubuntu を 22.04LTS から24.04LTS に移行しようと思ったこともあり、下記の方針で行うこととしました。
+
+Ubuntu 24.04 を新規でWSLインストールし、この仮想PCイメージをDドライブに移動します。
+この状態で、22.04(Cドライブ)から24.04(Dドライブ)へUbuntuのメイン環境を移行していきます。
+このやり方であれば、移行に失敗して現在使用しているLinux環境が使えなくなることを防ぎ、段階的な移行が可能になります。
+
+* 作業の流れ
+
+ - Ubuntu 24.04 を WSL上にインストール
+ - この環境を D:\wsl\export\Ubuntu-24.04.tar にエクスポート
+ - WSL上から Ubuntu 24.04 を削除(unregister)
+ - エクスポートしたファイル(D:\wsl\export\Ubuntu-24.04.tar)を D:\wsl\Ubuntu-24.04 で動作するようインポート
+
+これで基本的には問題なく実行できましたが、細かい点として、下記のように、インストール時と若干挙動が異なる点があるがあり追加で作業を行いました。
+
+WSLではインストール時にユーザーの追加しデフォルトユーザーとして登録することで、デフォルトのユーザーの環境で起動します。
+しかし、原因はよくわかりませんが、意図せず、エクスポートした後はrootの環境で起動するようになりました。
+これについては、ubuntu2404 config --default-user と行うことで再設定できることがわかりました。
+ログイン後、sudoについてのメッセージが表示されますが、一度 sudo を実行すれば ~/.sudo_as_admin_successful が生成されることで表示されなくなります。
+
+* 実際の作業
+
+** wsl --list
+
+現在インストールされているディストリビューションを確認
+
+#+begin_src bash
+PS C:\Users\wurly> wsl --list
+Linux 用 Windows サブシステム ディストリビューション:
+Ubuntu-22.04 (既定)
+#+end_src
+
+** wsl --list --online
+
+インストール可能なディストリビューションを確認
+
+#+begin_src bash
+wsl --list --online
+インストールできる有効なディストリビューションの一覧を次に示します。
+'wsl.exe --install <Distro>' を使用してインストールします。
+
+NAME                            FRIENDLY NAME
+Ubuntu                          Ubuntu
+Debian                          Debian GNU/Linux
+kali-linux                      Kali Linux Rolling
+Ubuntu-18.04                    Ubuntu 18.04 LTS
+Ubuntu-20.04                    Ubuntu 20.04 LTS
+Ubuntu-22.04                    Ubuntu 22.04 LTS
+Ubuntu-24.04                    Ubuntu 24.04 LTS
+OracleLinux_7_9                 Oracle Linux 7.9
+OracleLinux_8_7                 Oracle Linux 8.7
+OracleLinux_9_1                 Oracle Linux 9.1
+openSUSE-Leap-15.6              openSUSE Leap 15.6
+SUSE-Linux-Enterprise-15-SP5    SUSE Linux Enterprise 15 SP5
+SUSE-Linux-Enterprise-15-SP6    SUSE Linux Enterprise 15 SP6
+openSUSE-Tumbleweed             openSUSE Tumbleweed
+#+end_src
+
+** wsl --install -d Ubuntu-24.04
+
+Ubuntu 24.04 をインストール
+
+#+begin_src bash
+PS C:\Users\wurly> wsl --install -d Ubuntu-24.04
+インストール中: Ubuntu 24.04 LTS
+Ubuntu 24.04 LTS がインストールされました。
+Ubuntu 24.04 LTS を起動しています...
+Installing, this may take a few minutes...
+Please create a default UNIX user account. The username does not need to match your Windows username.
+For more information visit: https://aka.ms/wslusers
+Enter new UNIX username: wurly
+New password:
+Retype new password:
+passwd: password updated successfully
+Installation successful!
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 5.15.153.1-microsoft-standard-WSL2 x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Mar  6 07:26:02 JST 2025
+
+  System load:  0.15                Processes:             46
+  Usage of /:   0.1% of 1006.85GB   Users logged in:       0
+  Memory usage: 2%                  IPv4 address for eth0: 172.23.229.187
+  Swap usage:   0%
+
+
+This message is shown once a day. To disable it please create the
+/home/wurly/.hushlogin file.
+#+end_src
+
+** vhdxファイルの確認
+
+仮想ディスクイメージ(.vhdx)ファイルを確認します。
+
+下記に作成されます。
+
+#+begin_src bash
+C:\Users\ユーザー名\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_ランダムな文字列\LocalState
+#+end_src
+
+今回、下記似生成されていました。
+
+#+begin_src bash
+C:\Users\wurly\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\LocalState\ext4.vhdx
+#+end_src
+
+容量は1.29GBでした。
+
+#+begin_src bash
+PS C:\Users\wurly> wsl --list
+Linux 用 Windows サブシステム ディストリビューション:
+Ubuntu-22.04 (既定)
+Ubuntu-24.04
+#+end_src
+
+** 停止
+
+一旦、Ubuntuからログアウトします。
+
+#+begin_src bash
+wurly@LT1:~$ exit
+logout
+この操作を正しく終了しました。
+#+end_src
+
+** 停止確認
+
+Stoppedになっていることを確認します。
+もしなっていなければ、wsl --shutdown で停止します。
+
+#+begin_src
+PS C:\Users\wurly> wsl --list -v
+  NAME            STATE           VERSION
+\star{} Ubuntu-22.04    Stopped         2
+  Ubuntu-24.04    Stopped         2
+#+end_src
+
+** wsl --export
+
+エクスポートします。
+
+#+begin_src bash
+wsl --export Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar
+#+end_src
+
+インストール直後なので容量は少なく、エクスポートはすぐに終わりました。
+
+#+begin_src bash
+PS C:\Users\wurly> wsl --export Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar
+エクスポートが進行中です。これには数分かかる場合があります。
+この操作を正しく終了しました。
+#+end_src
+
+** wsl --unregister
+
+インストールしたものを一旦削除します。(*誤って別のものを削除しないように気をつけます。*)
+
+#+begin_src bash
+wsl --unregister Ubuntu-24.04
+#+end_src
+
+** wsl --import
+
+インポートします。
+
+#+begin_src bash
+wsl --import Ubuntu-24.04 D:\wsl\Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar --version 2
+#+end_src
+
+** ubuntu2404 config --default-user
+
+Ubuntu 24.04 を起動したところ、rootでのログイン状態となってしまいました。
+"ubuntu2404" という(謎の)コマンドでデフォルトユーザーの設定ができるようです。
+
+#+begin_src bash
+ubuntu2404 config --default-user wurly
+#+end_src
+
+これにより、再度、設定したデフォルトユーザーで起動するようになりますが、下記のメッセージが表示されます。
+
+#+begin_src 
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+#+end_src
+
+"sudo ls"等、適当なコマンドでsudoを実行することで、~/.sudo_as_admin_successful が生成され、メッセージは消えます。
+
+#+begin_src 
+-rw-r--r-- 1 wurly wurly    0 Mar  6 07:58 .sudo_as_admin_successful
+#+end_src
+
+* 終わりに
+
+以上の通り、Ubuntu 24.04 を新規でWSLインストールし、この仮想PCイメージをDドライブに移動できました。
+
+* 参考にしたサイト
+ - [[https://blog.ojisan.io/wsl-reinstall-d/][wsl をDドライブに入れ直してディスク拡張する | blog.ojisan.io]]
+ - [[https://qiita.com/OzoraKobo/items/62386ebf3ff167b4fe8d][WSL2の仮想ハードディスクvhdxファイルを移動する #Ubuntu - Qiita]]
+ - [[https://zenn.dev/ohno/articles/48ed2935c5094f][WSLがrootで起動してしまう現象]]
+ - [[https://zenn.dev/gaku1234/articles/article-00010-ubuntu][Ubuntuのデフォルトユーザーを変更する]]
+ - [[https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14261923984][ubuntuでターミナルを立ち上げるたびにメッセージが出ます。メッセ... - Yahoo!知恵袋]]
