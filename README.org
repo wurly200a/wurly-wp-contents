@@ -1,6 +1,7 @@
 #+TITLE: Article Index
 
  - [[file:files/1808.org][1808]]  [2025-03-06 Thu 08:01]  WSL Ubuntu-24.04 を Dドライブにインストール  [WSL,Ubuntu]
+ - [[file:files/1804.org][1804]]  [2025-03-02 Sun 15:40]  Python3 PyQt6 で Tetris  [Python]
  - [[file:files/1796.org][1796]]  [2025-02-26 Wed 23:20]  Ubuntu 22.04 に Emacs 30.1 をインストール  [Emacs]
  - [[file:files/1792.org][1792]]  [2025-02-23 Sun 13:49]  Rust開発環境構築(Windows)  [Rust]
  - [[file:files/1790.org][1790]]  [2025-02-23 Sun 12:11]  KinD ingress public  []
@@ -17,6 +18,7 @@
  - [[file:files/1704.org][1704]]  [2025-01-25 Sat 21:09]  test  []
  - [[file:files/1696.org][1696]]  [2024-12-28 Sat 15:12]  Ciliumのアップグレード(1.15 to 1.16)  [Kubernetes]
  - [[file:files/1691.org][1691]]  [2024-12-28 Sat 11:30]  kubernetes 1.29 aptで使用されるGPG鍵の有効期限切れ(The following signatures were invalid: EXPKEYSIG 234654DA9A296436)  [Kubernetes]
+ - [[file:files/1689.org][1689]]  [2024-12-28 Sat 10:54]  おうちKubernetes のアップグレード(1.29 to 1.30)  [Kubernetes]
  - [[file:files/1682.org][1682]]  [2024-11-24 Sun 18:39]  ESP32 x NuttXで SSD1306 を動かす  [NuttX,ESP32]
  - [[file:files/1679.org][1679]]  [2024-11-17 Sun 13:58]  GTKTerm  [Ubuntu]
  - [[file:files/1675.org][1675]]  [2024-11-16 Sat 12:59]  C/C++ で Emacs lsp-mode (ccls)  [Emacs,C]
@@ -24,6 +26,8 @@
  - [[file:files/1650.org][1650]]  [2024-11-04 Mon 22:09]  niftyホームページサービス(LaCoocan)からXServerレンタルサーバーへ引っ越し  [WordPress]
  - [[file:files/1642.org][1642]]  [2024-11-03 Sun 21:00]  WSL・Docker使用時にストレージの空き容量が少なくなった場合の対処方法  [WSL,Docker]
  - [[file:files/1635.org][1635]]  [2024-11-03 Sun 10:59]  kubectx/kubens  [Kubernetes]
+ - [[file:files/1628.org][1628]]  [2024-10-13 Sun 08:24]  ESP32のJTAGデバッグ  []
+ - [[file:files/1623.org][1623]]  [2024-10-12 Sat 18:40]  (Draft)ESP32-WROOM-32E、OCD、esp-idf、JTAGデバッグ  []
  - [[file:files/1615.org][1615]]  [2024-09-16 Mon 08:09]  (Draft)Ubuntu / Linux の使い方メモ  []
  - [[file:files/1607.org][1607]]  [2024-09-01 Sun 21:37]  (Draft)SunFounder ESP32カメラプロキット  []
  - [[file:files/1603.org][1603]]  [2024-09-01 Sun 18:28]  ESP32 x NuttXで Hello, world!  [NuttX,ESP32]
