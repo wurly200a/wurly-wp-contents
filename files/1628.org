@@ -1,0 +1,477 @@
+#+BLOG: wurly-blog
+#+POSTID: 1628
+#+ORG2BLOG:
+#+DATE: [2024-10-13 Sun 08:24]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: ESP32のJTAGデバッグ
+
+* インストール
+
+** esp-idfのインストール
+
+#+begin_src bash
+mkdir -p ~/esp
+git clone --recursive https://github.com/espressif/esp-idf.git -b v5.3 ~/esp/esp-idf
+~/esp/esp-idf/install.sh esp32
+#+end_src
+
+** openocd-esp32のインストール
+
+#+begin_src 
+cd ~/esp
+wget https://github.com/espressif/openocd-esp32/releases/download/v0.12.0-esp32-20240821/openocd-esp32-linux-amd64-0.12.0-esp32-20240821.tar.gz
+tar -xzf openocd-esp32-linux-amd64-0.12.0-esp32-20240821.tar.gz
+#+end_src
+
+* ハードウェアのセットアップ
+
+ESP-PROG基板が必要です。下記を参考に、ターゲットと接続します。
+
+ - https://developer.mamezou-tech.com/blogs/2024/01/03/esp32-debug-by-esp-prog/
+ - https://www.circuitstate.com/pinouts/espressif-esp-prog-esp32-jtag-debug-probe-pinout-diagram/
+
+
+完結に言いますと、ESP-PROGとターゲットの基板間の5本を下記の様に接続します。
+
+ - GND
+ - MTMS - IO14
+ - MTDI - IO12
+ - MTCK - IO13
+ - MTDO - IO15
+
+* openocdとESP-PROGの接続
+
+** 手順
+
+ESP-PROGをPCにUSB接続します。ターゲットに電源を入れます。
+
+USBデバイスのManufacturer、idVendor、idProductを確認します。
+
+#+begin_src bash
+$ sudo dmesg | grep -C 3 "New USB device found"
+[ 2693.762661] ftdi_sio ttyUSB1: FTDI USB Serial Device converter now disconnected from ttyUSB1
+[ 2693.762781] ftdi_sio 1-4:1.1: device disconnected
+[ 2697.745512] usb 1-4: new high-speed USB device number 14 using xhci_hcd
+[ 2697.872220] usb 1-4: New USB device found, idVendor=0403, idProduct=6010, bcdDevice= 7.00
+[ 2697.872248] usb 1-4: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[ 2697.872259] usb 1-4: Product: Dual RS232-HS
+[ 2697.872268] usb 1-4: Manufacturer: FTDI
+#+end_src
+
+ESP-PROGのUSB I/FとターゲットのCPUの種類に合わせて、interface/ board/ 以下のcfgファイルを指定します。
+私の環境では下記の様に設定しました。
+
+#+begin_src bash
+cd ~/esp/openocd-esp32
+bin/openocd -s share/openocd/scripts -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp-wroom-32.cfg
+#+end_src
+
+この際、下記のエラーが出る場合があります。
+
+#+begin_src bash
+Error: libusb_open() failed with LIBUSB_ERROR_ACCESS
+#+end_src
+
+上記コマンドをsudoで実行できる場合には権限の問題ですので、下記の通りudevルールを作成します。
+
+** udevルールの作成
+
+下記の内容でファイルを作成します。前記で取得したUSBデバイスのidVendor、idProductを設定します。
+
+ - /etc/udev/rules.d/99-openocd.rules
+
+#+begin_src bash
+sudo vi /etc/udev/rules.d/99-openocd.rules
+#+end_src
+
+#+begin_src bash
+SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6010", MODE="0666"
+#+end_src
+
+ルールを読み込み直します。
+
+#+begin_src bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+#+end_src
+
+sudo無しでも接続できるようになればOKです。
+
+** 接続できた状態
+
+デュアルコアのうち、片方のCPUしか動いていないので、cpu1の方がfailedになっているのは期待値です。
+
+#+begin_src bash
+$ bin/openocd -s share/openocd/scripts -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp-wroom-32.cfg
+Open On-Chip Debugger v0.12.0-esp32-20240821 (2024-08-21-14:42)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+adapter speed: 20000 kHz
+WARNING: boards/esp-wroom-32.cfg is deprecated, and may be removed in a future release.
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : ftdi: if you experience problems at higher adapter clocks, try the command "ftdi tdo_sample_edge falling"
+Info : clock speed 20000 kHz
+Info : JTAG tap: esp32.tap0 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : JTAG tap: esp32.tap1 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : [esp32.cpu0] Examination succeed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : target esp32.cpu1 examination failed
+Info : [esp32.cpu0] starting gdb server on 3333
+Info : Listening on port 3333 for gdb connections
+Info : [esp32.cpu0] Target halted, PC=0x401DDAB6, debug_reason=00000000
+Info : [esp32.cpu0] Reset cause (16) - (RTC WDT core and rtc reset)
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+#+end_src
+
+cpu0に関するメッセージをピックアップすると下記のようになっており、Examinationが成功、gdb server が port 3333 で開始、ターゲットのプログラムカウンタやリセットが検出されているので正常と判断できます。
+
+#+begin_src bash
+Info : [esp32.cpu0] Examination succeed
+Info : [esp32.cpu0] starting gdb server on 3333
+Info : Listening on port 3333 for gdb connections
+Info : [esp32.cpu0] Target halted, PC=0x401DDAB6, debug_reason=00000000
+Info : [esp32.cpu0] Reset cause (16) - (RTC WDT core and rtc reset)
+#+end_src
+
+** GDBサーバーへの接続確認
+
+openocdとは別のターミナルからGDBサーバーに接続できることを確認します。
+
+#+begin_src bash
+. $HOME/esp/esp-idf/export.sh
+#+end_src
+
+#+begin_src bash
+cd <elfファイルがあるディレクトリ>
+xtensa-esp32-elf-gdb -ex 'target remote localhost:3333' <elfファイル>
+#+end_src
+
+下記は実行例です。
+
+#+begin_src bash
+$ xtensa-esp32-elf-gdb -ex 'target remote localhost:3333' nuttx
+GNU gdb (esp-gdb) 14.2_20240403
+Copyright (C) 2023 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "--host=x86_64-linux-gnu --target=xtensa-esp-elf".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from nuttx...
+Remote debugging using localhost:3333
+0x401ddab6 in up_idle ()
+(gdb) 
+#+end_src
+
+openocdの方にも接続されたメッセージが表示されています。
+
+#+begin_src bash
+Info : accepting 'gdb' connection on tcp/3333
+Info : [esp32.cpu0] Target halted, PC=0x401DDAB6, debug_reason=00000000
+Warn : No symbols for FreeRTOS!
+Info : New GDB Connection: 2, Target esp32.cpu0, state: halted
+Warn : Prefer GDB command "target extended-remote :3333" instead of "target remote :3333"
+Info : dropped 'gdb' connection
+Info : accepting 'gdb' connection on tcp/3333
+Warn : No symbols for FreeRTOS!
+Info : New GDB Connection: 3, Target esp32.cpu0, state: halted
+Warn : RTOS FreeRTOS not detected. (GDB could not find symbol 'pxReadyTasksLists')
+#+end_src
+
+
+* デバッグ方法
+
+* 事例
+
+** 事例1
+
+#+begin_src bash
+$ xtensa-esp32-elf-gdb -ex 'target remote localhost:3333' nuttx
+GNU gdb (esp-gdb) 14.2_20240403
+Copyright (C) 2023 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "--host=x86_64-linux-gnu --target=xtensa-esp-elf".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from nuttx...
+Remote debugging using localhost:3333
+up_idle () at chip/esp32_idle.c:280
+warning: 280    chip/esp32_idle.c: No such file or directory
+(gdb) 
+#+end_src
+
+loadします。
+
+#+begin_src bash
+0x40000400 in ?? ()
+(gdb) load nuttx
+Loading section .dram0.data, size 0x4348 lma 0x3ffc2ec0
+Loading section .iram0.vectors, size 0x400 lma 0x40080000
+Loading section .iram0.text, size 0xdf3c lma 0x40080400
+Loading section .flash.rodata, size 0x524a0 lma 0x3f400020
+Loading section .flash.text, size 0x11fcdf lma 0x400d0020
+Error finishing flash operation
+(gdb) 
+#+end_src
+
+シンボルが読み込まれます。ただし、ここでFlashがおかしくなってしまうので、この状態でFlashを書き直します。
+この間、openocdの方が一旦ターゲットと通信できなくなりエラーとなり、書き込みが終わると通信が復帰するということになります。
+
+#+begin_src bash
+Info : [esp32.cpu0] Target halted, PC=0x400BD0E6, debug_reason=00000001
+Info : PROF: Wrote 337056 bytes in 2069.29 ms (data transfer time included)
+Info : PROF: Compressed 1178847 bytes to 827326 bytes in 80.015007ms
+Info : PROF: Data transferred in 5503.52 ms @ 146.803 KB/s
+Info : [esp32.cpu0] Target halted, PC=0x400BD0E6, debug_reason=00000001
+Error: Failed to write flash (-3)!
+Error: error writing to flash at address 0x400d0000 at offset 0x00000020
+Info : JTAG tap: esp32.tap0 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : JTAG tap: esp32.tap1 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : [esp32.cpu0] requesting target halt and executing a soft reset
+Info : [esp32.cpu0] Debug controller was reset.
+Info : [esp32.cpu0] Core was reset.
+Info : [esp32.cpu0] Target halted, PC=0x500000CF, debug_reason=00000000
+
+
+Info : [esp32.cpu0] Reset cause (3) - (Software core reset)
+Info : [esp32.cpu0] Core was reset.
+Info : [esp32.cpu0] Target halted, PC=0x40000400, debug_reason=00000000
+
+
+
+Info : [esp32.cpu1] Debug controller was reset.
+Info : [esp32.cpu1] Core was reset.
+Info : [esp32.cpu0] Reset cause (1) - (Power on reset)
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+
+Info : [esp32.cpu0] Debug controller was reset.
+Info : [esp32.cpu0] Core was reset.
+
+
+Info : [esp32.cpu0] Target halted, PC=0x40079BEC, debug_reason=00000000
+Info : [esp32.cpu0] Reset cause (1) - (Power on reset)
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+#+end_src
+
+
+#+begin_src bash
+(gdb) info registers
+pc             0x40000400          0x40000400
+lbeg           0x0                 0
+lend           0x0                 0
+lcount         0x0                 0
+sar            0x0                 0
+ps             0x60025             393253
+threadptr      0x0                 0
+br             0x0                 0
+scompare1      0x0                 0
+acclo          0x0                 0
+acchi          0x0                 0
+m0             0x0                 0
+m1             0x0                 0
+m2             0x0                 0
+m3             0x0                 0
+expstate       0x0                 0
+f64r_lo        0x0                 0
+f64r_hi        0x0                 0
+f64s           0x0                 0
+fcr            0x0                 0
+fsr            0x0                 0
+a0             0x0                 0
+a1             0x0                 0
+a2             0x0                 0
+a3             0x3ff48038          1072988216
+a4             0x0                 0
+a5             0x0                 0
+a6             0x0                 0
+a7             0x0                 0
+a8             0x0                 0
+a9             0x0                 0
+a10            0x0                 0
+a11            0x0                 0
+a12            0x0                 0
+a13            0x0                 0
+a14            0x0                 0
+a15            0x0                 0
+#+end_src
+
+
+#+begin_src bash
+mon reg pc 
+mon reg
+#+end_src
+
+#+begin_src bash
+set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/nuttx
+set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/apps
+set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/system_app
+#+end_src
+
+#+begin_src bash
+catch exception
+#+end_src
+
+#+begin_src bash
+(gdb) hbreak SYS_put_blob_mstp
+Hardware assisted breakpoint 1 at 0x40142e73
+#+end_src
+
+#+begin_src bash
+(gdb) monitor reset halt
+JTAG tap: esp32.tap0 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+JTAG tap: esp32.tap1 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+[esp32.cpu1] Unexpected OCD_ID = 00000000
+[esp32.cpu0] requesting target halt and executing a soft reset
+[esp32.cpu0] Debug controller was reset.
+[esp32.cpu0] Core was reset.
+[esp32.cpu0] Target halted, PC=0x500000CF, debug_reason=00000000
+[esp32.cpu0] Reset cause (3) - (Software core reset)
+[esp32.cpu0] Core was reset.
+[esp32.cpu0] Target halted, PC=0x40000400, debug_reason=00000000
+[esp32.cpu1] Debug controller was reset.
+[esp32.cpu1] Core was reset.
+[esp32.cpu1] Target halted, PC=0x40000400, debug_reason=00000000
+[esp32.cpu1] Reset cause (14) - (CPU1 reset by CPU0)
+[esp32.cpu0] Reset cause (3) - (Software core reset)
+(gdb) 
+#+end_src
+
+#+begin_src bash
+(gdb) continue
+#+end_src
+
+
+#+begin_src bash
+(gdb) set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/nuttx
+(gdb) set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/apps
+(gdb) set directories /home/wurly/project_camfw/EdgeAIPF.evp-sysapp-example/system_app
+(gdb) list
+1       #include <nuttx/config.h>
+2       #include <nuttx/board.h>
+3       #include <stdio.h>
+4       #include "../apps/external/wedge_agent/wedge-agent/include/evp/sdk.h"
+5       #include "../apps/external/wedge_agent/wedge-agent/include/evp/sdk_sys.h"
+6       #include <netutils/cJSON.h>
+7
+8       #define FILENAME     "some-filename"
+9       #define STORAGE_NAME "dcstest"
+10
+(gdb) 
+#+end_src
+
+#+begin_src bash
+hbreak directcommand_cb_command
+#+end_src
+
+#+begin_src bash
+(gdb) hbreak directcommand_cb_command
+Hardware assisted breakpoint 1 at 0x40103dd8: file system_app_main.c, line 71.
+#+end_src
+
+** 各種設定
+
+1. キャッシュの無効化
+ESP32のフラッシュキャッシュが有効になっていると、設定したブレークポイントが正しく機能しないことがあります。特に、コードがフラッシュメモリ上に配置されている場合、キャッシュの影響を受ける可能性があります。
+
+これを確認するためには、GDBモニターでキャッシュを無効化する必要があります。以下のコマンドを使用して、キャッシュを無効にしてください。
+
+#+begin_src bash
+(gdb) monitor esp sysview off
+#+end_src
+
+キャッシュを無効化した後、再度ブレークポイントを設定して、動作を確認します。
+
+3. オープンOCDの設定
+オープンOCDの設定が正しくない場合、ブレークポイントが正しく設定されないことがあります。openocd.cfg ファイルの設定を確認し、以下のような設定があるか確認してください。
+
+#+begin_src bash
+set ESP32_RTOS none
+gdb_breakpoint_override hard
+#+end_src
+
+
+6. 例外処理の有効化
+もし例外発生時にGDBが停止しないのであれば、GDBの例外トラップが正しく設定されていない可能性があります。以下のコマンドで例外発生時の自動停止を有効にしてみてください。
+
+#+begin_src bash
+(gdb) set unwindonsignal on
+#+end_src
+
+#+begin_src bash
+(gdb) hbreak SYS_put_blob_mstp
+Hardware assisted breakpoint 1 at 0x40142e73
+#+end_src
+
+#+begin_src bash
+monitor reset halt
+continue
+#+end_src
+
+#+begin_src bash
+(gdb) monitor reset halt
+(gdb) hbreak directcommand_cb_command
+(gdb) monitor reset
+(gdb) continue
+#+end_src
+
+
+#+begin_src bash
+(gdb) bt
+#0  0x401ebfa7 in mbedtls_mpi_core_mla ()
+#1  0x401548de in mbedtls_mpi_core_montmul ()
+Backtrace stopped: Cannot access memory at address 0xfffffff4
+#+end_src
+
+
+* Memo
+

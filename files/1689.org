@@ -1,0 +1,215 @@
+#+BLOG: wurly-blog
+#+POSTID: 1689
+#+ORG2BLOG:
+#+DATE: [2024-12-28 Sat 10:54]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetes のアップグレード(1.29 to 1.30)
+
+* はじめに
+
+[[./?p=1389][HA おうちKubernetesクラスターの構築]] にて、一旦、それなりのものがデプロイできるようになり、しばらく別のもの(RTOS)に活動が移っていましたが、そうこうしているうちにK8Sのバージョンを上げないといけなくなってきました。
+
+マネージド(AKS)では行ったことがありますが、オンプレは初めてです。
+
+マネージドではワンクリックで実行できますが、オンプレでやるにはいろいろと手間がかかります。
+
+* v1.29 
+ - https://kubernetes.io/releases/
+
+1.29のEOLが2025-02-28なのでもう少しで終了です。
+
+#+begin_quote
+1.29
+End of Life:2025-02-28
+#+end_quote
+
+* 収集した情報
+ - バージョンは1つずつ上げる必要がある(今回の場合は1.29から1.30へ)
+ - コントロールプレーンから上げる
+ - アップグレード前にetcdのバックアップを取るべき
+ - kubeadmで構築したクラスターについては下記の手順で行えば良い
+  - https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/
+
+* 互換性の確認
+
+** Cilium
+
+ - v1.15.6 -> v1.16.5
+
+ - https://docs.cilium.io/en/stable/network/kubernetes/compatibility/
+
+Ciliumの対応バージョンを考えると、Kubernetesは1.30までとなりそうです。
+
+Cilium自身は v1.15.6 から v1.16.5 にアップグレードしました。
+
+ - [[./?p=1696][Ciliumのアップグレード(1.15 to 1.16)]] 
+
+** Rook ceph
+
+ - v1.14.8
+
+下記によると、Rook cephのv1.14はKubernetesのv1.25からv1.30まで対応しているとのことなのでそのままにしておきます。
+
+ - [[https://rook.io/docs/rook/v1.14/Getting-Started/Prerequisites/prerequisites/][Prerequisites - Rook Ceph Documentation]]
+
+** MetalLB
+
+ - v0.14.5 -> v0.14.9
+
+下記によると、最新は v0.14.9 でありアップグレードしておきます。
+
+ - https://metallb.io/release-notes/
+
+#+begin_src bash
+helm upgrade metallb metallb/metallb --version 0.14.9 -n metallb-system
+#+end_src
+
+#+begin_src bash
+$ helm upgrade metallb metallb/metallb --version 0.14.9 -n metallb-system
+Release "metallb" has been upgraded. Happy Helming!
+NAME: metallb
+LAST DEPLOYED: Sat Dec 28 20:13:40 2024
+NAMESPACE: metallb-system
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+MetalLB is now running in the cluster.
+
+Now you can configure it via its CRs. Please refer to the metallb official docs
+#+end_src
+
+#+begin_src bash
+$ helm history metallb -n metallb-system
+REVISION        UPDATED                         STATUS          CHART           APP VERSION     DESCRIPTION     
+1               Fri Jul  5 08:42:34 2024        superseded      metallb-0.14.5  v0.14.5         Install complete
+2               Sat Dec 28 20:13:40 2024        deployed        metallb-0.14.9  v0.14.9         Upgrade complete
+#+end_src
+
+** ingress-nginx
+
+ - v1.11.0 -> v1.11.3
+
+v1.11.0 は k8s の 1.30, 1.29, 1.28, 1.27, 1.26 に対応。
+
+ - [[https://github.com/kubernetes/ingress-nginx][kubernetes/ingress-nginx: Ingress NGINX Controller for Kubernetes]]
+
+#+begin_src bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm upgrade ingress-nginx ingress-nginx/ingress-nginx --version 4.11.3 -n ingress-system
+#+end_src
+
+#+begin_src bash
+$ helm upgrade ingress-nginx ingress-nginx/ingress-nginx --version 4.11.3 -n ingress-system
+Release "ingress-nginx" has been upgraded. Happy Helming!
+NAME: ingress-nginx
+LAST DEPLOYED: Sat Dec 28 20:06:15 2024
+NAMESPACE: ingress-system
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+The ingress-nginx controller has been installed.
+It may take a few minutes for the load balancer IP to be available.
+You can watch the status by running 'kubectl get service --namespace ingress-system ingress-nginx-controller --output wide --watch'
+
+An example Ingress that makes use of the controller:
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: example
+    namespace: foo
+  spec:
+    ingressClassName: nginx
+    rules:
+      - host: www.example.com
+        http:
+          paths:
+            - pathType: Prefix
+              backend:
+                service:
+                  name: exampleService
+                  port:
+                    number: 80
+              path: /
+    # This section is only required if TLS is to be enabled for the Ingress
+    tls:
+      - hosts:
+        - www.example.com
+        secretName: example-tls
+
+If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: example-tls
+    namespace: foo
+  data:
+    tls.crt: <base64 encoded cert>
+    tls.key: <base64 encoded key>
+  type: kubernetes.io/tls
+#+end_src
+
+#+begin_src bash
+$ helm history ingress-nginx -n ingress-system
+REVISION        UPDATED                         STATUS          CHART                   APP VERSION     DESCRIPTION     
+1               Sun Jul 14 22:13:39 2024        superseded      ingress-nginx-4.11.0    1.11.0          Install complete
+2               Sat Dec 28 20:06:15 2024        deployed        ingress-nginx-4.11.3    1.11.3          Upgrade complete
+#+end_src
+
+** metrics-server
+
+ - v0.7.1 -> v0.7.2
+
+あまり意識していなかったのですが、metrics-server のhelm chartはKubernetes SIGs版とBitnami版があり、私はBitnamiの方を使っていました。
+(Kubernetes SIGs版の方がユーザーは多いように見えます)
+
+ - https://artifacthub.io/packages/helm/metrics-server/metrics-server/3.12.2 (APP VERSION 0.7.2)
+ - https://artifacthub.io/packages/helm/bitnami/metrics-server/7.3.0 (APP VERSION 0.7.2)
+
+#+begin_src bash
+helm upgrade metrics-server bitnami/metrics-server --version 7.3.0 --namespace metrics-server
+#+end_src
+
+#+begin_src bash
+$ helm upgrade metrics-server bitnami/metrics-server --version 7.3.0 --namespace metrics-server
+Release "metrics-server" has been upgraded. Happy Helming!
+NAME: metrics-server
+LAST DEPLOYED: Sat Dec 28 20:45:24 2024
+NAMESPACE: metrics-server
+STATUS: deployed
+REVISION: 4
+TEST SUITE: None
+NOTES:
+CHART NAME: metrics-server
+CHART VERSION: 7.3.0
+APP VERSION: 0.7.2
+
+Did you know there are enterprise versions of the Bitnami catalog? For enhanced secure software supply chain features, unlimited pulls from Docker, LTS support, or application customization, see Bitnami Premium or Tanzu Application Catalog. See https://www.arrow.com/globalecs/na/vendors/bitnami for more information.
+
+\** Please be patient while the chart is being deployed **
+
+The metric server has been deployed.
+In a few minutes you should be able to list metrics using the following
+command:
+
+  kubectl get --raw "/apis/metrics.k8s.io/v1beta1/nodes"
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
+  - resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+#+end_src
+
+#+begin_src bash
+$ helm history metrics-server -n metrics-server
+REVISION        UPDATED                         STATUS          CHART                   APP VERSION     DESCRIPTION     
+1               Sun Jul 21 22:35:32 2024        superseded      metrics-server-7.2.8    0.7.1           Install complete
+2               Sun Jul 21 22:38:19 2024        superseded      metrics-server-7.2.8    0.7.1           Upgrade complete
+3               Sun Jul 21 22:51:13 2024        superseded      metrics-server-7.2.8    0.7.1           Upgrade complete
+4               Sat Dec 28 20:45:24 2024        deployed        metrics-server-7.3.0    0.7.2           Upgrade complete
+#+end_src

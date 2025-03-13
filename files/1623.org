@@ -1,0 +1,184 @@
+#+BLOG: wurly-blog
+#+POSTID: 1623
+#+ORG2BLOG:
+#+DATE: [2024-10-12 Sat 18:40]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: (Draft)ESP32-WROOM-32E、OCD、esp-idf、JTAGデバッグ
+
+* openocd
+
+ - https://github.com/openocd-org/openocd
+
+上記のインストールを試みました。
+
+#+begin_src bash
+git clone https://github.com/openocd-org/openocd.git 
+cd openocd/
+./bootstrap
+./configure
+make
+sudo make install
+#+end_src
+
+configure を行ったところ、下記の表示がされました。
+
+#+begin_src bash
+OpenOCD configuration summary
+--------------------------------------------------
+MPSSE mode of FTDI based devices        no
+ST-Link Programmer                      no
+TI ICDI JTAG Programmer                 no
+Keil ULINK JTAG Programmer              no
+ANGIE Adapter                           no
+Altera USB-Blaster II Compatible        no
+Bitbang mode of FT232R based devices    no
+Versaloon-Link JTAG Programmer          no
+TI XDS110 Debug Probe                   no
+CMSIS-DAP v2 Compliant Debugger         no
+OSBDM (JTAG only) Programmer            no
+eStick/opendous JTAG Programmer         no
+Olimex ARM-JTAG-EW Programmer           no
+Raisonance RLink JTAG Programmer        no
+USBProg JTAG Programmer                 no
+Espressif JTAG Programmer               no
+CMSIS-DAP Compliant Debugger            no
+Nu-Link Programmer                      no
+Cypress KitProg Programmer              no
+Altera USB-Blaster Compatible           no
+ASIX Presto Adapter                     no
+OpenJTAG Adapter                        no
+Linux GPIO bitbang through libgpiod     no
+SEGGER J-Link Programmer                no
+Bus Pirate                              yes (auto)
+Dummy Adapter                           no
+Use Capstone disassembly framework      no
+#+end_src
+
+少なくとも、"Espressif JTAG Programmer" が yes となるように何らからのツールセットのインストールが必要ということがわかりました。
+
+こちらにEspressif公式の資料がありました。
+
+ - https://docs.espressif.com/projects/esp-idf/en/v3.3.5/api-guides/jtag-debugging/index.html#jtag-debugging-configuring-esp32-target
+
+Linuxの場合のセットアップ方法はこちらにありました。
+
+ - https://docs.espressif.com/projects/esp-idf/en/v3.3.5/api-guides/jtag-debugging/setup-openocd-linux.html
+
+最新版のこちらをダウンロードして試してみます。
+
+ - https://github.com/espressif/openocd-esp32/releases/download/v0.12.0-esp32-20240821/openocd-esp32-linux-amd64-0.12.0-esp32-20240821.tar.gz
+
+
+
+#+begin_src bash
+mkdir -p ~/esp
+git clone --recursive https://github.com/espressif/esp-idf.git -b v5.3 ~/esp/esp-idf
+~/esp/esp-idf/install.sh esp32
+. /home/wurly/esp/esp-idf/export.sh
+cd ~/esp
+wget https://github.com/espressif/openocd-esp32/releases/download/v0.12.0-esp32-20240821/openocd-esp32-linux-amd64-0.12.0-esp32-20240821.tar.gz
+tar -xzf openocd-esp32-linux-amd64-0.12.0-esp32-20240821.tar.gz
+#+end_src
+
+
+#+begin_src bash
+$ sudo dmesg | grep -C 3 "New USB device found"
+[ 2693.762661] ftdi_sio ttyUSB1: FTDI USB Serial Device converter now disconnected from ttyUSB1
+[ 2693.762781] ftdi_sio 1-4:1.1: device disconnected
+[ 2697.745512] usb 1-4: new high-speed USB device number 14 using xhci_hcd
+[ 2697.872220] usb 1-4: New USB device found, idVendor=0403, idProduct=6010, bcdDevice= 7.00
+[ 2697.872248] usb 1-4: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[ 2697.872259] usb 1-4: Product: Dual RS232-HS
+[ 2697.872268] usb 1-4: Manufacturer: FTDI
+#+end_src
+
+#+begin_src bash
+cd ~/esp/openocd-esp32
+sudo bin/openocd -s share/openocd/scripts -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp-wroom-32.cfg
+#+end_src
+
+** libusb_open() で failed with LIBUSB_ERROR_ACCESS となる
+
+#+begin_src bash
+$ bin/openocd -s share/openocd/scripts -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp-wroom-32.cfg
+Open On-Chip Debugger v0.12.0-esp32-20240821 (2024-08-21-14:42)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+adapter speed: 20000 kHz
+WARNING: boards/esp-wroom-32.cfg is deprecated, and may be removed in a future release.
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Error: libusb_open() failed with LIBUSB_ERROR_ACCESS
+Error: unable to open ftdi device with description '*', serial '*' at bus location '*'
+share/openocd/scripts/target/esp_common.cfg:9: Error: 
+at file "share/openocd/scripts/target/esp_common.cfg", line 9
+#+end_src
+
+** sudo では繋がる
+
+#+begin_src bash
+~/esp/openocd-esp32$ sudo bin/openocd -s share/openocd/scripts -f interface/ftdi/esp32_devkitj_v1.cfg -f board/esp-wroom-32.cfg -c "adapter speed 10000"
+Open On-Chip Debugger v0.12.0-esp32-20240821 (2024-08-21-14:42)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+adapter speed: 20000 kHz
+WARNING: boards/esp-wroom-32.cfg is deprecated, and may be removed in a future release.
+adapter speed: 10000 kHz
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : ftdi: if you experience problems at higher adapter clocks, try the command "ftdi tdo_sample_edge falling"
+Info : clock speed 10000 kHz
+Info : JTAG tap: esp32.tap0 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : JTAG tap: esp32.tap1 tap/device found: 0x120034e5 (mfg: 0x272 (Tensilica), part: 0x2003, ver: 0x1)
+Info : [esp32.cpu0] Examination succeed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : target esp32.cpu1 examination failed
+Info : [esp32.cpu0] starting gdb server on 3333
+Info : Listening on port 3333 for gdb connections
+Info : [esp32.cpu0] Target halted, PC=0x401DDAB6, debug_reason=00000000
+Info : [esp32.cpu0] Reset cause (1) - (Power on reset)
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+Error: [esp32.cpu1] Examination failed
+Warn : [esp32.cpu1] Unexpected OCD_ID = 00000000
+#+end_src
+
+** udevルールの作成
+
+下記の内容でファイルを作成する
+
+ - /etc/udev/rules.d/99-openocd.rules
+
+#+begin_src bash
+sudo vi /etc/udev/rules.d/99-openocd.rules
+#+end_src
+
+#+begin_src bash
+SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6010", MODE="0666"
+#+end_src
+
+ルールの読み込み
+
+#+begin_src bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+#+end_src
+
+これでユーザー権限でも繋がりました。
+
+** GDBの起動
+
+#+begin_src bash
+. $HOME/esp/esp-idf/export.sh
+#+end_src
+
+#+begin_src bash
+xtensa-esp32-elf-gdb -ex 'target remote localhost:3333' nuttx
+#+end_src
