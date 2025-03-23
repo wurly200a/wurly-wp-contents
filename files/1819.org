@@ -1,0 +1,66 @@
+#+BLOG: wurly-blog
+#+POSTID: 1819
+#+ORG2BLOG:
+#+DATE: [2025-03-23 Sun 09:41]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Zeekによるパケットキャプチャデータ(.pcapng)の解析
+
+* 概要
+
+Zeekをインストールします。
+
+* aptでのインストール方法
+
+下記が公式ページに記載されているインストール方法です。
+
+ - [[https://docs.zeek.org/en/current/install.html][Installing Zeek — Book of Zeek (v7.1.0-rc1)]]
+https://docs.zeek.org/en/current/install.html
+
+Binary Packages - Linux の場合は下記の手順となっています。(6.0の
+
+
+#+begin_src bash
+echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_22.04/ /' | sudo tee /etc/apt/sources.list.d/security:zeek.list
+curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_22.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security_zeek.gpg > /dev/null
+sudo apt update
+sudo apt install zeek-6.0
+#+end_src
+
+ただ、/etc/apt/trusted.gpg.d にGPG鍵を置きたくないので、下記の用に修正し、/etc/apt/keyrings に置くようにしました。
+
+#+begin_src bash
+curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_22.04/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/security_zeek.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/security_zeek.gpg] http://download.opensuse.org/repositories/security:/zeek/xUbuntu_22.04/ /" | sudo tee /etc/apt/sources.list.d/security:zeek.list > /dev/null
+sudo apt update
+sudo apt install zeek-7.0
+#+end_src
+
+postfixのconfigurationは no conriguration としました。
+
+* 設定
+
+#+begin_src bash
+export PATH=$PATH:/opt/zeek/bin
+#+end_src
+
+#+begin_src bash
+export ZEEKPATH=/opt/zeek/share/zeek:/opt/zeek/share/zeek/base/protocols/tcp:/opt/zeek/share/zeek/builtin-plugins/:.
+#+end_src
+
+* 使い方
+
+基本的には、下記の様に実行することで、conn.log, http.log, dns.log, ntp.log, quic.log, weird.log, analyzer.log, dhcp.log, files.log, packet_filter.log といったファイルが生成されます。
+
+#+begin_src bash
+zeek -r foo.pcapng 
+#+end_src
+
+conn.log にネットワーク上の全接続に関する基本情報が出力されます。
+具体的には、接続開始・終了時刻、使用プロトコル、送受信元のIPアドレスやポート番号、転送バイト数など、通信の概要を把握するための情報が記録されます。
+
+また、weird.log には通常とは異なる、もしくは予期しないイベントや通信が記録されます。
+ネットワーク上で不審な動作や異常なパターンが検出された場合、その内容がこのログに記録され、不具合の原因解析に活用できます。
+
