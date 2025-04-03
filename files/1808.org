@@ -194,13 +194,55 @@ wsl --import Ubuntu-24.04 D:\wsl\Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar --v
 ** ubuntu2404 config --default-user
 
 Ubuntu 24.04 を起動したところ、rootでのログイン状態となってしまいました。
+
+Ubuntu上に、デフォルトユーザーとしたいユーザーを作成します。
+
+#+begin_src bash
+adduser wurly
+#+end_src
+
+#+begin_src bash
+usermod -aG sudo wurly
+#+end_src
+
 "ubuntu2404" という(謎の)コマンドでデフォルトユーザーの設定ができるようです。
+
+#+begin_src 
+PS C:\Users\wurly> ubuntu2404 --help
+Launches or configures a Linux distribution.
+
+Usage:
+    <no args>
+        Launches the user's default shell in the user's home directory.
+
+    install [--root]
+        Install the distribuiton and do not launch the shell when complete.
+          --root
+              Do not create a user account and leave the default user set to root.
+
+    run <command line>
+        Run the provided command line in the current working directory. If no
+        command line is provided, the default shell is launched.
+
+    config [setting [value]]
+        Configure settings for this distribution.
+        Settings:
+          --default-user <username>
+              Sets the default user to <username>. This must be an existing user.
+
+    help
+        Print usage information and exit.
+#+end_src
+
+上記の通り予め作成したユーザーを、config --default-user で指定できるとのことです。
+
+PowerShellから実行します。
 
 #+begin_src bash
 ubuntu2404 config --default-user wurly
 #+end_src
 
-これにより、再度、設定したデフォルトユーザーで起動するようになりますが、下記のメッセージが表示されます。
+これにより、再度、設定したデフォルトユーザーで起動するようになりますが、最初に下記のメッセージが表示されます。
 
 #+begin_src 
 To run a command as administrator (user "root"), use "sudo <command>".
