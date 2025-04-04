@@ -16,10 +16,10 @@ WindowsとしてはCドライブをシステム・アプリケーション、D�
 
 仮想PCイメージをCドライブ以外に作成する方法は前から知っていたのですが、WSL上のLinuxが動作しなくなると困るので、行うことを躊躇していました。
 
-今回、他の用途でもう少し空き容量を増やしたかったこと、別途、そろそろ Ubuntu を 22.04LTS から24.04LTS に移行しようと思ったこともあり、下記の方針で行うこととしました。
+これまで、Ubuntu 22.04 を使ってきているのですが、今回、Windows側の空き容量が必要になったことに対し、別途、そろそろ Ubuntu を 22.04LTS から 24.04LTS に移行しようと思ったこともあり、下記の方針で行うこととしました。
 
 Ubuntu 24.04 を新規でWSLインストールし、この仮想PCイメージをDドライブに移動します。
-この状態で、22.04(Cドライブ)から24.04(Dドライブ)へUbuntuのメイン環境を移行していきます。
+この状態で、22.04(Cドライブ)から24.04(Dドライブ)へUbuntuのメイン環境を移行していく想定です。
 このやり方であれば、移行に失敗して現在使用しているLinux環境が使えなくなることを防ぎ、段階的な移行が可能になります。
 
 * 作業の流れ
@@ -122,7 +122,7 @@ This message is shown once a day. To disable it please create the
 C:\Users\ユーザー名\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_ランダムな文字列\LocalState
 #+end_src
 
-今回、下記似生成されていました。
+今回、下記に生成されていました。
 
 #+begin_src bash
 C:\Users\wurly\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\LocalState\ext4.vhdx
