@@ -1,0 +1,55 @@
+#+BLOG: wurly-blog
+#+POSTID: 1831
+#+ORG2BLOG:
+#+DATE: [2025-04-05 Sat 18:50]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 24.04(WSL) のセットアップまとめ
+
+* はじめに
+
+自分用のUbuntu 24.04(WSL) のセットアップの流れのまとめです。
+ここでは全体の流れをまとめており、それぞれ詳細内容をリンクする形を取ります。
+
+* 流れ
+
+** Ubuntu 24.04(WSL)のインストール
+
+ - [[./?p=1808][WSL Ubuntu-24.04 を Dドライブにインストール]]
+
+私の場合、データドライブはDとしているため、そちらにVMイメージを置くようにします。
+
+** 日本語関連
+
+最低限、下記の2つだけ行えば、日本語が使えるようになる。
+ただし、google-chrome のウィンドウタイトルについては、麻雀牌みたいなものになっている。
+
+*** 日本語言語パックのインストール
+
+#+begin_src 
+sudo apt -y install language-pack-ja
+#+end_src
+
+*** Windowsの日本語フォントを使用する設定
+
+#+begin_src sh
+cat << 'EOS' | sudo tee /etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>/mnt/c/Windows/Fonts</dir>
+</fontconfig>
+<!-- Created by bash script from https://astherier.com/blog/2021/07/windows11-wsl2-wslg-japanese/ -->
+EOS
+#+end_src
+
+** Emacs
+
+私の場合Emacsのインストールが最優先です。
+これ以前にあるものは、Emacsのインストールと動作に必要なものとなっています。
+
+
+
+
