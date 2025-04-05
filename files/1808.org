@@ -43,7 +43,7 @@ WSLではインストール時にユーザーの追加しデフォルトユー�
 現在インストールされているディストリビューションを確認
 
 #+begin_src bash
-PS C:\Users\wurly> wsl --list
+PS C:\Users\ユーザー名> wsl --list
 Linux 用 Windows サブシステム ディストリビューション:
 Ubuntu-22.04 (既定)
 #+end_src
@@ -79,14 +79,14 @@ openSUSE-Tumbleweed             openSUSE Tumbleweed
 Ubuntu 24.04 をインストール
 
 #+begin_src bash
-PS C:\Users\wurly> wsl --install -d Ubuntu-24.04
+PS C:\Users\ユーザー名> wsl --install -d Ubuntu-24.04
 インストール中: Ubuntu 24.04 LTS
 Ubuntu 24.04 LTS がインストールされました。
 Ubuntu 24.04 LTS を起動しています...
 Installing, this may take a few minutes...
 Please create a default UNIX user account. The username does not need to match your Windows username.
 For more information visit: https://aka.ms/wslusers
-Enter new UNIX username: wurly
+Enter new UNIX username: ユーザー名
 New password:
 Retype new password:
 passwd: password updated successfully
@@ -109,7 +109,7 @@ Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 5.15.153.1-microsoft-standard-WSL2 x86_
 
 
 This message is shown once a day. To disable it please create the
-/home/wurly/.hushlogin file.
+/home/ユーザー名/.hushlogin file.
 #+end_src
 
 ** vhdxファイルの確認
@@ -125,13 +125,13 @@ C:\Users\ユーザー名\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.0
 今回、下記に生成されていました。
 
 #+begin_src bash
-C:\Users\wurly\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\LocalState\ext4.vhdx
+C:\Users\ユーザー名\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\LocalState\ext4.vhdx
 #+end_src
 
 容量は1.29GBでした。
 
 #+begin_src bash
-PS C:\Users\wurly> wsl --list
+PS C:\Users\ユーザー名> wsl --list
 Linux 用 Windows サブシステム ディストリビューション:
 Ubuntu-22.04 (既定)
 Ubuntu-24.04
@@ -142,7 +142,7 @@ Ubuntu-24.04
 一旦、Ubuntuからログアウトします。
 
 #+begin_src bash
-wurly@LT1:~$ exit
+ユーザー名@LT1:~$ exit
 logout
 この操作を正しく終了しました。
 #+end_src
@@ -153,7 +153,7 @@ Stoppedになっていることを確認します。
 もしなっていなければ、wsl --shutdown で停止します。
 
 #+begin_src
-PS C:\Users\wurly> wsl --list -v
+PS C:\Users\ユーザー名> wsl --list -v
   NAME            STATE           VERSION
 \star{} Ubuntu-22.04    Stopped         2
   Ubuntu-24.04    Stopped         2
@@ -170,7 +170,7 @@ wsl --export Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar
 インストール直後なので容量は少なく、エクスポートはすぐに終わりました。
 
 #+begin_src bash
-PS C:\Users\wurly> wsl --export Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar
+PS C:\Users\ユーザー名> wsl --export Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar
 エクスポートが進行中です。これには数分かかる場合があります。
 この操作を正しく終了しました。
 #+end_src
@@ -195,20 +195,10 @@ wsl --import Ubuntu-24.04 D:\wsl\Ubuntu-24.04 D:\wsl\export\Ubuntu-24.04.tar --v
 
 Ubuntu 24.04 を起動したところ、rootでのログイン状態となってしまいました。
 
-Ubuntu上に、デフォルトユーザーとしたいユーザーを作成します。
-
-#+begin_src bash
-adduser wurly
-#+end_src
-
-#+begin_src bash
-usermod -aG sudo wurly
-#+end_src
-
 "ubuntu2404" という(謎の)コマンドでデフォルトユーザーの設定ができるようです。
 
 #+begin_src 
-PS C:\Users\wurly> ubuntu2404 --help
+PS C:\Users\ユーザー名> ubuntu2404 --help
 Launches or configures a Linux distribution.
 
 Usage:
@@ -234,12 +224,14 @@ Usage:
         Print usage information and exit.
 #+end_src
 
-上記の通り予め作成したユーザーを、config --default-user で指定できるとのことです。
+上記helpの通り、予め作成したユーザーを、config --default-user で指定できるとのことです。
 
 PowerShellから実行します。
 
+"wsl --install"を実行した際に作成したユーザー名を指定します。
+
 #+begin_src bash
-ubuntu2404 config --default-user wurly
+ubuntu2404 config --default-user ユーザー名
 #+end_src
 
 これにより、再度、設定したデフォルトユーザーで起動するようになりますが、最初に下記のメッセージが表示されます。
@@ -252,7 +244,7 @@ See "man sudo_root" for details.
 "sudo ls"等、適当なコマンドでsudoを実行することで、~/.sudo_as_admin_successful が生成され、メッセージは消えます。
 
 #+begin_src 
--rw-r--r-- 1 wurly wurly    0 Mar  6 07:58 .sudo_as_admin_successful
+-rw-r--r-- 1 ユーザー名 ユーザー名    0 Mar  6 07:58 .sudo_as_admin_successful
 #+end_src
 
 * 終わりに
