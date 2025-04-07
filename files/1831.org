@@ -50,6 +50,35 @@ EOS
 私の場合Emacsのインストールが最優先です。
 これ以前にあるものは、Emacsのインストールと動作に必要なものとなっています。
 
+ - [[./?p=1821][Ubuntu 24.04(WSL) に Emacs 30.1 (with pgtk) をインストール]]
 
+** google-chrome
 
+#+begin_src 
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+sudo apt update
+sudo apt install google-chrome-stable
+#+end_src
 
+下記にてwaylandで起動する
+
+#+begin_src bash
+google-chrome --ozone-platform=wayland&
+#+end_src
+
+** ~/.authinfo
+
+.authinfo を作成(コピー)する
+
+** SSH鍵ペアの生成
+
+ - [[./?p=1707][SSH鍵ペアの生成方法]]
+
+#+begin_src bash
+ssh-keygen -t ed25519 -C "ユーザー名@マシン名"
+#+end_src
+
+** .git-credentials
+
+.git-credentials を作成(コピー)する
