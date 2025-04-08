@@ -1,0 +1,59 @@
+#+BLOG: wurly-blog
+#+POSTID: 1840
+#+ORG2BLOG:
+#+DATE: [2025-04-08 Tue 09:02]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)
+
+* 概要
+
+* 詳細
+
+#+begin_src bash
+sudo apt install fcitx5-mozc
+#+end_src
+
+
+#+begin_src bash
+export GTK_IM_MODULE=fcitx5
+export QT_IM_MODULE=fcitx5
+export XMODIFIERS=@im=fcitx5
+export INPUT_METHOD=fcitx5
+export DefaultIMModule=fcitx5
+if [ $SHLVL = 1 ] ; then
+  (fcitx5 --disable=wayland -d --verbose '*'=0 &)
+fi
+#+end_src
+
+#+begin_src 
+fcitx5-configtool
+#+end_src
+
+[[file:images/1840_01.jpg]]
+
+[[file:images/1840_02.jpg]]
+
+[[file:images/1840_03.jpg]]
+
+[[file:images/1840_04.jpg]]
+
+[[file:images/1840_05.jpg]]
+
+[[file:images/1840_06.jpg]]
+
+[[file:images/1840_07.jpg]]
+
+* 参考
+ - [[https://www.pokotenote.com/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0/2024/07/02/wslg-fcitx.html][Windows11 の WSL2 (WSLg) で 日本語入力 [2024/8/12 一部修正] - 試行錯誤を繰り返すブログ@GitHub Pages]]
+ - [[https://zenn.dev/masinc/articles/464bea11f2d47e][WSLg(Ubuntu 24.04) で 日本語を扱える環境を作る]]
+
+# images/1840_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_01.jpg
+# images/1840_02.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_02.jpg
+# images/1840_03.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_03.jpg
+# images/1840_04.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_04.jpg
+# images/1840_05.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_05.jpg
+# images/1840_06.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_06.jpg
+# images/1840_07.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_07.jpg
