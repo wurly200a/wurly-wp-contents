@@ -34,34 +34,37 @@ if [ $SHLVL = 1 ] ; then
 fi
 #+end_src
 
-* .emacs.d/init.el の設定
-
-#+begin_src emacs-lisp
-;;---- fcitx5 ----
-; you need to install "fcitx5-mozc" first
-(defun my-fcitx5-set-english ()
-  "Switch fcitx5 to English mode (input off) at Emacs startup."
-  (shell-command "fcitx5-remote -o"))
-(add-hook 'after-init-hook #'my-fcitx5-set-english)
-
-(defun my-fcitx5-indicator ()
-  "Function to return a string indicating the status of fcitx5."
-  (let ((state (string-trim (shell-command-to-string "fcitx5-remote"))))
-    (if (string= state "2")
-        "[A]"
-      "[あ]")))
-
-(setq-default mode-line-format
-              (cons '(:eval (my-fcitx5-indicator)) mode-line-format))
-#+end_src
+bashを再起動します。
 
 * キー設定
 
-** fcitx5-configtool
+** fcitx5-configtool の起動
 
 #+begin_src 
 fcitx5-configtool
 #+end_src
+
+
+[[file:images/1840_10.jpg]]
+
+[[file:images/1840_11.jpg]]
+
+[[file:images/1840_12.jpg]]
+
+[[file:images/1840_13.jpg]]
+
+[[file:images/1840_14.jpg]]
+
+[[file:images/1840_15.jpg]]
+
+[[file:images/1840_16.jpg]]
+
+[[file:images/1840_17.jpg]]
+
+[[file:images/1840_18.jpg]]
+
+[[file:images/1840_19.jpg]]
+
 
 ** Ctrl + Space の無効化
 
@@ -92,6 +95,27 @@ Addons -> Module -> Clipboard のところにあります。
 # [[file:images/1840_06.jpg]]
 
 [[file:images/1840_07.jpg]]
+
+* .emacs.d/init.el の設定
+
+#+begin_src emacs-lisp
+;;---- fcitx5 ----
+; you need to install "fcitx5-mozc" first
+(defun my-fcitx5-set-english ()
+  "Switch fcitx5 to English mode (input off) at Emacs startup."
+  (shell-command "fcitx5-remote -o"))
+(add-hook 'after-init-hook #'my-fcitx5-set-english)
+
+(defun my-fcitx5-indicator ()
+  "Function to return a string indicating the status of fcitx5."
+  (let ((state (string-trim (shell-command-to-string "fcitx5-remote"))))
+    (if (string= state "2")
+        "[A]"
+      "[あ]")))
+
+(setq-default mode-line-format
+              (cons '(:eval (my-fcitx5-indicator)) mode-line-format))
+#+end_src
 
 * 参考
  - [[https://www.pokotenote.com/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0/2024/07/02/wslg-fcitx.html][Windows11 の WSL2 (WSLg) で 日本語入力 [2024/8/12 一部修正] - 試行錯誤を繰り返すブログ@GitHub Pages]]
