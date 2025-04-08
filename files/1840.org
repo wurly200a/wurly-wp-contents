@@ -3,19 +3,25 @@
 #+ORG2BLOG:
 #+DATE: [2025-04-08 Tue 09:02]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: WSL,Ubuntu
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)
 
 * 概要
 
+以前、fcitx-mozc を使用していたのですが、IMが切り替わらなくなることがあり、emacs-mozc を使用していました。
+あらためて今回調査したところ、fcitx5-mozc を使えば、比較的安定して動作することがわかりました。(ただし、やはり不安定な部分はあります)
+
 * 詳細
+
+fcitx5-mozc をインストールします。
 
 #+begin_src bash
 sudo apt install fcitx5-mozc
 #+end_src
 
+.bashrc に下記を追記します。
 
 #+begin_src bash
 export GTK_IM_MODULE=fcitx5
@@ -28,21 +34,62 @@ if [ $SHLVL = 1 ] ; then
 fi
 #+end_src
 
+* .emacs.d/init.el の設定
+
+#+begin_src emacs-lisp
+;;---- fcitx5 ----
+; you need to install "fcitx5-mozc" first
+(defun my-fcitx5-set-english ()
+  "Switch fcitx5 to English mode (input off) at Emacs startup."
+  (shell-command "fcitx5-remote -o"))
+(add-hook 'after-init-hook #'my-fcitx5-set-english)
+
+(defun my-fcitx5-indicator ()
+  "Function to return a string indicating the status of fcitx5."
+  (let ((state (string-trim (shell-command-to-string "fcitx5-remote"))))
+    (if (string= state "2")
+        "[A]"
+      "[あ]")))
+
+(setq-default mode-line-format
+              (cons '(:eval (my-fcitx5-indicator)) mode-line-format))
+#+end_src
+
+* キー設定
+
+** fcitx5-configtool
+
 #+begin_src 
 fcitx5-configtool
 #+end_src
 
+** Ctrl + Space の無効化
+
+デフォルトの設定ではこのようになっています。
+
 [[file:images/1840_01.jpg]]
+
+削除します。
 
 [[file:images/1840_02.jpg]]
 
+削除後の状態です。
+
 [[file:images/1840_03.jpg]]
 
-[[file:images/1840_04.jpg]]
+** Control + ; の無効化
+
+Addons -> Module -> Clipboard のところにあります。
+
+# [[file:images/1840_04.jpg]]
+
+設定を開きます。
 
 [[file:images/1840_05.jpg]]
 
-[[file:images/1840_06.jpg]]
+削除します。
+
+# [[file:images/1840_06.jpg]]
 
 [[file:images/1840_07.jpg]]
 
