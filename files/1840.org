@@ -44,33 +44,45 @@ bashを再起動します。
 fcitx5-configtool
 #+end_src
 
+初期状態では下記のようになっています。
 
 [[file:images/1840_10.jpg]]
 
+右側の入力部分でmozcを検索します。
+
 [[file:images/1840_11.jpg]]
+
+mozcを選択し、「←」の部分をクリックして左側の枠に表示されるようにします。
 
 [[file:images/1840_12.jpg]]
 
+左側に表示されました。
+
 [[file:images/1840_13.jpg]]
+
+Applyします。
 
 [[file:images/1840_14.jpg]]
 
+Applyされた状態。
+
 [[file:images/1840_15.jpg]]
 
-[[file:images/1840_16.jpg]]
+** IM切替時のMethod informationの表示を無効化
 
-[[file:images/1840_17.jpg]]
+EmacsでIM切り替え時に表示がパタパタしてしまうのでこちらは非表示にします。
 
 [[file:images/1840_18.jpg]]
 
 [[file:images/1840_19.jpg]]
 
-
 ** Ctrl + Space の無効化
 
 デフォルトの設定ではこのようになっています。
 
-[[file:images/1840_01.jpg]]
+# [[file:images/1840_01.jpg]]
+
+[[file:images/1840_16.jpg]]
 
 削除します。
 
@@ -78,7 +90,10 @@ fcitx5-configtool
 
 削除後の状態です。
 
-[[file:images/1840_03.jpg]]
+# [[file:images/1840_03.jpg]]
+
+[[file:images/1840_17.jpg]]
+
 
 ** Control + ; の無効化
 
@@ -95,6 +110,11 @@ Addons -> Module -> Clipboard のところにあります。
 # [[file:images/1840_06.jpg]]
 
 [[file:images/1840_07.jpg]]
+
+
+# [[file:images/1840_17.jpg]]
+
+# [[file:images/1840_19.jpg]]
 
 * .emacs.d/init.el の設定
 
