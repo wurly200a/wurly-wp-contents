@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<!-- 2025-04-09 Wed 00:32 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)</title>
+<meta name="author" content="LT1" />
+<meta name="generator" content="Org Mode" />
+<meta name="viewport" content="width=device-width,user-scalable=no,maximum-scale=1" />
+<link rel="stylesheet" type="text/css" href="../conf/default.css" />
+</head>
+<body>
+<div id="preamble" class="status">
+
+
+<div id="ad2">
+<script type="text/javascript"><!--
+google_ad_client = "pub-6806598121310592";
+/* 728x15, 作成済み 10/01/16 */
+google_ad_slot = "9990228279";
+google_ad_width = 728;
+google_ad_height = 15;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+
+<div id="ad">
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:inline-block;width:120px;height:600px"
+     data-ad-client="ca-pub-6806598121310592"
+     data-ad-slot="4184928301"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+
+<div id="ad3">
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-format="fluid"
+     data-ad-layout="image-side"
+     data-ad-layout-key="-ff+5o+6r-jf+cf"
+     data-ad-client="ca-pub-6806598121310592"
+     data-ad-slot="8812443498"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LG15WDZF6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LG15WDZF6D');
+</script>
+
+
+<div align=right>
+作成日 : 2025-04-08 Tue 09:02<br>
+最終更新日: 2025-04-09 Wed 00:32
+</div>
+
+<div align=right>
+<a href="https://wurlyhub.com/">ホーム</a> |
+<a href="index.html">文書トップ</a> | <a href="sitemap.html">目次</a>
+</div>
+
+<div align=right>
+<form method=GET action="/cgi-bin/search/search.cgi">
+<input type=text name="keyword" value=""></input>
+<input type=submit value="検索"></input>
+</form>
+</div>
+</div>
+<div id="content" class="content">
+<h1 class="title">Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)</h1>
+<div id="outline-container-org604876f" class="outline-2">
+<h2 id="org604876f">概要</h2>
+<div class="outline-text-2" id="text-org604876f">
+<p>
+以前、fcitx-mozc を使用していたのですが、IMが切り替わらなくなることがあり、emacs-mozc を使用していました。
+あらためて今回調査したところ、fcitx5-mozc を使えば、比較的安定して動作することがわかりました。(ただし、やはり不安定な部分はあります)
+</p>
+</div>
+</div>
+<div id="outline-container-org6affe75" class="outline-2">
+<h2 id="org6affe75">詳細</h2>
+<div class="outline-text-2" id="text-org6affe75">
+<p>
+fcitx5-mozc をインストールします。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">sudo apt install fcitx5-mozc
+</pre>
+</div>
+
+<p>
+.bashrc に下記を追記します。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span style="color: #ff00ff; font-weight: bold;">export</span> <span style="color: #ffff00;">GTK_IM_MODULE</span>=fcitx5
+<span style="color: #ff00ff; font-weight: bold;">export</span> <span style="color: #ffff00;">QT_IM_MODULE</span>=fcitx5
+<span style="color: #ff00ff; font-weight: bold;">export</span> <span style="color: #ffff00;">XMODIFIERS</span>=@<span style="color: #ffff00;">im</span>=fcitx5
+<span style="color: #ff00ff; font-weight: bold;">export</span> <span style="color: #ffff00;">INPUT_METHOD</span>=fcitx5
+<span style="color: #ff00ff; font-weight: bold;">export</span> <span style="color: #ffff00;">DefaultIMModule</span>=fcitx5
+<span style="color: #4682b4;">if</span> [ $<span style="color: #ffff00;">SHLVL</span> = 1 ] ; <span style="color: #4682b4;">then</span>
+  (fcitx5 --disable=wayland -d --verbose <span style="color: #87ceeb;">'*'</span>=0 &amp;)
+<span style="color: #4682b4;">fi</span>
+</pre>
+</div>
+
+<p>
+bashを再起動します。
+</p>
+</div>
+</div>
+<div id="outline-container-org4c99df3" class="outline-2">
+<h2 id="org4c99df3">キー設定</h2>
+<div class="outline-text-2" id="text-org4c99df3">
+</div>
+<div id="outline-container-org9620ba4" class="outline-3">
+<h3 id="org9620ba4">fcitx5-configtool の起動</h3>
+<div class="outline-text-3" id="text-org9620ba4">
+<div class="org-src-container">
+<pre class="src src-nil">fcitx5-configtool
+</pre>
+</div>
+
+<p>
+初期状態では下記のようになっています。
+</p>
+
+
+<div id="orgc206ec4" class="figure">
+<p><img src="images/1840_10.jpg" alt="1840_10.jpg" />
+</p>
+</div>
+
+<p>
+右側の入力部分でmozcを検索します。
+</p>
+
+
+<div id="org6eed0fb" class="figure">
+<p><img src="images/1840_11.jpg" alt="1840_11.jpg" />
+</p>
+</div>
+
+<p>
+mozcを選択し、「←」の部分をクリックして左側の枠に表示されるようにします。
+</p>
+
+
+<div id="org25fb9bb" class="figure">
+<p><img src="images/1840_12.jpg" alt="1840_12.jpg" />
+</p>
+</div>
+
+<p>
+左側に表示されました。
+「↑」をクリックして一番上に移動します。
+</p>
+
+
+<div id="orga072ce4" class="figure">
+<p><img src="images/1840_13.jpg" alt="1840_13.jpg" />
+</p>
+</div>
+
+<p>
+Applyします。
+</p>
+
+
+<div id="orgf3fe63e" class="figure">
+<p><img src="images/1840_14.jpg" alt="1840_14.jpg" />
+</p>
+</div>
+
+<p>
+Applyされた状態。
+</p>
+
+
+<div id="org870619e" class="figure">
+<p><img src="images/1840_15.jpg" alt="1840_15.jpg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org8289220" class="outline-3">
+<h3 id="org8289220">IM切替時のMethod informationの表示を無効化</h3>
+<div class="outline-text-3" id="text-org8289220">
+<p>
+EmacsでIM切り替え時に表示がパタパタしてしまうのでこちらは非表示にします。
+</p>
+
+<p>
+デフォルトではチェックが入っています。
+</p>
+
+
+<div id="org1ee5e18" class="figure">
+<p><img src="images/1840_18.jpg" alt="1840_18.jpg" />
+</p>
+</div>
+
+<p>
+チェックを外します。
+</p>
+
+
+<div id="org0a72ae4" class="figure">
+<p><img src="images/1840_19.jpg" alt="1840_19.jpg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org91acd78" class="outline-3">
+<h3 id="org91acd78">Ctrl + Space の無効化</h3>
+<div class="outline-text-3" id="text-org91acd78">
+<p>
+デフォルトの設定ではこのようになっています。
+</p>
+
+
+<div id="orgc4d3088" class="figure">
+<p><img src="images/1840_16.jpg" alt="1840_16.jpg" />
+</p>
+</div>
+
+<p>
+削除します。
+</p>
+
+
+<div id="org553cc5a" class="figure">
+<p><img src="images/1840_02.jpg" alt="1840_02.jpg" />
+</p>
+</div>
+
+<p>
+削除後の状態です。
+</p>
+
+
+<div id="org075618a" class="figure">
+<p><img src="images/1840_17.jpg" alt="1840_17.jpg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org9df90b5" class="outline-3">
+<h3 id="org9df90b5">Control + ; の無効化</h3>
+<div class="outline-text-3" id="text-org9df90b5">
+<p>
+Addons -&gt; Module -&gt; Clipboard のところにあります。
+</p>
+
+<p>
+設定を開きます。
+</p>
+
+
+<div id="orga1e32e9" class="figure">
+<p><img src="images/1840_05.jpg" alt="1840_05.jpg" />
+</p>
+</div>
+
+<p>
+削除します。
+</p>
+
+
+<div id="org8e39080" class="figure">
+<p><img src="images/1840_07.jpg" alt="1840_07.jpg" />
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org59c229c" class="outline-2">
+<h2 id="org59c229c">.emacs.d/init.el の設定</h2>
+<div class="outline-text-2" id="text-org59c229c">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span style="color: #ffa500;">;;</span><span style="color: #ffa500;">---- fcitx5 ----</span>
+<span style="color: #ffa500;">; </span><span style="color: #ffa500;">you need to install "fcitx5-mozc" first</span>
+(<span style="color: #4682b4;">defun</span> <span style="color: #1e90ff; font-weight: bold;">my-fcitx5-set-english</span> ()
+  <span style="color: #ffa500;">"Switch fcitx5 to English mode (input off) at Emacs startup."</span>
+  (shell-command <span style="color: #87ceeb;">"fcitx5-remote -o"</span>))
+(add-hook 'after-init-hook #'my-fcitx5-set-english)
+
+(<span style="color: #4682b4;">defun</span> <span style="color: #1e90ff; font-weight: bold;">my-fcitx5-indicator</span> ()
+  <span style="color: #ffa500;">"Function to return a string indicating the status of fcitx5."</span>
+  (<span style="color: #4682b4;">let</span> ((state (string-trim (shell-command-to-string <span style="color: #87ceeb;">"fcitx5-remote"</span>))))
+    (<span style="color: #4682b4;">if</span> (string= state <span style="color: #87ceeb;">"2"</span>)
+        <span style="color: #87ceeb;">"[A]"</span>
+      <span style="color: #87ceeb;">"[&#12354;]"</span>)))
+
+(<span style="color: #4682b4;">setq-default</span> mode-line-format
+              (cons '(<span style="color: #ff00ff; font-weight: bold;">:eval</span> (my-fcitx5-indicator)) mode-line-format))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbeef523" class="outline-2">
+<h2 id="orgbeef523">参考</h2>
+<div class="outline-text-2" id="text-orgbeef523">
+<ul class="org-ul">
+<li><a href="https://www.pokotenote.com/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0/2024/07/02/wslg-fcitx.html">Windows11 の WSL2 (WSLg) で 日本語入力 [2024/8/12 一部修正] - 試行錯誤を繰り返すブログ@GitHub Pages</a></li>
+<li><a href="https://zenn.dev/masinc/articles/464bea11f2d47e">WSLg(Ubuntu 24.04) で 日本語を扱える環境を作る</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+
+<div align=right>
+<a href="https://wurlyhub.com/">ホーム</a> |
+<a href="index.html">文書トップ</a> | <a href="sitemap.html">目次</a>
+</div>
+
+<div align=right>
+Created by <a href="https://www.gnu.org/software/emacs/">Emacs</a> 30.1 (<a href="https://orgmode.org">Org</a> mode 9.7.11)
+</div>
+</div>
+</body>
+</html>
