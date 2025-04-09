@@ -205,3 +205,12 @@ apt実行時に 「Which services should be restarted?」のようなことを�
 # images/1011_08.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_08.jpg
 
 # images/1011_09.jpg http://cha.la.coocan.jp/wp/wp-content/uploads/2024/01/1011_09.jpg
+
+# ./images/1011_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_01.jpg
+# ./images/1011_02.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_02.jpg
+# ./images/1011_03.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_03.jpg
+# ./images/1011_04.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_04.jpg
+# ./images/1011_05.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_05.jpg
+# ./images/1011_08.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_08.jpg
+# ./images/1011_07.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_07.jpg
+# ./images/1011_09.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1011_09.jpg
