@@ -1,0 +1,86 @@
+#+BLOG: wurly-blog
+#+POSTID: 1873
+#+ORG2BLOG:
+#+DATE: [2025-04-12 Sat 11:26]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Docker, WSL, Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 24.04 (WSL) に Dockerをインストール
+
+* はじめに
+
+Ubuntu 22.04 では [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]] のように行いましたが、24.04 にインストールするにあたって再度、公式手順に従って行いました。
+
+* 公式
+
+ - [[https://docs.docker.com/engine/install/ubuntu/][Ubuntu | Docker Docs]]
+
+* 実際に行った内容
+
+** インストール
+
+#+begin_src bash
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+#+end_src
+
+下記は、ディレクトリは既に存在しているため、省略しました。
+
+#+begin_src bsh
+sudo install -m 0755 -d /etc/apt/keyrings
+#+end_src
+
+#+begin_src bash
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+#+end_src
+
+#+begin_src bash
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+#+end_src
+
+#+begin_src bash
+sudo apt-get update
+#+end_src
+
+#+begin_src bash
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+#+end_src
+
+** 確認
+
+#+begin_src bash
+$ sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/usr/lib/systemd/system/docker.service; enabled; preset: enabled)
+     Active: active (running) since Sat 2025-04-12 11:34:29 JST; 15s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 6930 (dockerd)
+      Tasks: 12
+     Memory: 25.3M ()
+     CGroup: /system.slice/docker.service
+             └─6930 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.639850004+09:00" level=warning msg="WARNING: No blkio throttle.read_>Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.639908632+09:00" level=warning msg="WARNING: No blkio throttle.write>Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.639918208+09:00" level=warning msg="WARNING: No blkio throttle.read_>Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.639923546+09:00" level=warning msg="WARNING: No blkio throttle.write>Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.639943459+09:00" level=info msg="Docker daemon" commit=6430e49 conta>Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.640095518+09:00" level=info msg="Initializing buildkit"
+Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.755188621+09:00" level=info msg="Completed buildkit initialization"
+Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.758161450+09:00" level=info msg="Daemon has completed initialization"Apr 12 11:34:29 LT1 dockerd[6930]: time="2025-04-12T11:34:29.758267415+09:00" level=info msg="API listen on /run/docker.sock"
+Apr 12 11:34:29 LT1 systemd[1]: Started docker.service - Docker Application Container Engine.
+#+end_src
+
+dockerグループにユーザを追加します。
+
+#+begin_src 
+$ sudo usermod -a -G docker ${USER}
+#+end_src
+
+docker container ls コマンドを実行して、下記のメッセージが出るようであれば、OS(WSL)を再起動します。
+
+#+begin_src 
+$ docker container ls
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.46/containers/json": dial unix /var/run/docker.sock: connect: permission denied
+#+end_src
