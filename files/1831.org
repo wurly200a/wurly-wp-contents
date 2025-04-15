@@ -45,6 +45,10 @@ cat << 'EOS' | sudo tee /etc/fonts/local.conf
 EOS
 #+end_src
 
+** Waylandの設定
+
+ - [[./?p=1878][Wayland で 最小化ボタンと全画面ボタンを表示する (gnome-tweaks)]]
+
 ** Emacs
 
 私の場合Emacsのインストールが最優先です。
@@ -82,3 +86,36 @@ ssh-keygen -t ed25519 -C "ユーザー名@マシン名"
 ** .git-credentials
 
 .git-credentials を作成(コピー)する
+
+** Docker
+ - [[./?p=358][Ubuntu 22.04 (WSL) に Dockerをインストール]]
+
+** Devcontainer
+
+#+begin_src bash
+npm install -g @devcontainers/cli
+#+end_src
+
+** Rust
+ - [[./?p=777][EmacsによるRust開発環境構築]]
+
+** Repo
+
+#+begin_src bash
+sudo apt install repo
+#+end_src
+
+** git-lfs
+
+#+begin_src bash
+sudo apt install git-lfs
+#+end_src
+
+** ripgrep(rg)
+ - [[./?p=1740][ripgrep]]
+
+** sharkdp/fd (fd-find)
+ - [[./?p=1747][sharkdp/fd (fd-find)]]
+
+** ccls
+ - [[./?p=1675][C/C++ で Emacs lsp-mode (ccls)]]
