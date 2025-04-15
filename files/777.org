@@ -132,6 +132,7 @@ https://rust-analyzer.github.io/manual.html#rust-analyzer-language-server-binary
 上記を参考に rust-analyzer をインストールしました。
 
 #+begin_src bash
+mkdir -p ~/bin
 curl -L https://github.com/rust-lang/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz | gunzip -c - > ~/bin/rust-analyzer
 chmod +x ~/bin/rust-analyzer
 #+end_src
@@ -158,7 +159,7 @@ chmod +x ~/bin/rust-analyzer
 
 * 使い方
 
-Cargo Minode mode (cargo) の説明には下記が記載されている。
+Cargo Minor mode (cargo) の説明には下記が記載されている。
 
 #+begin_src 
 Cargo Minor mode.
