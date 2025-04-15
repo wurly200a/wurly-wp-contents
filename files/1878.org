@@ -1,0 +1,35 @@
+#+BLOG: wurly-blog
+#+POSTID: 1878
+#+ORG2BLOG:
+#+DATE: [2025-04-15 Tue 08:55]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Wayland で 最小化ボタンと全画面ボタンを表示する (gnome-tweaks)
+
+* Emacsの例
+
+X Window Systemの場合には、下記のようなウィンドウ(フレーム)でした。
+
+file:images/925_01.jpg
+
+Waylandでは少し違っており、最小化、最大化のボタンがなく、クローズボタンのみ左側にあります。
+なお、Ubuntu22.04の場合は左側でしたが、Ubuntu24.04 では右側にありました。
+
+file:images/925_02.jpg
+
+* gnome-tweaks
+
+上記は、gnome-tweaks の設定によって下記のように変更することができます。
+
+gnome-tweaks は apt install gnome-tweaks でインストールできます。
+
+file:images/925_03.jpg
+
+file:images/925_04.jpg
+
+# images/925_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/925_01.jpg
+# images/925_02.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/925_02.jpg
+# images/925_03.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/925_03.jpg
+# images/925_04.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/925_04.jpg
