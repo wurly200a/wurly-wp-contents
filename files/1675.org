@@ -35,24 +35,46 @@ ccls/jammy 0.20210330-1 amd64
 sudo apt install clang libclang-dev zlib1g-dev libncurses-dev rapidjson-dev
 #+end_src
 
-インストールされたclangのバージョンを確認します。私の環境(Ubuntu 22.04)ではllvm-14でした。
+インストールされたclangのバージョンを確認します。
+
+私の環境(Ubuntu 22.04)ではllvm-14でした。
 
 #+begin_src bash
 $ ls /usr/lib/ | grep llvm
 llvm-14
 #+end_src
 
+私の環境(Ubuntu 24.04)ではllvm-18でした。
+
+#+begin_src bash
+$ ls /usr/lib/ | grep llvm
+llvm-18
+#+end_src
+
 ソースをクローンします。
 
 #+begin_src bash
-git clone --recursive https://github.com/MaskRay/ccls
+git clone https://github.com/MaskRay/ccls
+cd ccls
+git checkout 0.20241108
+git submodule update --init
 #+end_src
 
 ビルドします。前述の通り確認したバージョンを指定します。
 
+Ubuntu 22.04でllvm-14を指定する場合
+
 #+begin_src bash
 cd ccls
 cmake -S. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/lib/llvm-14
+cmake --build Release
+#+end_src
+
+Ubuntu 24.04でllvm-18を指定する場合
+
+#+begin_src bash
+cd ccls
+cmake -S. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/lib/llvm-18
 cmake --build Release
 #+end_src
 
