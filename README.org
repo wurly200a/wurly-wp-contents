@@ -1,6 +1,8 @@
 #+TITLE: Article Index
 
- - [[file:files/1840.org][1840]]  [2025-04-08 Tue 09:02]  Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)  []
+ - [[file:files/1878.org][1878]]  [2025-04-15 Tue 08:55]  Wayland で 最小化ボタンと全画面ボタンを表示する (gnome-tweaks)  [Ubuntu]
+ - [[file:files/1873.org][1873]]  [2025-04-12 Sat 11:26]  Ubuntu 24.04 (WSL) に Dockerをインストール  [Docker,WSL,Ubuntu]
+ - [[file:files/1840.org][1840]]  [2025-04-08 Tue 09:02]  Ubuntu 日本語 Input Method の設定 (fcitx5-mozc)  [WSL,Ubuntu]
  - [[file:files/1834.org][1834]]  [2025-04-06 Sun 14:04]  Ubuntu 24.04 (WSL) で Emacs が Wayland で動作しない  [Emacs]
  - [[file:files/1831.org][1831]]  [2025-04-05 Sat 18:50]  Ubuntu 24.04(WSL) のセットアップまとめ  []
  - [[file:files/1828.org][1828]]  [2025-04-04 Fri 23:53]  Ubuntu 24.04(WSL) に Emacs 30.1 (without pgtk) をインストール  []
