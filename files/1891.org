@@ -3,28 +3,177 @@
 #+ORG2BLOG:
 #+DATE: [2025-04-20 Sun 10:48]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: AI, Emacs
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: OpenAI Codex CLIを使ってみる
+#+TITLE: OpenAI Codex CLIを使ってみた：Emacs VtermでTETRISの作成
 
-「TETRISを作成したい」
+
+* はじめに
+
+ - [[https://gigazine.net/news/20250417-openai-codex-cli/][OpenAIがオープンソースのコーディングツール「Codex CLI」をリリース - GIGAZINE]]
+
+Clineなどのコーディングエージェントツールを使ってみたかったのですが、私は普段Visial Studio Codeベースで開発を行っていないので、導入がしづらい状況でした。
+
+また、コーディングエージェントツールはAPIの従量課金となるため、その部分も私にとってハードルがありました。
+
+公式手順を参考に、普段開発に使っている環境(Emacs上のVterm)にて、定番のTETRISを作成してみます。
+作業量に対してどのくらい課金されるかという感覚もわかっていないので、そのあたりも見てみます。
+
+* 実行環境
+ - Ubuntu 24.04 (Windows11 WSL)
+ - Emacs 30.1
+ - Vterm
+
+* 実行イメージと生成結果
+
+file:images/1891_00.jpg
+
+file:images/1891_15.jpg
+
+* 公式
+
+** Help
+ - [[https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started][OpenAI Codex CLI – Getting Started | OpenAI Help Center]]
+
+** GitHubリポジトリ
+- [[https://github.com/openai/codex][openai/codex: Lightweight coding agent that runs in your terminal]]
+
+* インストール
+
+https://github.com/openai/codex?tab=readme-ov-file#installation に記載されており、"From npm" と "Build from source" がありますが、最初はnpmでやってみます。
+
+#+begin_src bash
+$ sudo npm install -g @openai/codex
+#+end_src
+
+* 設定
+
+https://github.com/openai/codex?tab=readme-ov-file#configuration の通りに行います。
+
+~/.codex/config.yaml を作成します。
+
+ここでは o4-miniを使います。fullAutoErrorMode: ask-user を指定し、ユーザー尋ねるようにします。
+
+#+begin_src yaml
+# ~/.codex/config.yaml
+model: o4-mini # Default model
+fullAutoErrorMode: ask-user # or ignore-and-continue
+notify: true # Enable desktop notifications for responses
+#+end_src
+
+必須ではないですが、~/.codex/instructions.md も作成しておきます。
+絵文字を使うようにし、gitコマンドは明示的に伝えない限り実行されないようにします。
+
+#+begin_src yaml
+# ~/.codex/instructions.md
+- Always respond with emojis
+- Only use git commands if I explicitly mention you should
+#+end_src
+
+* API keyの確認
+
+API key が設定されていないと下記のように表示されます。
+
+#+begin_src bash
+$ codex
+
+Missing OpenAI API key.
+
+Set the environment variable OPENAI_API_KEY and re-run this command.
+You can create a key here: https://platform.openai.com/account/api-keys
+#+end_src
+
+下記のように API key を指定します。
+
+#+begin_src bash
+export OPENAI_API_KEY=your-api-key-here
+#+end_src
+
+API keyが指定されていても、OpenAI Platform のアカウントが検証済でないと "Warning: model "o4-mini" is not in the list of available models returned by OpenAI." と表示され、使用可能とならないようです。
+その場合は、OpenAI Platformのアカウントの方を適切に処理します。
+
+
+#+begin_src bash
+$ codex
+╭──────────────────────────────────────────────────────────────╮
+│ ● OpenAI Codex (research preview) v0.1.2504172351            │
+╰──────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────╮
+│ localhost session:                                           │
+│ ↳ workdir: ~/project/codex-trial                             │
+│ ↳ model: o4-mini                                             │
+│ ↳ approval: suggest                                          │
+╰──────────────────────────────────────────────────────────────╯
+
+    system
+    Warning: model "o4-mini" is not in the list of available models returned by OpenAI.
+#+end_src
+
+** プロジェクトの確認
+
+適当なディレクトリを作成し、codexを実行してみます。
+
+#+begin_src bash
+$ mkdir codex-trial
+$ cd codex-trial/
+#+end_src
+
+#+begin_src bash
+$ codex
+#+end_src
+
+gitリポジトリをプロジェクトとしてみなすようです。
+gitリポジトリでない場合には、これ以外の範囲に影響を及ぼす可能性があるため警告が表示されます。
+
+
+#+begin_src bash
+$ codex
+╭──────────────────────────────────────────────────────────────╮
+│ ● OpenAI Codex (research preview) v0.1.2504172351            │
+╰──────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│Warning! It can be dangerous to run a coding agent outside of a git repo in case there are changes that you want to revert. Do you want │
+│to continue?                                                                                                                            │
+│                                                                                                                                        │
+│/home/wurly/project_trial/codex-trial                                                                                                   │
+│                                                                                                                                        │
+│y/N                                                                                                                                     │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+#+end_src
+
+ここでは、git init を実行してgitリポジトリを作成します。.git ディレクトリが作成されていることを確認します。
+
+#+begin_src bash
+git init
+#+end_src
+* お試し実行(TETRISを作成)
+
+** 最初のインプット
+
+入力フィールドに「TETRISを作成したい」と入力します。
 
 file:images/1891_01.jpg
 
-thinking
+thinking になります。
 
 file:images/1891_02.jpg
+
+** 質問に対して回答
+
+プロジェクトの設計方針について尋ねられるので、下記のように入力します。
 
 「Python(Pygames)、GUIでお願いします。」
 
 file:images/1891_03.jpg
 
-thinking
+thinking になります。何度か同様に試してみましたが、数10秒でおわることもありますし、3分くらいかかることもありました。
+
+** 実行コマンドの表示
 
 file:images/1891_04.jpg
 
-Planning Tetris in Python
+"Planning Tetris in Python", "Creating Tetris Code Structure", "Finalizeing Tetris Code Comments" 等が英語で示され、その後に実行されるコマンドが表示されます。
 
 file:images/1891_05.jpg
 
@@ -36,62 +185,74 @@ file:images/1891_06.jpg
 
 (中略)
 
-Allow command?
+"Allow command?"と、上記のコマンドを実行するか尋ねられます。
 
 file:images/1891_07.jpg
 
-Explain this command (x)
+** コマンド説明
+
+ここで、Explain this command (x) を選択すると、コマンドについて解説されます。
 
 file:images/1891_08.jpg
 
-Yes(y)
+Yes(y) を選択して、ソースコードを作成します。元のファイルはないですが、apply patch によって作成されるようです。
 
 Done!
 
-(can you allow) chmod +x tetrys.py
+"chmod +x tetrys.py" の実行を許可します。
 
 file:images/1891_09.jpg
 
-現在の環境に直接 "pip install pygame" は行いたくないので、一旦Abort
+** 中断
+
+ここで、"pip install"を実行する流れになったのですが(キャプチャ無し)、現在の環境に直接 "pip install pygame" は行いたくないので、一旦Abortしました。
 
 file:images/1891_10.jpg
 
-現在の環境に直接 "pip install pygame" は行いたくないので、venvで仮想環境を作成して実行したい
+** 仮想環境の作成を指示
+
+「現在の環境に直接 "pip install pygame" は行いたくないので、venvで仮想環境を作成して実行したい」と要望しました。
 
 file:images/1891_11.jpg
 
-requirements.txt
+requirements.txt が作成されます。
 
 file:images/1891_12.jpg
 
-README.md
+README.md が作成されます。
 
 file:images/1891_13.jpg
 
-READMEとrequirements.txtを追加しました
+READMEとrequirements.txtを追加を許可します。
 
 file:images/1891_14.jpg
 
-実行
+** 作成されたプログラムの実行
+
+#+begin_src bash
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ pip install -r requirements.txt 
+$ python tetris.py 
+#+end_src
+
+上記に示されたとおり、下記コマンドにて実行してみます。
+
+実行エラーになることもなく、遊べました。
+ちゃんとスコアも更新されました。
 
 file:images/1891_15.jpg
 
-#+begin_src bash
-~/project_trial/codex-trial$ python3 -m venv venv
-~/project_trial/codex-trial$ source venv/bin/activate
-(venv) ~/project_trial/codex-trial$ pip install -r requirements.txt 
-Collecting pygame>=2.0.0 (from -r requirements.txt (line 1))
-  Using cached pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (12 kB)
-Using cached pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (14.0 MB)
-Installing collected packages: pygame
-Successfully installed pygame-2.6.1
-(venv) ~/project_trial/codex-trial$ python tetris.py 
-pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-#+end_src
+* 課金
 
+OpenAI Platform の Usage で確認した限り、上記の一連の作業において、約$0.1(15円くらい) かかるようでした。
+なんとなく、感覚がつかめました。
 
+* おわりに
 
+CLIということで開発環境への依存性がが低く、さらにはOSSということでツールとの連携も期待されます。
+
+個人的には、現在のメインの開発環境(Emacs)でAIコーディングエージェントツールが使えるようになり、かなり嬉しいです。
 
 
 # images/1891_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_01.jpg
@@ -109,3 +270,5 @@ Hello from the pygame community. https://www.pygame.org/contribute.html
 # images/1891_13.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_13.jpg
 # images/1891_14.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_14.jpg
 # images/1891_15.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_15.jpg
+
+# images/1891_00.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_00.jpg
