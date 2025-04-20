@@ -1,0 +1,111 @@
+#+BLOG: wurly-blog
+#+POSTID: 1891
+#+ORG2BLOG:
+#+DATE: [2025-04-20 Sun 10:48]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: OpenAI Codex CLIを使ってみる
+
+「TETRISを作成したい」
+
+file:images/1891_01.jpg
+
+thinking
+
+file:images/1891_02.jpg
+
+「Python(Pygames)、GUIでお願いします。」
+
+file:images/1891_03.jpg
+
+thinking
+
+file:images/1891_04.jpg
+
+Planning Tetris in Python
+
+file:images/1891_05.jpg
+
+(中略)
+
+Shell Command
+
+file:images/1891_06.jpg
+
+(中略)
+
+Allow command?
+
+file:images/1891_07.jpg
+
+Explain this command (x)
+
+file:images/1891_08.jpg
+
+Yes(y)
+
+Done!
+
+(can you allow) chmod +x tetrys.py
+
+file:images/1891_09.jpg
+
+現在の環境に直接 "pip install pygame" は行いたくないので、一旦Abort
+
+file:images/1891_10.jpg
+
+現在の環境に直接 "pip install pygame" は行いたくないので、venvで仮想環境を作成して実行したい
+
+file:images/1891_11.jpg
+
+requirements.txt
+
+file:images/1891_12.jpg
+
+README.md
+
+file:images/1891_13.jpg
+
+READMEとrequirements.txtを追加しました
+
+file:images/1891_14.jpg
+
+実行
+
+file:images/1891_15.jpg
+
+#+begin_src bash
+~/project_trial/codex-trial$ python3 -m venv venv
+~/project_trial/codex-trial$ source venv/bin/activate
+(venv) ~/project_trial/codex-trial$ pip install -r requirements.txt 
+Collecting pygame>=2.0.0 (from -r requirements.txt (line 1))
+  Using cached pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (12 kB)
+Using cached pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (14.0 MB)
+Installing collected packages: pygame
+Successfully installed pygame-2.6.1
+(venv) ~/project_trial/codex-trial$ python tetris.py 
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+#+end_src
+
+
+
+
+
+# images/1891_01.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_01.jpg
+# images/1891_02.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_02.jpg
+# images/1891_03.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_03.jpg
+# images/1891_04.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_04.jpg
+# images/1891_05.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_05.jpg
+# images/1891_06.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_06.jpg
+# images/1891_07.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_07.jpg
+# images/1891_08.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_08.jpg
+# images/1891_09.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_09.jpg
+# images/1891_10.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_10.jpg
+# images/1891_11.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_11.jpg
+# images/1891_12.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_12.jpg
+# images/1891_13.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_13.jpg
+# images/1891_14.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_14.jpg
+# images/1891_15.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1891_15.jpg
