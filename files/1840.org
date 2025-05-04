@@ -13,6 +13,27 @@
 以前、fcitx-mozc を使用していたのですが、IMが切り替わらなくなることがあり、emacs-mozc を使用していました。
 あらためて今回調査したところ、fcitx5-mozc を使えば、比較的安定して動作することがわかりました。(ただし、やはり不安定な部分はあります)
 
+* ibus-mozc, emacs-mozc のアンインストール
+
+他のIMをインストールしていた場合はアンインストールします。
+
+#+begin_src bash
+$ sudo apt list --installed | grep mozc
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+emacs-mozc-bin/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed,automatic]
+emacs-mozc/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed]
+ibus-mozc/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed]
+mozc-data/jammy,jammy,now 2.26.4220.100+dfsg-5.2 all [installed]
+mozc-server/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed]
+#+end_src
+
+#+begin_src bash
+$ sudo apt remove ibus-mozc
+$ sudo apt remove emacs-mozc
+#+end_src
+
 * 詳細
 
 fcitx5-mozc をインストールします。
@@ -140,6 +161,69 @@ Addons -> Module -> Clipboard のところにあります。
 
 (setq-default mode-line-format
               (cons '(:eval (my-fcitx5-indicator)) mode-line-format))
+#+end_src
+
+* Ubuntu nativeでの設定
+
+上記は、WSLで行った内容ですが、Ubuntu native環境だと他にも設定を行う必要があることに気づきました。
+
+まず、im-config を fcitx5に設定します。
+
+引数なしでim-configを実行すると下記のように表示されていました。
+
+#+begin_src 
+sudo im-config
+#+end_src
+
+fcitx5を指定します。
+
+#+begin_src bash
+im-config -n fcitx5
+#+end_src
+
+[[file:images/1840_20.png]]
+
+キーボードが "Keyboard - English(US)" となっているので、私の環境で使用している "Keyboard - Japanese" を追加します。
+
+[[file:images/1840_21.png]]
+
+[[file:images/1840_22.png]]
+
+[[file:images/1840_23.png]]
+
+[[file:images/1840_24.png]]
+
+"Your currently configured input method does not match your layout"と言われるのですが、Yesとしました。
+
+[[file:images/1840_25.png]]
+
+なお、frontend が入っていないとアプリケーションによって日本語入力ができない、というような状況になりえます。
+不足していればインストールします。
+私の環境ではfcitx関連で下記がインストールされており、問題ないようでした。
+
+#+begin_src bash
+$ sudo apt list --installed | grep fcitx
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+fcitx-mozc-data/jammy,jammy,now 2.26.4220.100+dfsg-5.2 all [installed,automatic]
+fcitx5-config-qt/jammy,now 5.0.11-1 amd64 [installed,automatic]
+fcitx5-data/jammy,jammy,now 5.0.14-1 all [installed,automatic]
+fcitx5-frontend-gtk3/jammy,now 5.0.12-1 amd64 [installed,automatic]
+fcitx5-frontend-gtk4/jammy,now 5.0.12-1 amd64 [installed,automatic]
+fcitx5-frontend-qt5/jammy,now 5.0.10-1build1 amd64 [installed,automatic]
+fcitx5-module-emoji/jammy,now 5.0.14-1 amd64 [installed,automatic]
+fcitx5-module-quickphrase/jammy,now 5.0.14-1 amd64 [installed,automatic]
+fcitx5-module-wayland/jammy,now 5.0.14-1 amd64 [installed,automatic]
+fcitx5-module-xorg/jammy,now 5.0.14-1 amd64 [installed,automatic]
+fcitx5-modules/jammy,now 5.0.14-1 amd64 [installed,automatic]
+fcitx5-mozc/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed]
+fcitx5/jammy,now 5.0.14-1 amd64 [installed,automatic]
+libfcitx5-qt-data/jammy,jammy,now 5.0.10-1build1 all [installed,automatic]
+libfcitx5-qt1/jammy,now 5.0.10-1build1 amd64 [installed,automatic]
+libfcitx5config6/jammy,now 5.0.14-1 amd64 [installed,automatic]
+libfcitx5core7/jammy,now 5.0.14-1 amd64 [installed,automatic]
+libfcitx5gclient2/jammy,now 5.0.12-1 amd64 [installed,automatic]
+libfcitx5utils2/jammy,now 5.0.14-1 amd64 [installed,automatic]
 #+end_src
 
 * 参考
