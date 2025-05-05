@@ -1,0 +1,150 @@
+#+BLOG: wurly-blog
+#+POSTID: 1924
+#+ORG2BLOG:
+#+DATE: [2025-05-04 Sun 12:51]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Raspberry Pi3B + Pi Camera V2.1 で人物検知
+
+* 準備
+
+imx219が認識されていることを確認
+
+#+begin_src bash
+[    0.078042] /soc/csi@7e801000: Fixed dependency cycle(s) with /soc/i2c0mux/i2c@1/imx219@10
+[    0.078123] /soc/i2c0mux/i2c@1/imx219@10: Fixed dependency cycle(s) with /soc/csi@7e801000
+#+end_src
+
+full-upgradeする
+
+#+begin_src bash
+$ sudo apt udpate
+$ sudo apt full-upgrade
+#+end_src
+
+* libcamera-hello
+
+このまま libcamera-hello が実行できました。
+
+#+begin_src bash
+$ libcamera-hello
+#+end_src
+
+* Python picamera2 を使ったPreview
+
+#+begin_src python
+import time
+from picamera2 import Picamera2, Preview
+
+picam2 = Picamera2()
+picam2.start_preview(Preview.DRM)
+picam2.start()
+
+time.sleep(30)
+
+picam2.stop_preview()
+picam2.stop()
+#+end_src
+
+下記のメッセージが表示され、プレビューが表示されません。
+
+#+begin_src bash
+$ python3 preview.py 
+[0:17:04.530956848] [2006]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
+[0:17:04.588985200] [2009]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[0:17:04.594611024] [2009]  INFO RPI vc4.cpp:447 Registered camera /base/soc/i2c0mux/i2c@1/imx219@10 to Unicam device /dev/media2 and ISP device /dev/media0
+[0:17:04.594944703] [2009]  INFO RPI pipeline_base.cpp:1121 Using configuration file '/usr/share/libcamera/pipeline/rpi/vc4/rpi_apps.yaml'
+[0:17:04.627762047] [2006]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-XBGR8888 (1) 640x480-SBGGR10_CSI2P
+[0:17:04.628871515] [2009]  INFO RPI vc4.cpp:622 Sensor: /base/soc/i2c0mux/i2c@1/imx219@10 - Selected sensor format: 640x480-SBGGR10_1X10 - Selected unicam format: 640x480-pBAA
+commit failed
+commit failed
+#+end_src
+
+Ctrl + Alt + F1 で tty1 に切り替えた環境で実行することで、プレビューが表示されました。
+
+* 人物検知 (haarcascades)
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y python3-opencv
+#+end_src
+
+https://github.com/opencv/opencv/blob/master/data/haarcascades/haarcascade_fullbody.xml からxmlファイルをダウンロードし、下記が実行できました。
+(こちらはtty1からは実行できず、GUI環境から実行できました。)
+
+#+begin_src bash
+#!/usr/bin/env python3
+import time
+import cv2
+from picamera2 import Picamera2
+
+def main():
+    # ① Picamera2 のセットアップ
+    picam2 = Picamera2()
+    config = picam2.create_preview_configuration(
+        main={"size": (640, 480)},
+        lores={"size": (160, 120)},
+        display="main"
+    )
+    picam2.configure(config)
+    picam2.start()
+
+    # ② Haar Cascade の読み込み（全身用）
+#    cascade_path = cv2.data.haarcascades + "haarcascade_fullbody.xml"
+#    body_cascade = cv2.CascadeClassifier(cascade_path)
+    cascade_path = "./haarcascade_fullbody.xml"
+    body_cascade = cv2.CascadeClassifier(cascade_path)
+
+
+    cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+
+    try:
+        while True:
+            # ③ フレーム取得（NumPy 配列）
+            frame = picam2.capture_array("main")      # BGR8888 の ndarray
+
+            # ④ グレースケール変換＆検知
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            bodies = body_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=3,
+                minSize=(60, 60)
+            )
+
+            # ⑤ 検知結果を描画
+            for (x, y, w, h) in bodies:
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
+
+            # ⑥ ウィンドウ表示
+            cv2.imshow("Detection", frame)
+            # Esc キーで終了
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+
+    finally:
+        picam2.stop()
+        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
+#+end_src
+
+なお、仮想環境を作成して実行する場合は、下記のようにします。
+
+[[https://forums.raspberrypi.com/viewtopic.php?t=367558][How to install picamera2 - Raspberry Pi Forums]]
+
+#+begin_src bash
+python -m venv --system-site-packages venv
+. venv/bin/activate
+#+end_src
+
+
+* 人物検知 (tflite)
+
+#+begin_src bash
+pip3 install tflite-runtime
+#+end_src
