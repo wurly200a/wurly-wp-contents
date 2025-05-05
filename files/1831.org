@@ -119,3 +119,7 @@ sudo apt install git-lfs
 
 ** ccls
  - [[./?p=1675][C/C++ で Emacs lsp-mode (ccls)]]
+
+** Go
+ - [[./?p=1722][Ubuntu 22.04 に Go(golang) をインストール]]
+ - [[./?p=1751][Go(golang) で Emacs lsp-mode]]
