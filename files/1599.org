@@ -79,6 +79,14 @@ docker ps でコンテナのIDを取得し(下記の例ではa66888630fb0)、フ
 /docker:ユーザ名@a66888630fb0:
 #+end_src
 
+* その他
+
+キャッシュを使わずに再ビルドする場合
+
+#+begin_src bash
+devcontainer build --workspace-folder . --no-cache
+#+end_src
+
 * おわりに
 
 このように、EmacsでもDevcontainerが使えます！
