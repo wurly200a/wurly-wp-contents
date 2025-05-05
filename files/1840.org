@@ -248,3 +248,10 @@ libfcitx5utils2/jammy,now 5.0.14-1 amd64 [installed,automatic]
 # images/1840_19.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_19.jpg
 # images/1840_16.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_16.jpg
 # images/1840_17.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/04/1840_17.jpg
+
+# images/1840_20.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_20.png
+# images/1840_21.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_21.png
+# images/1840_22.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_22.png
+# images/1840_23.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_23.png
+# images/1840_24.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_24.png
+# images/1840_25.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_25.png
