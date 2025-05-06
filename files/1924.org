@@ -3,36 +3,77 @@
 #+ORG2BLOG:
 #+DATE: [2025-05-04 Sun 12:51]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: AI, RaspberryPi, Python
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Raspberry Pi3B + Pi Camera V2.1 で人物検知
+#+TITLE: Raspberry Pi3B + Pi Camera V2.1 で物体検出
+
+* はじめに
+
+Raspberry Pi3B + Pi Camera V2.1 で物体検知をしてみます。
+
+主な手順やソースコードは ChatGPT(o4-min-highモデル)によるもので、そのまま実行できなかった部分を調整して実施しています。
+
+* ハードウェア
+
+Raspberry Pi3B はだいぶ前に購入したもので、Cameraは今回新たに購入しました。(Amazonにて3,180円)
+
+[[file:images/1924_11.jpg]]
+
+カメラを固定しないと作業がしづらいので、少し雑ですが、タッパー容器を加工してケースにしました。
+
+[[file:images/1924_14.jpg]]
+
+[[file:images/1924_12.jpg]]
+
+[[file:images/1924_13.jpg]]
 
 * 準備
 
-imx219が認識されていることを確認
+** 接続確認
+
+Pi Camera V2.1(imx219)が認識されていることを確認します。
+
+#+begin_src bash
+$ sudo dmesg | grep imx
+#+end_src
 
 #+begin_src bash
 [    0.078042] /soc/csi@7e801000: Fixed dependency cycle(s) with /soc/i2c0mux/i2c@1/imx219@10
 [    0.078123] /soc/i2c0mux/i2c@1/imx219@10: Fixed dependency cycle(s) with /soc/csi@7e801000
 #+end_src
 
-full-upgradeする
+** full-upgrade
+
+full-upgradeします。(しばらく時間がかかります)
 
 #+begin_src bash
 $ sudo apt udpate
 $ sudo apt full-upgrade
 #+end_src
 
+** python3-opencv
+
+python3-opencv をインストールします。
+
+#+begin_src bash
+sudo apt update
+sudo apt install -y python3-opencv
+#+end_src
+
 * libcamera-hello
 
-このまま libcamera-hello が実行できました。
+libcamera-hello を実行してカメラの画像が確認できました。
 
 #+begin_src bash
 $ libcamera-hello
 #+end_src
 
+[[file:images/1924_08.png]]
+
 * Python picamera2 を使ったPreview
+
+下記のプログラムにてPreviewを試しました。
 
 #+begin_src python
 import time
@@ -62,26 +103,44 @@ commit failed
 commit failed
 #+end_src
 
-Ctrl + Alt + F1 で tty1 に切り替えた環境で実行することで、プレビューが表示されました。
+Ctrl + Alt + F1 で tty(tty1) に切り替えた環境で実行することで、プレビューが表示されました。
+
+[[file:images/1924_09.png]]
+
+* Python仮想環境
+
+このあとの作業で、OSの環境に直接pipインストールしたくない場合には、Pythonの仮想環境を作成して実行します。
+ただし、下記のように作成すると、cv2 が無いというエラー (ModuleNotFoundError: No module named 'cv2') が発生します。
+
+#+begin_src bash
+python -m venv venv
+#+end_src
+
+--system-site-packages を指定して仮想環境を作成します。
+
+#+begin_src bash
+python -m venv --system-site-packages venv
+. venv/bin/activate
+#+end_src
+
+(参考)
+
+[[https://forums.raspberrypi.com/viewtopic.php?t=367558][How to install picamera2 - Raspberry Pi Forums]]
+
 
 * 人物検知 (haarcascades)
 
-#+begin_src bash
-sudo apt update
-sudo apt install -y python3-opencv
-#+end_src
+** ソースコード
 
-https://github.com/opencv/opencv/blob/master/data/haarcascades/haarcascade_fullbody.xml からxmlファイルをダウンロードし、下記が実行できました。
-(こちらはtty1からは実行できず、GUI環境から実行できました。)
+https://github.com/opencv/opencv/blob/master/data/haarcascades/haarcascade_fullbody.xml からxmlファイルをダウンロードし、下記プログラムを実行しました。
 
-#+begin_src bash
+#+begin_src python
 #!/usr/bin/env python3
 import time
 import cv2
 from picamera2 import Picamera2
 
 def main():
-    # ① Picamera2 のセットアップ
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(
         main={"size": (640, 480)},
@@ -91,12 +150,12 @@ def main():
     picam2.configure(config)
     picam2.start()
 
-    # ② Haar Cascade の読み込み（全身用）
-#    cascade_path = cv2.data.haarcascades + "haarcascade_fullbody.xml"
-#    body_cascade = cv2.CascadeClassifier(cascade_path)
+    # ② Haar Cascade の読み込み
     cascade_path = "./haarcascade_fullbody.xml"
+#    cascade_path = "./haarcascade_fullbody.xml"
+    cascade_path = "./haarcascade_eye.xml"
+#    cascade_path = "./haarcascade_frontalface_default.xml"
     body_cascade = cv2.CascadeClassifier(cascade_path)
-
 
     cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
 
@@ -133,18 +192,156 @@ if __name__ == "__main__":
     main()
 #+end_src
 
-なお、仮想環境を作成して実行する場合は、下記のようにします。
+** 検出結果
 
-[[https://forums.raspberrypi.com/viewtopic.php?t=367558][How to install picamera2 - Raspberry Pi Forums]]
+haarcascade_eye.xml を使用することで、目を検出しています。
 
-#+begin_src bash
-python -m venv --system-site-packages venv
-. venv/bin/activate
-#+end_src
+ただ、目以外のところも検出しちゃっていますね。。
 
+[[file:images/1924_04.png]]
 
 * 人物検知 (tflite)
+
+** tflite-runtimeのインストール
+
+tflite-runtimeをインストールします。
 
 #+begin_src bash
 pip3 install tflite-runtime
 #+end_src
+
+** モデルのダウンロード
+
+下記、「メタデータを含むスターターモデルをダウンロードする」より、1.tflite をダウンロードします。
+
+https://www.tensorflow.org/lite/models/object_detection/overview?hl=ja
+
+そして、これを unzip すると labelmap.txt が出てきます。
+
+#+begin_src bash
+$ unzip 1.tflite
+Archive:  1.tflite
+ extracting: labelmap.txt            
+#+end_src
+
+1.tflite と labelmap.txt をそれぞれ、detect.tflite" と "labels.txt" にrenameしてプログラムと同じ場所に置きます。
+
+** ソースコード
+
+下記のプログラムを実行します。
+
+#+begin_src python
+#!/usr/bin/env python3
+import cv2
+import numpy as np
+import tflite_runtime.interpreter as tflite
+from picamera2 import Picamera2
+
+# TFLite 用ヘルパー
+class TFLiteModel:
+    def __init__(self, model_path, label_path, threshold=0.5):
+        self.interpreter = tflite.Interpreter(model_path=model_path)
+        self.interpreter.allocate_tensors()
+        self.input_details  = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
+        self.labels = [l.strip() for l in open(label_path)]
+        self.threshold = threshold
+
+    def detect(self, image):
+        h, w, _ = image.shape
+        inp_h, inp_w = self.input_details[0]['shape'][1:3]
+        img = cv2.resize(image, (inp_w, inp_h))
+        input_data = np.expand_dims(img, axis=0)
+        self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+        self.interpreter.invoke()
+
+        boxes   = self.interpreter.get_tensor(self.output_details[0]['index'])[0]  # [N,4]
+        classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]  # [N]
+        scores  = self.interpreter.get_tensor(self.output_details[2]['index'])[0]  # [N]
+
+        results = []
+        for box, cls, score in zip(boxes, classes, scores):
+            if score < self.threshold or int(cls) >= len(self.labels):
+                continue
+            ymin, xmin, ymax, xmax = box
+            results.append({
+                "label": self.labels[int(cls)],
+                "score": float(score),
+                "rect": (
+                    int(xmin * w), int(ymin * h),
+                    int((xmax - xmin) * w), int((ymax - ymin) * h)
+                )
+            })
+        return results
+
+def main():
+    # カメラ
+    picam2 = Picamera2()
+    config = picam2.create_preview_configuration(
+        main={"size": (640, 480), "format": "RGB888"},  # ←ここで３チャンネル指定
+        display="main"
+    )
+    picam2.configure(config)
+    picam2.start()
+
+    # TFLite モデル読み込み
+    model = TFLiteModel("detect.tflite", "labels.txt", threshold=0.6)
+
+    cv2.namedWindow("TFLite Detection", cv2.WINDOW_NORMAL)
+    try:
+        while True:
+            frame = picam2.capture_array("main")
+            results = model.detect(frame)
+
+            # 描画
+            for r in results:
+                x, y, w, h = r["rect"]
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0), 2)
+                cv2.putText(frame, f'{r["label"]}:{r["score"]:.2f}',
+                            (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2)
+
+            cv2.imshow("TFLite Detection", frame)
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+
+    finally:
+        picam2.stop()
+        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
+#+end_src
+
+** 検出結果
+
+物体としては検出できていますが、フクロウ(Hedwig)の置き物がclockとして検出されてしまっています。
+
+[[file:images/1924_05.png]]
+
+一方で時計は book として検出。
+
+[[file:images/1924_02.png]]
+
+ミニカーは bicycle として検出されました。。
+
+[[file:images/1924_01.png]]
+
+* おわりに
+
+Raspberry Pi3B + Pi Camera V2.1 でサンプルのモデルを使用して物体検出を行いました。
+
+物体の検出自体はできたものの、物体の識別はうまくいきませんでした。
+
+モデルのトレーニングや、パラメータの設定等が必要となるものと思われます。
+
+# images/1924_08.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_08.jpg
+# images/1924_09.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_09.jpg
+# images/1924_04.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_04.jpg
+# images/1924_05.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_05.jpg
+# images/1924_02.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_02.jpg
+# images/1924_01.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_01.jpg
+
+# images/1924_14.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_14-scaled.jpg
+# images/1924_11.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_11-scaled.jpg
+# images/1924_12.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_12-scaled.jpg
+# images/1924_13.jpg https://blog.wurlyhub.com/wp-content/uploads/2025/05/1924_13-scaled.jpg
