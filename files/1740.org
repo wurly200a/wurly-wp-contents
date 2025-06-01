@@ -8,7 +8,20 @@
 #+DESCRIPTION:
 #+TITLE: ripgrep
 
-* インストール
+* インストール(修正後)
+
+#+begin_src bash
+sudo apt install libpcre2-dev
+#+end_src
+
+#+begin_src bash
+git clone https://github.com/BurntSushi/ripgrep
+cd ripgrep
+git checkout 14.1.1
+cargo install --features pcre2 --path .
+#+end_src
+
+* インストール(修正前)
 
 #+begin_src bash
 git clone https://github.com/BurntSushi/ripgrep
