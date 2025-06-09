@@ -1,0 +1,64 @@
+#+BLOG: wurly-blog
+#+POSTID: 1941
+#+ORG2BLOG:
+#+DATE: [2025-06-10 Tue 07:30]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Node.js
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu への Node.js 22 のインストール
+
+* はじめに
+
+Node.jsをインストールします。
+
+Ubuntu LTSのaptでインストールできるパッケージはその時点では古くなっていることがありますので、比較的新しい特定のバージョンをイントールする方法についてです。
+
+* Node.js Releases
+
+下記にNode.jsのリリースサイクルが説明されています。
+
+https://nodejs.org/en/about/previous-releases
+
+使用する側の方針によりますが、特に事情がなければ ACTIVE となっているバージョンを使用するのが無難だと思います。
+
+2025年6月10日現在、Node.js 22 のACTIVE期間のちょうど真ん中くらいです。
+
+ここでは、Node.js 22 をインストールします。
+
+* 参照
+
+下記にインストール手順があります。
+
+ - [[https://github.com/nodesource/distributions][nodesource/distributions: NodeSource Node.js Binary Distributions]]
+https://github.com/nodesource/distributions
+
+currentやLTSを指定する方法もありますが、ここでは、バージョン指定でインストールします。
+
+* 手順
+
+#+begin_src bash
+curl -fsSL https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
+sudo -E bash nodesource_setup.sh
+#+end_src
+
+(参考)下記ファイルが作成されます。
+
+#+begin_src 
+/usr/share/keyrings/nodesource.gpg
+/etc/apt/sources.list.d/nodesource.list
+#+end_src
+
+インストールされるバージョンを確認します。
+
+#+begin_src bash
+sudo apt list | grep nodejs
+#+end_src
+
+インストールします。
+
+#+begin_src bash
+sudo apt install nodejs
+#+end_src
+
+
