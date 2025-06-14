@@ -1,0 +1,116 @@
+#+BLOG: wurly-blog
+#+POSTID: 1946
+#+ORG2BLOG:
+#+DATE: [2025-06-14 Sat 18:42]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: RaspberryPi
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Raspberry Pi 5 で 変換、無変換キーをCtrlキーに割り当てる
+
+* 概要
+
+Raspberry Pi で 変換、無変換キーをCtrlキーに割り当てる(役割を変更する)の方についてです。
+
+[[./?p=658][Ubuntu で 変換、無変換キーをCtrlキーに割り当てる]] のやり方の通りでは上手く行かなかったため、ChatGPTと試行錯誤して下記にたどり着きました。
+
+なお、環境は Raspberry Pi 5、OSは Debian GNU/Linux 12 (bookworm) です。
+
+* カスタムシンボル定義を作成
+
+まず XKB が読み込むシンボルファイルを用意します。
+
+#+begin_src bash
+mkdir -p ~/.config/xkb/symbols
+cat > ~/.config/xkb/symbols/custom << 'EOF'
+partial modifier_keys
+xkb_symbols "henkan_ctrl" {
+    // 変換キーを左Ctrlに
+    key <HENK> { [ Control_L ] };
+    modifier_map Control { <HENK> };
+};
+partial modifier_keys
+xkb_symbols "muhenkan_ctrl" {
+    // 無変換キーを右Ctrlに
+    key <MUHE> { [ Control_R ] };
+    modifier_map Control { <MUHE> };
+};
+EOF
+#+end_src
+
+ - ~/.config/xkb/symbols/custom に "custom:henkan_ctrl" と "custom:muhenkan_ctrl" というオプション名で使える定義を作成します。
+
+* カスタムオプションを登録
+
+次に、この２つのオプションを XKB のルールに登録します。
+
+#+begin_src bash
+mkdir -p ~/.config/xkb/rules
+cat > ~/.config/xkb/rules/evdev << 'EOF'
+! option      = symbols
+  custom:henkan_ctrl   = +custom(henkan_ctrl)
+  custom:muhenkan_ctrl = +custom(muhenkan_ctrl)
+
+! include %S/evdev
+EOF
+#+end_src
+
+ - 先頭の２行で custom:… オプションを追加。
+ - 最後の ! include %S/evdev は標準の evdev ルールをそのまま読み込むためのものです。
+
+* Labwc の environment ファイルを編集
+
+Labwc 起動時に自動で setxkbmap を叩くための設定を入れます。
+
+私の環境では environment ファイルは作成されていたので XKB_DEFAULT_OPTIONS に追記しました。
+
+#+begin_src bash
+cat >> ~/.config/labwc/environment << 'EOF'
+# XKB の基本設定
+XKB_DEFAULT_MODEL=pc105
+XKB_DEFAULT_LAYOUT=jp
+XKB_DEFAULT_VARIANT=
+
+# ここに先ほど作ったオプションをカンマ区切りで指定
+XKB_DEFAULT_OPTIONS=custom:henkan_ctrl,custom:muhenkan_ctrl
+EOF
+#+end_src
+
+* Labwc を再起動／再ログイン
+
+設定が反映されるよう、一度ログアウト→ログインします。
+
+* Emacsの設定
+
+上記までの設定により、Shell では期待する動作が実現できたのですが、Emacs 上ではできませんでした。
+
+下記の設定を行うことで対応しました。
+
+#+begin_src emacs-lisp
+(defun raspberry-pi-p ()
+  ""
+  (and (eq system-type 'gnu/linux)
+       (file-readable-p "/proc/device-tree/model")
+       (with-temp-buffer
+         (insert-file-contents "/proc/device-tree/model")
+         (goto-char (point-min))
+         (search-forward "Raspberry Pi" nil t))))
+#+end_src
+
+#+begin_src emacs-lisp
+(when (raspberry-pi-p)
+  (setq gnutls-algorithm-priority "NORMAL-VERS-TLS1.3")
+
+  (when (display-graphic-p)
+    (start-process "xkb" nil
+                   "setxkbmap" "-model" "pc105"   "-layout" "jp"
+                   "-option" "custom:henkan_ctrl,custom:muhenkan_ctrl"))
+
+  ;; — turn Henkan/Muhenkan (and their repeats) into Control modifiers,
+  ;;   but swallow the pure repeat events so they’re never dispatched —
+  (define-key key-translation-map (kbd "<henkan>")     'event-apply-control-modifier)
+  (define-key key-translation-map (kbd "C-<henkan>")   #'ignore)
+  (define-key key-translation-map (kbd "<muhenkan>")   'event-apply-control-modifier)
+  (define-key key-translation-map (kbd "C-<muhenkan>") #'ignore)
+  )
+#+end_src
