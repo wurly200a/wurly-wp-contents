@@ -16,6 +16,17 @@ heif-convert(libheif) を使って HEIC(HEIF) から JPG へ変換する方法�
  - [[https://github.com/strukturag/libheif/releases?page=2][Releases · strukturag/libheif]]
  - [[https://github.com/strukturag/libheif/issues/227][Handle image rotation for JPEG output · Issue #227 · strukturag/libheif]]
 
+* TL;DR
+
+(2025-05-06)ふとHEICからJPGに変換する必要があり、自分で読み返したところ、内容が長くて結論は？となってしまいました。
+(Docker imageをアップロードしたかどうかも忘れてしまっていました。)
+
+x86のDocker環境がある方は、下記一行で変換できます。
+
+#+begin_src bash
+docker run --rm -it -v $(pwd):/home/node/work -w /home/node/work wurly/docker-heif-convert input.HEIC output.JPG
+#+end_src
+
 * Ubuntu 22.04 で実行
 
 ** 使用方法
