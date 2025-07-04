@@ -1,0 +1,185 @@
+#+BLOG: wurly-blog
+#+POSTID: 1956
+#+ORG2BLOG:
+#+DATE: [2025-07-05 Sat 08:26]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 22.04 から 24.04 へのアップグレード注意点
+#+DATE: 2025-07-05
+
+* 1. 事前準備
+** 重要データのバックアップ
+アップグレード中に何らかの問題が発生するとシステムが起動しなくなる可能性があります。必須のファイルや設定（ホームディレクトリ、重要な設定ファイル、データベースなど）は外部ディスクや別マシンにバックアップしておきましょう。
+
+- バックアップ例:
+  #+BEGIN_SRC bash
+  rsync -aP /home/username /mnt/backup_drive/username_backup
+  #+END_SRC
+
+- 仮想マシンの場合はスナップショット取得を推奨
+
+** 現在のパッケージ状態を最新にする
+システムをクリーンな状態にして依存関係の衝突を減らします。
+
+#+BEGIN_SRC bash
+sudo apt update
+sudo apt upgrade
+sudo apt dist-upgrade
+sudo apt autoremove
+#+END_SRC
+
+** サードパーティリポジトリ（PPA）の無効化
+外部リポジトリが原因で依存関係エラーになることがあります。事前に無効化しておきましょう。
+
+- 対象ディレクトリ: `/etc/apt/sources.list.d/`
+- ファイル名を `.disabled` 等にリネーム
+
+  #+BEGIN_SRC bash
+  sudo mv /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list \
+           /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list.disabled
+  #+END_SRC
+
+** ディスク容量の確認
+新しいパッケージをダウンロード・展開するために、十分な空き容量を確保します。特に `/boot` は古いカーネルが溜まりやすいので要注意。
+
+#+BEGIN_SRC bash
+df -h /
+df -h /boot
+dpkg --list | grep linux-image
+sudo apt remove --purge linux-image-<古いバージョン>
+#+END_SRC
+
+** ネットワークと電源の確保
+- ノートPCの場合は電源アダプタ接続必須
+- リモートSSH環境では `tmux` や `screen` を使うと安全
+
+  #+BEGIN_SRC bash
+  sudo apt install tmux
+  tmux
+  sudo do-release-upgrade
+  # （セッション切断後も再接続可能）
+  #+END_SRC
+
+* 2. アップグレードの実行手順
+** 1. do-release-upgrade コマンドを使う
+通常は以下を実行します。
+
+#+BEGIN_SRC bash
+sudo do-release-upgrade
+# リリース直後に検出されない場合:
+sudo do-release-upgrade -d
+#+END_SRC
+
+** 2. プロンプトに従い、変更点を確認する
+- 「削除予定のパッケージ」「新規インストール」「設定ファイル差分」などを確認
+- カスタマイズ済み設定は上書き/保持を慎重に判断
+
+** 3. 画面の指示に従い、リブートする
+完了後に再起動を実施し、ログインしてバージョンを確認。
+
+#+BEGIN_SRC bash
+lsb_release -a
+cat /etc/issue
+uname -r
+#+END_SRC
+
+* 3. アップグレード中に起こりやすいトラブルと対策
+** パッケージがロックされているエラー
+
+#+begin_src bash
+E: Could not get lock /var/lib/dpkg/lock-frontend
+#+end_src
+
+→ 別の `apt` プロセスを停止し、以下を実行：
+
+#+BEGIN_SRC bash
+sudo dpkg --configure -a
+sudo apt --fix-broken install
+#+END_SRC
+
+** 依存関係の衝突や途中で止まるケース
+- 外部PPAの無効化漏れやホールドパッケージが原因
+- ホールド確認と解除：
+
+#+BEGIN_SRC bash
+apt-mark showhold
+sudo apt-mark unhold <パッケージ名>
+#+END_SRC
+
+** 非公式カーネルやカスタムモジュール
+- DKMSモジュールは再ビルドが必要な場合あり
+- GRUBエントリを確認
+
+** SSHセッションが切断される
+- `tmux` や `screen` でセッション維持
+
+* 4. アップグレード後の確認・後処理
+** 1. Ubuntu のバージョン確認
+
+#+BEGIN_SRC bash
+lsb_release -sr   # “24.04” と表示
+uname -r          # カーネルが “6.x” 系か確認
+#+END_SRC
+
+** 2. 不要になったパッケージの削除
+
+#+BEGIN_SRC bash
+sudo apt autoremove
+sudo apt autoclean
+#+END_SRC
+
+** 3. PPA の再登録・再有効化
+必要に応じて再登録します。
+
+#+BEGIN_SRC bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+#+END_SRC
+
+** 4. サービス起動状況のチェック
+
+#+BEGIN_SRC bash
+systemctl list-units --type=service | grep -E "apache2|nginx|mysql|docker"
+#+END_SRC
+
+** 5. 設定ファイルの差分確認
+
+#+BEGIN_SRC bash
+find /etc -name "*dpkg-new" -o -name "*dpkg-old"
+#+END_SRC
+
+** 6. Python や特定言語環境の確認
+
+#+BEGIN_SRC bash
+python3 --version    # 3.12.x になっているか
+pip3 list            # インストール済みパッケージ一覧
+#+END_SRC
+
+* 5. 追加で留意すべきポイント
+** リリースノートの確認
+- 公式: [[https://wiki.ubuntu.com/NobleNumbat/ReleaseNotes][Ubuntu 24.04 LTS リリースノート]]
+- コミュニティ日本語版も参照
+
+** カスタムカーネルやグラフィックドライバ
+- NVIDIA/AMDドライバは事前に `ubuntu-drivers` で確認・インストール
+
+** Snap パッケージの状態確認
+
+#+BEGIN_SRC bash
+snap list
+#+END_SRC
+
+** クラウド環境の場合
+- 新規 24.04 イメージへの移行検討
+- スナップショットやAMIでロールバック手段を用意
+
+* まとめ
+1. バックアップを必ず取る  
+2. `apt update/upgrade/dist-upgrade` → `autoremove` → PPA無効化  
+3. `sudo do-release-upgrade` 実行  
+4. プロンプト確認・リブート  
+5. 後処理：バージョン確認・不要パッケージ削除・サービス起動確認  
+
+以上の手順とポイントを押さえておけば、Ubuntu 22.04 → 24.04 の移行は比較的スムーズに行えます。```
