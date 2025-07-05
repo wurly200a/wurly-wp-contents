@@ -6,11 +6,17 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Ubuntu 22.04 から 24.04 へのアップグレード注意点
+#+TITLE: Ubuntu 22.04 から 24.04 へのアップグレード
 #+DATE: 2025-07-05
 
+* 概要
+
+Native の Ubuntu 22.04 を 24.04 へのアップグレードしました。
+
+下記はChatGPT(o4-mini-high)が出力した情報に一部手を加えたものです。
+
 * 1. 事前準備
-** 重要データのバックアップ
+** 重要データのバックアップ(非実施)
 アップグレード中に何らかの問題が発生するとシステムが起動しなくなる可能性があります。必須のファイルや設定（ホームディレクトリ、重要な設定ファイル、データベースなど）は外部ディスクや別マシンにバックアップしておきましょう。
 
 - バックアップ例:
@@ -37,8 +43,9 @@ sudo apt autoremove
 - ファイル名を `.disabled` 等にリネーム
 
   #+BEGIN_SRC bash
-  sudo mv /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list \
-           /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list.disabled
+  mkdir ~/temp/sources.list.d.jammy.backup
+  sudo mv /etc/apt/sources.list.d/* ~/temp/sources.list.d.jammy.backup/
+  sudo chown -R $USER.$USER ~/temp/sources.list.d.jammy.backup/
   #+END_SRC
 
 ** ディスク容量の確認
@@ -51,7 +58,7 @@ dpkg --list | grep linux-image
 sudo apt remove --purge linux-image-<古いバージョン>
 #+END_SRC
 
-** ネットワークと電源の確保
+** ネットワークと電源の確保(非実施)
 - ノートPCの場合は電源アダプタ接続必須
 - リモートSSH環境では `tmux` や `screen` を使うと安全
 
@@ -62,15 +69,274 @@ sudo apt remove --purge linux-image-<古いバージョン>
   # （セッション切断後も再接続可能）
   #+END_SRC
 
+** アップグレード前のバージョン確認
+
+#+begin_src bash
+$ uname -a
+Linux rockers-ubuntu 6.8.0-60-generic #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+$ cat /etc/lsb-release 
+DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=22.04
+DISTRIB_CODENAME=jammy
+DISTRIB_DESCRIPTION="Ubuntu 22.04.5 LTS"
+#+end_src
+
 * 2. アップグレードの実行手順
 ** 1. do-release-upgrade コマンドを使う
 通常は以下を実行します。
 
-#+BEGIN_SRC bash
-sudo do-release-upgrade
-# リリース直後に検出されない場合:
-sudo do-release-upgrade -d
-#+END_SRC
+  #+BEGIN_SRC bash
+  sudo do-release-upgrade
+  # リリース直後に検出されない場合:
+  sudo do-release-upgrade -d
+  #+END_SRC
+  
+  #+begin_src bash
+  $ sudo do-release-upgrade
+  Checking for a new Ubuntu release
+  
+  = Welcome to Ubuntu 24.04 LTS 'Noble Numbat' =
+  
+  The Ubuntu team is proud to announce Ubuntu 24.04 LTS 'Noble Numbat'.
+  
+  To see what's new in this release, visit:
+    https://wiki.ubuntu.com/NobleNumbat/ReleaseNotes
+  
+  Ubuntu is a Linux distribution for your desktop or server, with a fast
+  and easy install, regular releases, a tight selection of excellent
+  applications installed by default, and almost any other software you
+  can imagine available through the network.
+  
+  We hope you enjoy Ubuntu.
+  
+  == Feedback and Helping ==
+  
+  If you would like to help shape Ubuntu, take a look at the list of
+  ways you can participate at
+  
+    http://www.ubuntu.com/community/participate/
+  
+  Your comments, bug reports, patches and suggestions will help ensure
+  that our next release is the best release of Ubuntu ever.  If you feel
+  that you have found a bug please read:
+  
+    http://help.ubuntu.com/community/ReportingBugs
+  
+  Then report bugs using apport in Ubuntu.  For example:
+  
+    ubuntu-bug linux
+  
+  will open a bug report in Launchpad regarding the linux package.
+  
+  If you have a question, or if you think you may have found a bug but
+  aren't sure, first try asking on the #ubuntu or #ubuntu-bugs IRC
+  channels on Libera.Chat, on the Ubuntu Users mailing list, or on the
+  Ubuntu forums:
+  
+    http://help.ubuntu.com/community/InternetRelayChat
+    http://lists.ubuntu.com/mailman/listinfo/ubuntu-users
+    http://www.ubuntuforums.org/
+  
+  
+  == More Information ==
+  
+  You can find out more about Ubuntu on our website, IRC channel and wiki.
+  If you're new to Ubuntu, please visit:
+  
+    http://www.ubuntu.com/
+  
+  
+  To sign up for future Ubuntu announcements, please subscribe to Ubuntu's
+  very low volume announcement list at:
+  
+    http://lists.ubuntu.com/mailman/listinfo/ubuntu-announce
+  
+  
+  Continue [yN] 
+  #+end_src
+  
+  #+begin_src bash
+  Get:1 Upgrade tool signature [833 B]                                                                                                                                                                           
+  Get:2 Upgrade tool [1277 kB]                                                                                                                                                                                   
+  Fetched 1278 kB in 0s (0 B/s)                                                                                                                                                                                  
+  authenticate 'noble.tar.gz' against 'noble.tar.gz.gpg' 
+  extracting 'noble.tar.gz'
+  
+  Reading cache
+  
+  Checking package manager
+  Reading package lists... Done
+  Building dependency tree... Done
+  Reading state information... Done
+  Hit http://jp.archive.ubuntu.com/ubuntu jammy InRelease                                                                                                                                                        
+  Hit http://jp.archive.ubuntu.com/ubuntu jammy-updates InRelease                                                                                                                                                
+  Hit http://jp.archive.ubuntu.com/ubuntu jammy-backports InRelease                                                                                                                                              
+  Hit http://security.ubuntu.com/ubuntu jammy-security InRelease                                                                                                                                                 
+  Fetched 0 B in 0s (0 B/s)                                                                                                                                                                                      
+  Reading package lists... Done    
+  Building dependency tree... Done 
+  Reading state information... Done
+  
+  Checking for installed snaps
+  
+  Calculating snap size requirements
+  
+  Updating repository information
+  Get:1 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]                                                                                                                                      
+  Get:2 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [970 kB]                                                                                                                            
+  Get:3 http://jp.archive.ubuntu.com/ubuntu noble InRelease [256 kB]                                                                                                                                             
+  Get:4 http://security.ubuntu.com/ubuntu noble-security/main i386 Packages [305 kB]                                                                                                                             
+  Get:5 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [173 kB]                                                                                                                            
+  Get:6 http://security.ubuntu.com/ubuntu noble-security/main amd64 DEP-11 Metadata [21.6 kB]                                                                                                                    
+  Get:7 http://security.ubuntu.com/ubuntu noble-security/main DEP-11 48x48 Icons [13.4 kB]                                                                                                                       
+  Get:8 http://security.ubuntu.com/ubuntu noble-security/main DEP-11 64x64 Icons [20.0 kB]                                                                                                                       
+  Get:9 http://security.ubuntu.com/ubuntu noble-security/main DEP-11 64x64@2 Icons [29 B]                                                                                                                        
+  Get:10 http://security.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [7068 B]                                                                                                                     
+  Get:11 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1347 kB]                                                                                                                    
+  Get:12 http://security.ubuntu.com/ubuntu noble-security/restricted i386 Packages [17.6 kB]                                                                                                                     
+  Get:13 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [290 kB]                                                                                                                     
+  Get:14 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 DEP-11 Metadata [212 B]                                                                                                               
+  Get:15 http://security.ubuntu.com/ubuntu noble-security/restricted DEP-11 48x48 Icons [29 B]                                                                                                                   
+  Get:16 http://security.ubuntu.com/ubuntu noble-security/restricted DEP-11 64x64 Icons [29 B]                                                                                                                   
+  Get:17 http://security.ubuntu.com/ubuntu noble-security/restricted DEP-11 64x64@2 Icons [29 B]                                                                                                                 
+  Get:18 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 c-n-f Metadata [468 B]                                                                                                                
+  Get:19 http://security.ubuntu.com/ubuntu noble-security/universe i386 Packages [537 kB]                                                                                                                        
+  Get:20 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [869 kB]                                                                                                                       
+  Get:21 http://jp.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]                                                                                                                                    
+  Get:22 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [191 kB]                                                                                                                       
+  Get:23 http://security.ubuntu.com/ubuntu noble-security/universe amd64 DEP-11 Metadata [52.2 kB]                                                                                                               
+  Get:24 http://security.ubuntu.com/ubuntu noble-security/universe DEP-11 48x48 Icons [45.0 kB]                                                                                                                  
+  Get:25 http://security.ubuntu.com/ubuntu noble-security/universe DEP-11 64x64 Icons [70.7 kB]                                                                                                                  
+  Get:26 http://security.ubuntu.com/ubuntu noble-security/universe DEP-11 64x64@2 Icons [29 B]                                                                                                                   
+  Get:27 http://security.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [17.0 kB]                                                                                                                
+  Get:28 http://security.ubuntu.com/ubuntu noble-security/multiverse i386 Packages [3588 B]                                                                                                                      
+  Get:29 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [18.5 kB]                                                                                                                    
+  Get:30 http://jp.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]                                                                                                                                  
+  Get:31 http://security.ubuntu.com/ubuntu noble-security/multiverse Translation-en [4288 B]                                                                                                                     
+  Get:32 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 DEP-11 Metadata [212 B]                                                                                                               
+  Get:33 http://security.ubuntu.com/ubuntu noble-security/multiverse DEP-11 48x48 Icons [29 B]                                                                                                                   
+  Get:34 http://security.ubuntu.com/ubuntu noble-security/multiverse DEP-11 64x64 Icons [29 B]                                                                                                                   
+  Get:35 http://jp.archive.ubuntu.com/ubuntu noble/main i386 Packages [1041 kB]                                                                                                                                  
+  Get:36 http://security.ubuntu.com/ubuntu noble-security/multiverse DEP-11 64x64@2 Icons [29 B]                                                                                                                 
+  Get:37 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [380 B]                                                                                                                
+  Get:38 http://jp.archive.ubuntu.com/ubuntu noble/main amd64 Packages [1401 kB]                                                                                                                                 
+  Get:39 http://jp.archive.ubuntu.com/ubuntu noble/main Translation-en [513 kB]                                                                                                                                  
+  Get:40 http://jp.archive.ubuntu.com/ubuntu noble/main Translation-ja [295 kB]                                                                                                                                  
+  Get:41 http://jp.archive.ubuntu.com/ubuntu noble/main amd64 DEP-11 Metadata [464 kB]                                                                                                                           
+  Get:42 http://jp.archive.ubuntu.com/ubuntu noble/main DEP-11 48x48 Icons [106 kB]                                                                                                                              
+  Get:43 http://jp.archive.ubuntu.com/ubuntu noble/main DEP-11 64x64 Icons [156 kB]                                                                                                                              
+  Get:44 http://jp.archive.ubuntu.com/ubuntu noble/main DEP-11 64x64@2 Icons [21.8 kB]                                                                                                                           
+  Get:45 http://jp.archive.ubuntu.com/ubuntu noble/main amd64 c-n-f Metadata [30.5 kB]                                                                                                                           
+  Get:46 http://jp.archive.ubuntu.com/ubuntu noble/restricted amd64 Packages [93.9 kB]                                                                                                                           
+  Get:47 http://jp.archive.ubuntu.com/ubuntu noble/restricted i386 Packages [14.7 kB]                                                                                                                            
+  Get:48 http://jp.archive.ubuntu.com/ubuntu noble/restricted Translation-en [18.7 kB]                                                                                                                           
+  Get:49 http://jp.archive.ubuntu.com/ubuntu noble/restricted amd64 c-n-f Metadata [416 B]                                                                                                                       
+  Get:50 http://jp.archive.ubuntu.com/ubuntu noble/universe i386 Packages [8514 kB]                                                                                                                              
+  Get:51 http://jp.archive.ubuntu.com/ubuntu noble/universe amd64 Packages [15.0 MB]                                                                                                                             
+  Get:52 http://jp.archive.ubuntu.com/ubuntu noble/universe Translation-en [5982 kB]                                                                                                                             
+  Get:53 http://jp.archive.ubuntu.com/ubuntu noble/universe Translation-ja [1564 kB]                                                                                                                             
+  Get:54 http://jp.archive.ubuntu.com/ubuntu noble/universe amd64 DEP-11 Metadata [3871 kB]                                                                                                                      
+  Get:55 http://jp.archive.ubuntu.com/ubuntu noble/universe DEP-11 48x48 Icons [3717 kB]                                                                                                                         
+  Get:56 http://jp.archive.ubuntu.com/ubuntu noble/universe DEP-11 64x64 Icons [7747 kB]                                                                                                                         
+  Get:57 http://jp.archive.ubuntu.com/ubuntu noble/universe DEP-11 64x64@2 Icons [75.0 kB]                                                                                                                       
+  Get:58 http://jp.archive.ubuntu.com/ubuntu noble/universe amd64 c-n-f Metadata [301 kB]                                                                                                                        
+  Get:59 http://jp.archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages [269 kB]                                                                                                                            
+  Get:60 http://jp.archive.ubuntu.com/ubuntu noble/multiverse i386 Packages [126 kB]                                                                                                                             
+  Get:61 http://jp.archive.ubuntu.com/ubuntu noble/multiverse Translation-en [118 kB]                                                                                                                            
+  Get:62 http://jp.archive.ubuntu.com/ubuntu noble/multiverse Translation-ja [7116 B]                                                                                                                            
+  Get:63 http://jp.archive.ubuntu.com/ubuntu noble/multiverse amd64 DEP-11 Metadata [35.0 kB]                                                                                                                    
+  Get:64 http://jp.archive.ubuntu.com/ubuntu noble/multiverse DEP-11 48x48 Icons [56.1 kB]                                                                                                                       
+  Get:65 http://jp.archive.ubuntu.com/ubuntu noble/multiverse DEP-11 64x64 Icons [186 kB]                                                                                                                        
+  Get:66 http://jp.archive.ubuntu.com/ubuntu noble/multiverse DEP-11 64x64@2 Icons [904 B]                                                                                                                       
+  Get:67 http://jp.archive.ubuntu.com/ubuntu noble/multiverse amd64 c-n-f Metadata [8328 B]                                                                                                                      
+  Get:68 http://jp.archive.ubuntu.com/ubuntu noble-updates/main i386 Packages [488 kB]                                                                                                                           
+  Get:69 http://jp.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1221 kB]                                                                                                                         
+  Get:70 http://jp.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [251 kB]                                                                                                                          
+  Get:71 http://jp.archive.ubuntu.com/ubuntu noble-updates/main amd64 DEP-11 Metadata [162 kB]                                                                                                                   
+  Get:72 http://jp.archive.ubuntu.com/ubuntu noble-updates/main DEP-11 48x48 Icons [34.7 kB]                                                                                                                     
+  Get:73 http://jp.archive.ubuntu.com/ubuntu noble-updates/main DEP-11 64x64 Icons [49.6 kB]                                                                                                                     
+  Get:74 http://jp.archive.ubuntu.com/ubuntu noble-updates/main DEP-11 64x64@2 Icons [29 B]                                                                                                                      
+  Get:75 http://jp.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [13.5 kB]                                                                                                                   
+  Get:76 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted i386 Packages [19.1 kB]                                                                                                                    
+  Get:77 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1391 kB]                                                                                                                   
+  Get:78 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [298 kB]                                                                                                                    
+  Get:79 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 DEP-11 Metadata [212 B]                                                                                                              
+  Get:80 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted DEP-11 48x48 Icons [29 B]                                                                                                                  
+  Get:81 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted DEP-11 64x64 Icons [29 B]                                                                                                                  
+  Get:82 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted DEP-11 64x64@2 Icons [29 B]                                                                                                                
+  Get:83 http://jp.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 c-n-f Metadata [492 B]                                                                                                               
+  Get:84 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe i386 Packages [666 kB]                                                                                                                       
+  Get:85 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1103 kB]                                                                                                                     
+  Get:86 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [281 kB]                                                                                                                      
+  Get:87 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe amd64 DEP-11 Metadata [377 kB]                                                                                                               
+  Get:88 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe DEP-11 48x48 Icons [226 kB]                                                                                                                  
+  Get:89 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe DEP-11 64x64 Icons [350 kB]                                                                                                                  
+  Get:90 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe DEP-11 64x64@2 Icons [29 B]                                                                                                                  
+  Get:91 http://jp.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [26.0 kB]                                                                                                               
+  Get:92 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [22.8 kB]                                                                                                                   
+  Get:93 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse i386 Packages [4736 B]                                                                                                                     
+  Get:94 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [5456 B]                                                                                                                    
+  Get:95 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 DEP-11 Metadata [940 B]                                                                                                              
+  Get:96 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse DEP-11 48x48 Icons [1867 B]                                                                                                                
+  Get:97 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse DEP-11 64x64 Icons [2497 B]                                                                                                                
+  Get:98 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse DEP-11 64x64@2 Icons [29 B]                                                                                                                
+  Get:99 http://jp.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [592 B]                                                                                                               
+  Get:100 http://jp.archive.ubuntu.com/ubuntu noble-backports/main i386 Packages [31.8 kB]                                                                                                                       
+  Get:101 http://jp.archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [39.2 kB]                                                                                                                      
+  Get:102 http://jp.archive.ubuntu.com/ubuntu noble-backports/main Translation-en [8676 B]                                                                                                                       
+  Get:103 http://jp.archive.ubuntu.com/ubuntu noble-backports/main amd64 DEP-11 Metadata [7068 B]                                                                                                                
+  Get:104 http://jp.archive.ubuntu.com/ubuntu noble-backports/main DEP-11 48x48 Icons [9521 B]                                                                                                                   
+  Get:105 http://jp.archive.ubuntu.com/ubuntu noble-backports/main DEP-11 64x64 Icons [11.2 kB]                                                                                                                  
+  Get:106 http://jp.archive.ubuntu.com/ubuntu noble-backports/main DEP-11 64x64@2 Icons [29 B]                                                                                                                   
+  Get:107 http://jp.archive.ubuntu.com/ubuntu noble-backports/main amd64 c-n-f Metadata [272 B]                                                                                                                  
+  Get:108 http://jp.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 DEP-11 Metadata [216 B]                                                                                                           
+  Get:109 http://jp.archive.ubuntu.com/ubuntu noble-backports/restricted DEP-11 48x48 Icons [29 B]                                                                                                               
+  Get:110 http://jp.archive.ubuntu.com/ubuntu noble-backports/restricted DEP-11 64x64 Icons [29 B]                                                                                                               
+  Get:111 http://jp.archive.ubuntu.com/ubuntu noble-backports/restricted DEP-11 64x64@2 Icons [29 B]                                                                                                             
+  Get:112 http://jp.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 c-n-f Metadata [116 B]                                                                                                            
+  Get:113 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [27.1 kB]                                                                                                                  
+  Get:114 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe i386 Packages [14.1 kB]                                                                                                                   
+  Get:115 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe Translation-en [16.5 kB]                                                                                                                  
+  Get:116 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe amd64 DEP-11 Metadata [16.4 kB]                                                                                                           
+  Get:117 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe DEP-11 48x48 Icons [20.4 kB]                                                                                                              
+  Get:118 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe DEP-11 64x64 Icons [28.7 kB]                                                                                                              
+  Get:119 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe DEP-11 64x64@2 Icons [29 B]                                                                                                               
+  Get:120 http://jp.archive.ubuntu.com/ubuntu noble-backports/universe amd64 c-n-f Metadata [1304 B]                                                                                                             
+  Get:121 http://jp.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 DEP-11 Metadata [212 B]                                                                                                           
+  Get:122 http://jp.archive.ubuntu.com/ubuntu noble-backports/multiverse DEP-11 48x48 Icons [29 B]                                                                                                               
+  Get:123 http://jp.archive.ubuntu.com/ubuntu noble-backports/multiverse DEP-11 64x64 Icons [29 B]                                                                                                               
+  Get:124 http://jp.archive.ubuntu.com/ubuntu noble-backports/multiverse DEP-11 64x64@2 Icons [29 B]                                                                                                             
+  Get:125 http://jp.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 c-n-f Metadata [116 B]                                                                                                            
+  Fetched 64.6 MB in 6s (10.7 MB/s)                                                                                                                                                                              
+  
+  Checking package manager
+  Reading package lists... Done    
+  Building dependency tree... Done 
+  Reading state information... Done
+  
+  Calculating the changes
+  
+  Calculating the changes
+  
+  Do you want to start the upgrade? 
+  
+  
+  1 installed package is no longer supported by Canonical. You can 
+  still get support from the community. 
+  
+  156 packages are going to be removed. 688 new packages are going to 
+  be installed. 1739 packages are going to be upgraded. 
+  
+  You have to download a total of 3132 M. This download will take about 
+  4 minutes with your connection. 
+  
+  Installing the upgrade can take several hours. Once the download has 
+  finished, the process cannot be canceled. 
+  
+   Continue [yN]
+  #+end_src
+
+キーボード選択画面が表示されるので確認。
 
 ** 2. プロンプトに従い、変更点を確認する
 - 「削除予定のパッケージ」「新規インストール」「設定ファイル差分」などを確認
@@ -123,6 +389,16 @@ lsb_release -sr   # “24.04” と表示
 uname -r          # カーネルが “6.x” 系か確認
 #+END_SRC
 
+実行結果
+
+#+begin_src bash
+$ lsb_release -sr
+No LSB modules are available.
+24.04
+$ uname -r
+6.8.0-60-generic
+#+end_src
+
 ** 2. 不要になったパッケージの削除
 
 #+BEGIN_SRC bash
@@ -130,7 +406,7 @@ sudo apt autoremove
 sudo apt autoclean
 #+END_SRC
 
-** 3. PPA の再登録・再有効化
+** 3. PPA の再登録・再有効化(非実施)
 必要に応じて再登録します。
 
 #+BEGIN_SRC bash
@@ -157,29 +433,3 @@ python3 --version    # 3.12.x になっているか
 pip3 list            # インストール済みパッケージ一覧
 #+END_SRC
 
-* 5. 追加で留意すべきポイント
-** リリースノートの確認
-- 公式: [[https://wiki.ubuntu.com/NobleNumbat/ReleaseNotes][Ubuntu 24.04 LTS リリースノート]]
-- コミュニティ日本語版も参照
-
-** カスタムカーネルやグラフィックドライバ
-- NVIDIA/AMDドライバは事前に `ubuntu-drivers` で確認・インストール
-
-** Snap パッケージの状態確認
-
-#+BEGIN_SRC bash
-snap list
-#+END_SRC
-
-** クラウド環境の場合
-- 新規 24.04 イメージへの移行検討
-- スナップショットやAMIでロールバック手段を用意
-
-* まとめ
-1. バックアップを必ず取る  
-2. `apt update/upgrade/dist-upgrade` → `autoremove` → PPA無効化  
-3. `sudo do-release-upgrade` 実行  
-4. プロンプト確認・リブート  
-5. 後処理：バージョン確認・不要パッケージ削除・サービス起動確認  
-
-以上の手順とポイントを押さえておけば、Ubuntu 22.04 → 24.04 の移行は比較的スムーズに行えます。```
