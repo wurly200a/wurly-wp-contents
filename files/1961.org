@@ -1,0 +1,429 @@
+#+BLOG: wurly-blog
+#+POSTID: 1961
+#+ORG2BLOG:
+#+DATE: [2025-07-06 Sun 13:30]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: RaspberryPi
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Explain Raspberry Pi AI Camera Kit (Sony IMX500) Device Driver
+
+* このページの内容について
+
+Raspberry Pi AI Camera Kit (Sony IMX500) の デバイスドライバーである https://github.com/raspberrypi/linux/blob/rpi-6.12.y/drivers/media/i2c/imx500.c の説明です。
+
+GitHub Copilot(claude-3.7-sonnet)の出力です。
+
+* 内容
+
+** 概要
+
+*** Sony IMX500カメラドライバーの分析
+
+*** IMX500ドライバーの概要
+
+~imx500.c~ ファイルは、Sony IMX500カメラセンサー向けのLinux V4L2（Video for Linux 2）ドライバーです。このセンサーは内蔵AI/ML処理機能を備えた「エッジAI」カメラセンサーとして注目されています。
+
+*** ハードウェアの主な特徴
+
++ 1,200万画素（4056×3040）CMOSイメージセンサー
++ 内蔵DNN（Deep Neural Network）処理機能
++ フル解像度やビニングモードなどの複数の動作モード
++ 画像とメタデータ/推論出力を含む複数のデータストリーム
++ カスタムニューラルネットワークの重みのロードをサポート
++ I2C（制御用）とSPI（ファームウェアロード用）の両方のインターフェース
+
+*** ドライバーアーキテクチャ
+
+このドライバーはV4L2 subdevインターフェースを実装し、以下の主要コンポーネントを提供します：
+
+**** 初期化とセットアップ
+
+ドライバーは以下を処理します：
+
++ デバイスの識別と検証
++ レギュレータとクロックの管理
++ GPIO管理（リセットとLED信号）
++ コントロールインターフェースのセットアップ
+
+**** 動作モード
+
+ドライバーは複数の解像度モードをサポートしています：
++ 4056×3040（15 FPS）（フル解像度）
++ 2028×1520（56 FPS）（2×2ビニング）
+
+**** ファームウェア管理
+
+IMX500は複数のファームウェアコンポーネントを必要とします：
+1. ローダーファームウェア
+2. メインファームウェア
+3. ネットワークの重み（AI処理用）
+
+ドライバーはこれらのファームウェアコンポーネントを適切にロードするための状態遷移を実装しています。
+
+**** 推論処理
+
+ドライバーは以下をサポートしています：
++ ファイル記述子を介したカスタムニューラルネットワークのロード
++ センサー上の推論ウィンドウの設定
++ メタデータチャネルを介した推論結果の読み取り
++ デバイスID取得
+
+*** 主要なデータ構造
+
+**** ~struct imx500~
+
+これはドライバーのメイン構造体で、以下を含みます：
+
+#+BEGIN_SRC c
+struct imx500 {
+    struct dentry *debugfs;
+    struct v4l2_subdev sd;
+    struct media_pad pad[NUM_PADS];
+    struct regmap *regmap;
+    
+    unsigned int fmt_code;
+    
+    struct clk *xclk;
+    u32 xclk_freq;
+    
+    struct gpio_desc *led_gpio;
+    struct gpio_desc *reset_gpio;
+    struct regulator_bulk_data supplies[IMX500_NUM_SUPPLIES];
+    
+    struct v4l2_ctrl_handler ctrl_handler;
+    /* V4L2コントロール */
+    struct v4l2_ctrl *pixel_rate;
+    struct v4l2_ctrl *link_freq;
+    struct v4l2_ctrl *exposure;
+    struct v4l2_ctrl *vflip;
+    struct v4l2_ctrl *hflip;
+    struct v4l2_ctrl *vblank;
+    struct v4l2_ctrl *hblank;
+    struct v4l2_ctrl *network_fw_ctrl;
+    struct v4l2_ctrl *device_id;
+    
+    struct v4l2_rect inference_window;
+    
+    /* 現在のモード */
+    const struct imx500_mode *mode;
+    
+    struct mutex mutex;
+    
+    /* ストリーミングオン/オフ */
+    bool streaming;
+    
+    /* ストリームオン時に共通レジスタを再書き込みするか？ */
+    bool common_regs_written;
+    
+    bool loader_and_main_written;
+    bool network_written;
+    
+    /* 現在使用中の長時間露光係数。V4L2_CID_VBLANKを介して設定 */
+    unsigned int long_exp_shift;
+    
+    struct spi_device *spi_device;
+    
+    const struct firmware *fw_loader;
+    const struct firmware *fw_main;
+    const u8 *fw_network;
+    size_t fw_network_size;
+    size_t fw_progress;
+    unsigned int fw_stage;
+    
+    enum imx500_state fsm_state;
+    
+    u32 num_inference_lines;
+};
+#+END_SRC
+
+**** ~struct imx500_mode~
+
+センサーの解像度モードを定義します：
+
+#+BEGIN_SRC c
+struct imx500_mode {
+    unsigned int width;
+    unsigned int height;
+    unsigned int line_length_pix;
+    struct v4l2_rect crop;
+    struct imx500_reg_list reg_list;
+};
+#+END_SRC
+
+*** カスタムコントロール
+
+ドライバーはAI機能のための複数のカスタムV4L2コントロールを実装しています：
+
++ ~V4L2_CID_USER_IMX500_INFERENCE_WINDOW~ - 推論ウィンドウの座標設定
++ ~V4L2_CID_USER_IMX500_NETWORK_FW_FD~ - ネットワークの重みをロードするためのファイル記述子
++ ~V4L2_CID_USER_GET_IMX500_DEVICE_ID~ - デバイスIDの取得
+
+*** ファームウェア管理
+
+ドライバーはファームウェアロード用の状態マシンを実装しています：
+
+#+BEGIN_SRC c
+enum imx500_state {
+    IMX500_STATE_RESET = 0,
+    IMX500_STATE_PROGRAM_EMPTY,
+    IMX500_STATE_WITHOUT_NETWORK,
+    IMX500_STATE_WITH_NETWORK,
+};
+#+END_SRC
+
+ネットワークの重みはSPIインターフェースを介してロードされ、制御パラメータはI2Cを介して設定されます。
+
+*** 電源管理
+
+ドライバーは以下の適切な電源シーケンスを実装しています：
+
++ データシートのタイミング要件に基づく電源投入シーケンス
++ システム動作中の電力管理のためのランタイムPM
++ 複数の電源レールのためのレギュレータ管理
+
+*** 主要な関数
+
+**** 初期化
++ ~imx500_probe()~ - ドライバーの初期化
++ ~imx500_identify_module()~ - チップIDの検証
++ ~imx500_init_controls()~ - V4L2コントロールの初期化
+
+**** ストリーミング制御
++ ~imx500_start_streaming()~ - キャプチャ開始
++ ~imx500_stop_streaming()~ - キャプチャ停止
+
+**** フォーマット処理
++ ~imx500_set_pad_format()~ - 画像/メタデータパッドのフォーマット設定
++ ~imx500_get_pad_format()~ - 現在のフォーマットの取得
+
+**** ファームウェア管理
++ ~imx500_state_transition()~ - ファームウェアロードの状態遷移処理
++ ~imx500_transition_to_network()~ - ニューラルネットワークの重みのロード
++ ~imx500_clear_weights()~ - ロード済みネットワークの削除
+
+*** 特殊機能
+
+このドライバーはユニークないくつかの興味深い機能を実装しています：
+
+1. **デュアルインターフェース**：I2C（制御）とSPI（ファームウェアロード）の両方
+2. **複数のパッド**：画像データとメタデータ/推論結果
+3. **ニューラルネットワークのロード**：実行時にカスタムニューラルネットワークをロード
+4. **推論ウィンドウ**：推論のためのカスタム領域を設定可能
+5. **ファームウェア検証**：カスタムファームウェアブロック検証
+
+*** 使用上の考慮事項
+
+アプリケーション開発者がこのドライバーを効果的に使用するには：
+
+1. 基本的な撮像のために標準のV4L2コントロールを介してセンサーを設定
+2. カスタムファイル記述子コントロールを介してニューラルネットワークの重みをロード
+3. カスタムコントロールを介して推論ウィンドウを設定
+4. 画像と推論結果を受信するために、ビデオとメタデータの両方のパッドを使用
+
+ドライバーはファームウェアロードの進行状況を監視するためのdebugfsエントリを公開しています。
+
+
+** 関数
+
+*** IMX500ドライバーのパブリック関数
+
+IMX500ドライバーコード内のstatic修飾子のない、外部からアクセス可能な関数について解説します。
+
+**** モジュール初期化/終了関数
+
++ ~imx500_driver_init~ - ドライバーの初期化を行う関数
+  - SPIドライバーとI2Cドライバーを登録
+  - モジュールロード時に自動実行される（~module_init~）
+
++ ~imx500_driver_exit~ - ドライバーの終了処理を行う関数
+  - SPIドライバーとI2Cドライバーの登録解除
+  - モジュールアンロード時に自動実行される（~module_exit~）
+
+**** SPIインターフェース関数
+
++ ~imx500_spi_probe~ - SPIデバイスが検出された時に実行される関数
+  - SPIデバイスの初期化と設定（ビット幅、最大速度、モード）
+  - SPIセットアップの実行
+
++ ~imx500_spi_remove~ - SPIデバイスが取り外された時に実行される関数
+  - 現在の実装では特に処理は行っていない（空の関数）
+
+**** V4L2サブデバイス操作関数
+
+以下の関数は~v4l2_subdev_ops~構造体を通じて外部からアクセスされます：
+
++ ~imx500_enum_mbus_code~ - サポートするメディアバスフォーマットコードの列挙
+  - 画像パッド用とメタデータパッド用のフォーマットコードを提供
+
++ ~imx500_enum_frame_size~ - サポートするフレームサイズの列挙
+  - 各パッドとフォーマットに対して有効なフレームサイズを返す
+
++ ~imx500_get_pad_format~ - パッドのフォーマット情報の取得
+  - 画像パッドまたはメタデータパッドの現在のフォーマットを返す
+
++ ~imx500_set_pad_format~ - パッドのフォーマット設定
+  - 画像パッドまたはメタデータパッドのフォーマットを設定
+
++ ~imx500_get_selection~ - クロップ、ネイティブサイズなどの選択情報の取得
+  - センサーの様々な範囲情報を提供
+
++ ~imx500_set_stream~ - ストリーミングの開始/停止
+  - カメラのストリーミング状態を制御
+  - ファームウェアのロード、レジスタ設定などを含むシーケンスを実行
+
+**** V4L2コントロール操作関数
+
++ ~imx500_set_ctrl~ - V4L2コントロール値の設定
+  - 露出、ゲイン、フリップなどの標準的なカメラコントロール
+  - ニューラルネットワークファームウェアのロードなどのカスタムコントロール
+  - 推論ウィンドウの設定などのIMX500特有の機能
+
++ ~imx500_get_ctrl~ - V4L2コントロール値の取得
+  - デバイスIDの取得などのカスタムコントロール値を返す
+
+**** 主な実現可能な機能
+
+これらのパブリック関数を通じて、以下の機能が外部から利用可能です：
+
+1. カメラセンサーの初期化と設定
+   - 解像度、フォーマットなどの基本設定
+   - 露出、ゲイン、フリップなどのカメラパラメータ調整
+
+2. ストリーミング制御
+   - カメラストリームの開始と停止
+   - 画像キャプチャとメタデータ出力の管理
+
+3. ニューラルネットワーク関連機能
+   - ネットワークファームウェアのロード
+   - 推論ウィンドウの設定
+   - 推論結果のメタデータとしての取得
+
+4. デバイス情報取得
+   - デバイスIDの読み取り
+   - サポートするフォーマットやサイズの列挙
+
+5. 電源管理
+   - ランタイムPMを通じた省電力制御
+   - カメラの電源オン/オフシーケンス
+
+これらの機能は主にV4L2フレームワークを通じてアプリケーションに公開され、標準的なV4L2 APIやIOCTLを使って制御できます。
+
+** 関数の公開方法
+
+*** モジュールエントリーポイント関数
+
+以下の関数は~static~修飾子付きですが、~module_init~と~module_exit~マクロによって外部からアクセス可能なエントリーポイントとして登録されています：
+
+#+BEGIN_SRC c
+static int __init imx500_driver_init(void)
+static void __exit imx500_driver_exit(void)
+#+END_SRC
+
+これらは~module_init(imx500_driver_init)~と~module_exit(imx500_driver_exit)~によってカーネルモジュールのロード・アンロード時に実行されます。
+
+*** モジュール内の全ての関数
+
+実際には、このファイル内のすべての関数は~static~修飾子を持っており、モジュール内部でのみ使用可能です：
+
+#+BEGIN_SRC c
+static inline struct imx500 *to_imx500(struct v4l2_subdev *_sd)
+static bool validate_normalization_yuv(...)
+static bool validate_bit_pattern(...)
+static bool validate_bayer_rgb_normalization(...)
+static bool validate_normalization_registers(...)
+static bool validate_image_format_selection(...)
+static bool validate_yc_conversion_factor(...)
+static bool validate_dnn_output_setting(...)
+static bool __must_check imx500_validate_inference_register(...)
+static int imx500_set_inference_window(...)
+static int imx500_get_device_id(...)
+static int imx500_reg_val_write_cbk(...)
+static u32 imx500_get_format_code(...)
+static void imx500_set_default_format(...)
+static int imx500_validate_fw_block(...)
+static size_t imx500_valid_fw_bytes(...)
+static int imx500_iterate_nw_regs(...)
+static int imx500_reg_tensor_lines_cbk(...)
+static void imx500_calc_inference_lines(...)
+static void imx500_adjust_exposure_range(...)
+static int imx500_set_frame_length(...)
+static int __must_check imx500_poll_status_reg(...)
+static int imx500_prepare_poll_cmd_reply_sts(...)
+static int imx500_clear_weights(...)
+static void imx500_clear_fw_network(...)
+static int imx500_set_ctrl(...)
+static int imx500_get_ctrl(...)
+static int imx500_enum_mbus_code(...)
+static int imx500_enum_frame_size(...)
+static void imx500_update_image_pad_format(...)
+static void imx500_update_metadata_pad_format(...)
+static int imx500_get_pad_format(...)
+static void imx500_set_framing_limits(...)
+static int imx500_set_pad_format(...)
+static const struct v4l2_rect *__imx500_get_pad_crop(...)
+static int imx500_get_selection(...)
+static int __must_check imx500_spi_write(...)
+static int imx500_state_transition(...)
+static int imx500_transition_to_standby_wo_network(...)
+static int imx500_transition_to_network(...)
+static int imx500_start_streaming(...)
+static void imx500_stop_streaming(...)
+static int imx500_set_stream(...)
+static int imx500_power_on(...)
+static int imx500_power_off(...)
+static int imx500_get_regulators(...)
+static int imx500_identify_module(...)
+static int imx500_init_controls(...)
+static void imx500_free_controls(...)
+static int imx500_check_hwcfg(...)
+static int fw_progress_show(...)
+static int imx500_probe(...)
+static void imx500_remove(...)
+static int imx500_spi_probe(...)
+static void imx500_spi_remove(...)
+static int __init imx500_driver_init(void)
+static void __exit imx500_driver_exit(void)
+#+END_SRC
+
+*** 外部インターフェースの実装方法
+
+このドライバーは、以下の標準的なLinuxカーネルメカニズムを通じて外部と相互作用します：
+
+1. **モジュールロード/アンロード**
+   + ~module_init~と~module_exit~マクロを使用
+
+2. **ドライバー登録**
+   + ~i2c_add_driver~と~spi_register_driver~を使用して登録
+   + ~struct i2c_driver imx500_i2c_driver~と~struct spi_driver imx500_spi_driver~を通じてコールバック関数を提供
+
+3. **V4L2サブデバイスAPI**
+   + ~struct v4l2_subdev_ops imx500_subdev_ops~を通じて関数ポインタを提供
+   + ドライバーの関数は~v4l2_async_register_subdev_sensor~によって登録
+
+4. **V4L2コントロールAPI**
+   + ~struct v4l2_ctrl_ops imx500_ctrl_ops~を通じてコールバックを提供
+
+*** 実質的な外部インターフェース
+
+これらの関数は~static~ですが、構造体を通じて外部からアクセス可能です：
+
+1. V4L2サブデバイス操作：
+   + ~imx500_enum_mbus_code~ - フォーマット列挙
+   + ~imx500_enum_frame_size~ - フレームサイズ列挙
+   + ~imx500_get_pad_format~ - フォーマット取得
+   + ~imx500_set_pad_format~ - フォーマット設定
+   + ~imx500_get_selection~ - 選択情報取得
+   + ~imx500_set_stream~ - ストリーミング制御
+
+2. V4L2コントロール操作：
+   + ~imx500_set_ctrl~ - コントロール値設定
+   + ~imx500_get_ctrl~ - コントロール値取得
+
+3. 電源管理操作：
+   + ~imx500_power_on~ - 電源オン
+   + ~imx500_power_off~ - 電源オフ
+
+*** まとめ
+
+IMX500ドライバーでは、すべての関数が~static~修飾子を持ち、直接外部からは呼び出せません。代わりに、標準的なLinuxカーネルの構造体とコールバックメカニズムを通じて機能を公開しています。これはカーネルモジュールの一般的な設計パターンであり、シンボルの可視性を制限しながら必要な機能を提供する方法です。
