@@ -10,7 +10,7 @@
 
 * 用意するもの
 
-[[http://cha.la.coocan.jp/doc/OpenVPN_PKI_Manage.html][OpenVPN 認証局の設置]] の手順に従って生成した、下記ファイルが必要。
+[[https://document.wurlyhub.com/html/OpenVPN_PKI_Manage.html][OpenVPN 認証局の設置]] の手順に従って生成した、下記ファイルが必要。
 
  - ca.crt
  - client_クライアント名.crt
