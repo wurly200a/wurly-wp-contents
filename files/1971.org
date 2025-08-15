@@ -1,0 +1,173 @@
+#+BLOG: wurly-blog
+#+POSTID: 1971
+#+ORG2BLOG:
+#+DATE: [2025-08-14 Thu 18:51]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Zephyr, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Zephyrプロジェクト のお試し (SSD1306 I2C)
+
+* はじめに
+
+Zephyrプロジェクトをビルドし実際のターゲット(ESP32)での動作を試しました。
+
+ChatGPT 5 (Thinking)からの出力を試してまとめたものです。
+
+結果的に、Setupの部分は https://docs.zephyrproject.org/latest/develop/getting_started/index.html の内容と同じでした。
+
+* ハードウェア
+
+ - ESP32-DevKitC-VE ESP32-WROVER-E開発ボード 8MB (https://akizukidenshi.com/catalog/g/g115674/)
+ - 0.96インチ 128×64ドット有機ELディスプレイ(OLED) 白色 (https://akizukidenshi.com/catalog/g/g112031/)
+
+SCL は PIN22, SDA は PIN23 への接続です。
+
+* Setup
+
+** 依存パッケージ（for Ubuntu 22.04 or later）
+
+#+begin_src bash
+sudo apt update
+sudo apt install --no-install-recommends git cmake ninja-build gperf \
+  ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
+  xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+#+end_src
+
+** 作業用ディレクトリと Python 仮想環境
+
+#+begin_src bash
+python3 -m venv ~/zephyrproject/.venv
+source ~/zephyrproject/.venv/bin/activate
+#+end_src
+
+** west を入れて Zephyr 取得
+
+#+begin_src bash
+pip install west
+west init ~/zephyrproject
+cd ~/zephyrproject
+west update
+#+end_src
+
+** Zephyr CMake パッケージの Export
+
+#+begin_src bash
+west zephyr-export
+#+end_src
+
+** 追加の Python 依存を一括インストール
+
+#+begin_src bash
+west packages pip --install
+#+end_src
+
+** SDK を west 経由でインストール
+
+#+begin_src bash
+cd ~/zephyrproject/zephyr
+west sdk install
+#+end_src
+
+** ESP32向け、Espressif のバイナリ BLOB の取得
+
+#+begin_src bash
+cd ~/zephyrproject/zephyr
+west blobs fetch hal_espressif
+#+end_src
+
+* Configuration
+
+** overlay
+
+$HOME/zephyrproject/overlays/ssd1306_esp32.overlay
+
+#+begin_src
+#include <dt-bindings/i2c/i2c.h>
+#include <dt-bindings/pinctrl/esp32-pinctrl.h>
+
+&pinctrl {
+    i2c0_default: i2c0_default {
+        group1 {
+            pinmux = <I2C0_SCL_GPIO22>, <I2C0_SDA_GPIO23>;
+            drive-open-drain;
+            bias-pull-up;
+            output-high;
+        };
+    };
+};
+
+&i2c0 {
+    status = "okay";
+/*    clock-frequency = <I2C_BITRATE_STANDARD>; */ /* 100 kHz */
+    clock-frequency = <I2C_BITRATE_FAST>; /* 400kHz */
+    pinctrl-0 = <&i2c0_default>;
+    pinctrl-names = "default";
+
+    oled: ssd1306@3c {
+        compatible = "solomon,ssd1306fb";   /* -i2c なし */
+        reg = <0x3c>;
+        width = <128>;
+        height = <64>;
+        segment-offset = <0>;
+        page-offset = <0>;
+        display-offset = <0>;
+        multiplex-ratio = <63>;
+        prechargep = <0x22>;
+        /* 必要なら向き補正：
+         * segment-remap;
+         * com-invdir;
+         */
+        segment-remap;
+        com-invdir;
+        status = "okay";
+    };
+};
+
+/* アプリが使う表示デバイスを選ぶ */
+ / {
+    chosen { zephyr,display = &oled; };
+};
+#+end_src
+
+** ssd1306.conf
+
+#+begin_src bash
+cat >/tmp/ssd1306.conf <<'EOF'
+CONFIG_I2C=y
+CONFIG_DISPLAY=y
+CONFIG_SSD1306=y
+EOF
+#+end_src
+
+* サンプルのビルドと実行
+
+** displayのチェック (samples/drivers/display)
+
+#+begin_src bash
+rm -rf build
+
+west build -p always \
+  -b esp32_devkitc/esp32/procpu \
+  $HOME/zephyrproject/zephyr/samples/drivers/display \
+  -- -DDTC_OVERLAY_FILE=$HOME/zephyrproject/overlays/ssd1306_esp32.overlay \
+     -DOVERLAY_CONFIG=/tmp/ssd1306.conf
+
+west flash
+west espressif monitor
+#+end_src
+
+** 文字を出力 (samples/subsys/display/cfb)
+
+#+begin_src bash
+rm -rf build
+
+west build -p always \
+  -b esp32_devkitc/esp32/procpu \
+  $HOME/zephyrproject/zephyr/samples/subsys/display/cfb \
+  -- -DDTC_OVERLAY_FILE=$HOME/zephyrproject/overlays/ssd1306_esp32.overlay \
+     -DOVERLAY_CONFIG=/tmp/ssd1306.conf
+
+west flash
+west espressif monitor
+#+end_src
