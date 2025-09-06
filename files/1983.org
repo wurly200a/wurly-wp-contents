@@ -1,0 +1,32 @@
+#+BLOG: wurly-blog
+#+POSTID: 1983
+#+ORG2BLOG:
+#+DATE: [2025-09-06 Sat 19:07]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: FreeCAD Install
+
+ - [[https://wiki.freecad.org/Installing_on_Linux][Installing on Linux - FreeCAD Documentation]]
+
+#+begin_src bash
+sudo add-apt-repository ppa:freecad-maintainers/freecad-stable
+#+end_src
+
+上記によると、
+
+#+begin_quote
+The installation of FreeCAD on most well-known Linux systems is endorsed by the community, and FreeCAD is available via the package manager on those systems. The FreeCAD team also provides some:
+
+ - "Official" packages when new releases are made available via Snap packages, AppImages, Flatpaks and the PPA
+ - Experimental or 'bleeding edge' builds available via PPA daily repository, AppImages, Ubuntu Snaps.
+#+end_quote
+
+
+#+begin_src bash
+$ sudo snap install freecad
+freecad 1.0.2 from FreeCAD (freecad-project-association) installed
+#+end_src
+
+[[file:./images/1983_01.png]]
