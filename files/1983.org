@@ -6,7 +6,9 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: FreeCAD Install
+#+TITLE: FreeCAD
+
+* Install
 
  - [[https://wiki.freecad.org/Installing_on_Linux][Installing on Linux - FreeCAD Documentation]]
 
@@ -30,3 +32,91 @@ freecad 1.0.2 from FreeCAD (freecad-project-association) installed
 #+end_src
 
 [[file:./images/1983_01.png]]
+
+ お試し
+
+** 起動
+ - 新規 → Parametric Part を選択
+ - ワークベンチを Part Design に切替
+
+** Spreadsheet
+ - ワークベンチを Spreadsheet に切替 (View -> Workbench -> Spreadsheet)
+ - Spreadsheet -> Create spreadsheet
+
+セル	値	エイリアス	メモ
+A1	85	BOARD_L	基板 長さ X
+A2	56	BOARD_W	基板 幅 Y
+A3	3	CORNER_R	四隅R
+A4	58	HOLE_X	穴のXピッチ
+A5	49	HOLE_Y	穴のYピッチ
+A6	2.75	HOLE_D	取付穴径（M2.5用）。試刷りは 2.9 〜 3.0 でも可
+A7	1.6	THICK	厚み（試作板）
+A8	=(BOARD_L - HOLE_X)/2	HOFF_X	左右端から穴中心までのオフセット
+A9	=(BOARD_W - HOLE_Y)/2	HOFF_Y	上下端から穴中心までのオフセット
+
+確認値（自動計算）：HOFF_X = 13.5、HOFF_Y = 3.5
+
+ - 右上に出ている Alias: に入力 (セルを右クリック -> Properties -> Alias)
+
+** MasterSketch_PCB を作成（Sketcher）
+
+ - ワークベンチを Part Design に切替
+ - 左側のModelのペインにて
+ - (新規Sketch（XY平面）を作成。)
+ - Sketch -> Create Sketch
+
+
+ - 中心矩形ツールで原点中心の長方形を1つ適当な場所に描く
+  - 矩形のアイコン -> Centered Rectangle
+   - (Sketch -> Skecher Geometires -> Create centered rectangle)
+ - (選択をできるようにするため、一旦、同じアイコンをクリックし、その上でESCキーを押す)
+ - Sketch の状態で、Controlキーを押しながら、中心点と (X=0,Y=0)座標を選択し、"c" を押す
+  - (Sketch -> Sketcher constraings -> Constrain coincident)
+  - 矩形が0座標と一致するようになる
+ - 矩形の上辺を選択し、"l" を押す
+  - (Sketch -> Sketcher constraings -> Constrain horizontal destance)
+  - *数値が入っているフィールド(Length)の右上の f(x)をクリックして* Spreadsheet.BOARD_L を入れる
+ - 矩形の左辺を選択し、"i" を押す
+  - (Sketch -> Sketcher constraings -> Constrain vertical destance)
+  - *数値が入っているフィールド(Length)の右上の f(x)をクリックして* Spreadsheet.BOARD_W を入れる
+
+ - 円を1つ、適当な場所に描く(g,c)
+  - 円のアイコン -> Create circle by center
+   - (Sketch -> Skecher Geometires -> Create circle by center)
+ - (選択をできるようにするため、一旦、同じアイコンをクリックし、その上でESCキーを押す)
+ - Sketch の状態で、円周部分を選択し、"k,r" を押す
+ - (Sketch -> Sketcher constraings -> Constrain radius)
+ - *数値が入っているフィールド(Radius)の右上の f(x)をクリックして*  Spreadsheet.HOLE_D / 2 を入れる
+ - 円の中心を選択し、"l" を押す
+  - (Sketch -> Sketcher constraings -> Constrain horizontal destance)
+  - *数値が入っているフィールド(Length)の右上の f(x)をクリックして* Spreadsheet.BOARD_L を入れる
+ - 円の中心を選択し、"i" を押す
+  - (Sketch -> Sketcher constraings -> Constrain vertical destance)
+  - *数値が入っているフィールド(Length)の右上の f(x)をクリックして* Spreadsheet.BOARD_W を入れる
+
+左下（BL）：
+X = Spreadsheet.HOFF_X
+Y = Spreadsheet.HOFF_Y
+
+右下（BR）：
+X = Spreadsheet.HOLE_X (BLとの距離)
+Y = Spreadsheet.HOFF_Y
+
+左上（TL）：
+X = Spreadsheet.HOFF_X
+Y = Spreadsheet.BOARD_W - Spreadsheet.HOFF_Y
+
+右上（TR）：
+X = Spreadsheet.HOLE_X (TLとの距離)
+Y = Spreadsheet.BOARD_W - Spreadsheet.HOFF_Y
+
+
+** 立体化と四隅R
+
+ - Part Design -> Pad（押し出し）
+ - 寸法 = Spreadsheet.THICK
+
+ - 四隅Rを付ける
+ - 端の4辺を選択しておく(面ではない。辺)
+ - Part Design -> Apply a dress-up feature -> Fillet -> Radius : Spreadsheet.CORNER_R
+
