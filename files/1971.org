@@ -171,3 +171,7 @@ west build -p always \
 west flash
 west espressif monitor
 #+end_src
+
+#+begin_src bash
+export ZEPHYR_BASE="$HOME/zephyrproject/zephyr"
+#+end_src
