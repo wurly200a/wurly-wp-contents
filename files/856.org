@@ -14,7 +14,34 @@ Ubuntu 22.04 に helm をインストールします。
 
 ここでの helm は Emacs のそれではなく、Kubernetes の パッケージマネージャーのHelmです。
 
-* 今回行った方法
+* 行った方法(2025年9月)
+
+下記メッセージが表示されたので更新しました。
+
+#+begin_src bash
+E: The repository 'https://baltocdn.com/helm/stable/debian all Release' no longer has a Release file.
+#+end_src
+
+削除
+
+#+begin_src bash
+$ sudo rm /etc/apt/keyrings/helm.gpg
+$ sudo rm /etc/apt/sources.list.d/helm-stable-debian.list
+#+end_src
+
+#+begin_src bash
+curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey \
+ | gpg --dearmor \
+ | sudo tee /etc/apt/keyrings/helm.gpg >/dev/null
+
+echo 'deb [signed-by=/etc/apt/keyrings/helm.gpg ] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main' \
+ | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+sudo apt-get update
+sudo apt-get install -y helm
+#+end_src
+
+* 行った方法(2023年11月)
 
 gpgファイルの置き場については /usr/share/keyrings/ と /etc/apt/keyrings/ の2つの流派があると思われます。
 
