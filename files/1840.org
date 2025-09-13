@@ -31,7 +31,9 @@ mozc-server/jammy,now 2.26.4220.100+dfsg-5.2 amd64 [installed]
 
 #+begin_src bash
 $ sudo apt remove ibus-mozc
+$ sudo apt remove fcitx-mozc
 $ sudo apt remove emacs-mozc
+$ sudo apt autoremove
 #+end_src
 
 * 詳細
@@ -120,6 +122,15 @@ EmacsでIM切り替え時に表示がパタパタしてしまうのでこちら�
 
 [[file:images/1840_17.jpg]]
 
+
+** Left Shift の無効化
+
+一時的にIMを切り替える設定、とあるのですが、私の環境では恒久的に切り替わってしまい、非常に使いにくいので無効にします。
+[[file:images/1840_26.png]]
+削除します。
+[[file:images/1840_27.png]]
+Empty担ったことを確認してAppyします。
+[[file:images/1840_28.png]]
 
 ** Control + ; の無効化
 
@@ -255,3 +266,7 @@ libfcitx5utils2/jammy,now 5.0.14-1 amd64 [installed,automatic]
 # images/1840_23.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_23.png
 # images/1840_24.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_24.png
 # images/1840_25.png https://blog.wurlyhub.com/wp-content/uploads/2025/05/1840_25.png
+
+# images/1840_26.png https://blog.wurlyhub.com/wp-content/uploads/2025/09/1840_26.png
+# images/1840_27.png https://blog.wurlyhub.com/wp-content/uploads/2025/09/1840_27.png
+# images/1840_28.png https://blog.wurlyhub.com/wp-content/uploads/2025/09/1840_28.png
