@@ -1,0 +1,31 @@
+#+BLOG: wurly-blog
+#+POSTID: 1981
+#+ORG2BLOG:
+#+DATE: [2025-08-15 Fri 13:27]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Zephyr, ESP32
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Zephyr で BLE
+
+* 接続確認
+
+#+begin_src bash
+rm -rf build
+west build -p always -b esp32_devkitc/esp32/procpu \
+  $ZEPHYR_BASE/samples/bluetooth/peripheral_dis
+west flash
+#+end_src
+
+nRF Connect アプリにて、DIS peripheral が見えることを確認
+
+* アプリ1
+
+#+begin_src bash
+rm -rf build
+west build -p always \
+  -b esp32_devkitc/esp32/procpu \
+  ~/project_zephyr/bt_cfg_app \
+  -- -DDTC_OVERLAY_FILE=$HOME/zephyrproject/overlays/ssd1306_esp32.overlay
+west flash
+#+end_src

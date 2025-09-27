@@ -1,0 +1,235 @@
+#+BLOG: wurly-blog
+#+POSTID: 1996
+#+ORG2BLOG:
+#+DATE: [2025-09-27 Sat 08:44]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Emacs
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 24.04 に Emacs 30.2 (with pgtk) をインストール
+
+* はじめに
+
+Ubuntu 24.04 に Emacs 30.2 をインストールしました。
+
+インストール環境は下記です。
+今回は、最初にビルドしたのがNativeのUbuntu環境を使いましたが、直近の数バージョンで、バージョンアップがある毎にNative/WSL両方の環境でもビルドしていますので、Native/WSLどちらでも同じ手順で実行できるかと思います。
+
+ - ハードウェア : ASUS Chromebox3 i7-8550U 32GB RAM, NVMe SSD
+ - OS : Ubuntu24.04
+
+下記のコンフィギュレーションとなります。
+
+ - pgtk(Pure GTK)
+ - native-compilation
+ - (XWidgets 無効)
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src bash
+$ git clone --depth 1 --branch emacs-30.2 git://git.sv.gnu.org/emacs.git emacs-30.2
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+libgccjit は 14 を使用しました。
+今回、imagemagick, libmagickwand-dev, libmagickcore-dev, libtree-sitter-dev を追加しました。
+また、現在は libm17n-dev は不要のようです(HarfBuzzが標準とのこと)。
+gtk4-dev では使用不可です。
+
+(gtk3-devなし、gtk4-devありのとき)
+#+begin_src bash
+checking for gtk+-3.0 >= 3.22.23 glib-2.0 >= 2.37.5... no
+configure: error: Package 'gtk+-3.0', required by 'virtual:world', not found
+#+end_src
+
+#+begin_src bash
+$ sudo apt update
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-14-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev \
+                   imagemagick \
+                   libmagickwand-dev \
+                   libmagickcore-dev \
+                   libtree-sitter-dev \
+                   libjansson-dev
+#+end_src
+
+** Makefileの生成
+
+#+begin_src bash
+cd emacs-30.2
+./autogen.sh
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/14/include -L/usr/lib/gcc/x86_64-linux-gnu/14' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils --with-imagemagick --with-tree-sitter
+#+end_src --with-imagemagick
+
+なお、未だ、configureにて下記のメッセージが表示されるため、--with-xwidgets は外しました。
+
+#+begin_src bash
+checking for webkit2gtk-4.1 >= 2.12 webkit2gtk-4.1 < 2.41.92... no
+checking for webkit2gtk-4.0 >= 2.12 webkit2gtk-4.0 < 2.41.92... noa
+configure: error: xwidgets requested but WebKitGTK+ or WebKit framework not found.
+#+end_src
+
+また、こちらも気になるメッセージです。
+
+#+begin_src bash
+checking for gtk+-3.0 >= 3.22.23 glib-2.0 >= 2.37.5... yes
+checking whether GTK compiles... yes
+configure: WARNING: Your version of Gtk+ will have problems with
+       closing open displays.  This is no problem if you just use
+       one display, but if you use more than one and close one of them
+       Emacs may crash.
+       See https://gitlab.gnome.org/GNOME/gtk/issues/221
+#+end_src
+
+configure結果
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/14/include -L/usr/lib/gcc/x86_64-linux-gnu/14 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Is Emacs being built for Android?                       no 
+  Does Emacs use the X Double Buffer Extension?           no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16 
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  yes
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             yes
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes (inotify)
+  Does Emacs use access control lists?                    yes -lacl -lattr
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ltree-sitter?                           yes
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            no
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+
+
+configure: creating ./config.status
+config.status: creating src/verbose.mk
+config.status: creating src/emacs-module.h
+config.status: creating Makefile
+config.status: creating lib/gnulib.mk
+config.status: creating ./doc/man/emacs.1
+config.status: creating lib/Makefile
+config.status: creating lib-src/Makefile
+config.status: creating oldXMenu/Makefile
+config.status: creating src/Makefile
+config.status: creating lwlib/Makefile
+config.status: creating nextstep/Makefile
+config.status: creating nt/Makefile
+config.status: creating doc/emacs/Makefile
+config.status: creating doc/misc/Makefile
+config.status: creating doc/lispintro/Makefile
+config.status: creating doc/lispref/Makefile
+config.status: creating lisp/Makefile
+config.status: creating leim/Makefile
+config.status: creating test/Makefile
+config.status: creating test/manual/noverlay/Makefile
+config.status: creating test/infra/Makefile
+config.status: creating admin/charsets/Makefile
+config.status: creating admin/unidata/Makefile
+config.status: creating admin/grammars/Makefile
+config.status: creating java/Makefile
+config.status: creating cross/Makefile
+config.status: creating java/AndroidManifest.xml
+config.status: creating src/config.h
+config.status: executing src/epaths.h commands
+config.status: executing src/.gdbinit commands
+config.status: executing doc/emacs/emacsver.texi commands
+config.status: executing etc-refcards-emacsver.tex commands
+#+end_src
+
+** make
+
+#+begin_src bash
+make -j$(nproc)
+#+end_src
+
+# Available configurations
+# Core i5-1235U, 32GB Memory, NVMe SSD, Windows11, WSL
+# Core i7-10700F, 16GB Memory, NVMe SSD
+
+** make install
+
+#+begin_src bash
+sudo make install
+#+end_src
+
+* Ubuntu 24.04 で pure-GTK にて起動しない問題(WSL)
+
+(Emacs 30.1のときの対応内容の転記です)
+そのままの状態では、X-Window で立ち上がり、下記のメッセージが表示されます。
+
+#+begin_quote
+You are trying to run Emacs configured with the "pure-GTK" interface under the X Window System.
+That configuration is unsupported and will lead to sporadic crashes during transfer of large slection data.
+It will also lead to various problems with keyboard input.
+#+end_quote
+
+下記で対応しました。
+
+#+begin_src bash
+ln -s /mnt/wslg/runtime-dir/wayland-0* "$XDG_RUNTIME_DIR"
+#+end_src
+
+* おわりに
+
+Ubuntu 24.04 でも Emacs 30.2 のビルドおよび起動が確認できました。

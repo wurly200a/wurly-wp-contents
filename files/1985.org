@@ -1,0 +1,101 @@
+#+BLOG: wurly-blog
+#+POSTID: 1985
+#+ORG2BLOG:
+#+DATE: [2025-09-08 Mon 20:42]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Waveshare ESP32-S3-Touch-LCD-2.8
+
+* 概要
+
+Waveshare ESP32-S3-Touch-LCD-2.8 を購入しました。
+
+構想している個人プロダクトのベースにすることを想定しています。
+
+ - ESP32S3 (内蔵 512KB SRAM and 384KB ROM)
+ - 基板上 16MB Flash and 8MB PSRAM
+ - 基板上 2.8inch LCD display (解像度240×320, 262K color)
+ - 静電容量タッチスクリーン
+ - ステレオスピーカー(束線付き)
+ - QMI8658 6軸(角度検出)センサー
+ - MicroSD slot
+ - バッテリー充電、起動回路 (Ph1.25 コネクタ 統合保護回路付きのものが使用可能)
+ - RTCセンサー
+ - UARTコネクタ(SCL,SDA,GND,3.3V : 4pin束線付き)
+ - I2Cコネクタ(TXD,RXD,GND,3.3V : 4pin束線付き)
+ - UART, I2C, USB, 汎用port(x2) (SCL,SDA,GND,TXD,RXD,D+,D-,VBus,GND,3.3V,GPIO15,GPIO18:12pin束線付き)
+
+パッケージには上記が含まれており、USBから電源供給するか、もしくはバッテリーを接続するだけで、プロダクトらしきものがつくれてしまうという代物です。
+
+実際、出荷時に書き込まれているプログラムを動作させると、タッチパネルから操作することでMicroSDカード上のmp3ファイルを再生できてしまいます。
+
+また、拡張I/Oについても束線が付属しているので、外部回路を繋ぐのも容易で、まさに個人プロダクトにはうってつけです。
+
+(ただし、技適はないので、日本では Wi-Fi と Bluetooth は使えないことに注意が必要です)
+
+* パッケージの動作確認
+
+** 概要
+まずはパッケージに含まれるもののみで動作を確認してみます。
+
+** FlashROM書き込み・デバッグ用 USBポートの確認
+
+port は /dev/ttyACM0 となりました。
+
+** esptool のインストール
+
+ここでは、Python仮想環境(venv)を使用しました。
+
+#+begin_src bash
+$ python3 -m venv ./venv
+$ . venv/bin/activate
+$ pip3 list
+Package Version
+------- -------
+pip     24.0
+(venv) $ pip3 install esptool
+#+end_src
+
+** flash-id の読み取り
+
+#+begin_src bash
+(venv) $ esptool --chip esp32s3 --port /dev/ttyACM0 flash-id
+esptool v5.0.2
+Connected to ESP32-S3 on /dev/ttyACM0:
+Chip type:          ESP32-S3 (QFN56) (revision v0.2)
+Features:           Wi-Fi, BT 5 (LE), Dual Core + LP Core, 240MHz, Embedded PSRAM 8MB (AP_3v3)
+Crystal frequency:  40MHz
+USB mode:           USB-Serial/JTAG
+MAC:                xx:xx:xx:xx:xx:xx
+
+Stub flasher running.
+
+Flash Memory Information:
+=========================
+Manufacturer: ef
+Device: 4018
+Detected flash size: 16MB
+Flash type set in eFuse: quad (4 data lines)
+Flash voltage set by eFuse: 3.3V
+
+Hard resetting via RTS pin...
+#+end_src
+
+** 工場出荷Firmwareのバックアップ
+
+念の為、工場出荷Firmwareのバックアップしておきます。
+
+#+begin_src bash
+esptool --chip esp32s3 --port /dev/ttyACM0 --baud 921600 read_flash 0x00000 0x1000000 flash_dump.bin
+#+end_src
+
+** 動作確認
+
+工場出荷Firmwareにて、MicroSDカード上のmp3を再生できました。
+ただ、工場出荷Firmwareはバージョンが古く一部機能が実装されておらず、Waveshare Wikiで配布しているものを書き込んだところ、画面上からLCDのバックライトの調整と、音量の調整ができました。
+
+* リンク
+ - [[https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8][ESP32-S3-Touch-LCD-2.8 - Waveshare Wiki]]
+ - [[https://www.berrybase.de/en/waveshare-esp32-s3-2.8-display-240x320-5-point-touch-wifi-ble-5-dual-core-240-mhz-16mb?srsltid=AfmBOoo5M8CseioOWQPWTYv1zNm_XJJn-RguGaBUqDuKKf4kuJwJS1Cj][Waveshare ESP32-S3 2.8" display, 240x320, 5-point touch, WiFi, BLE 5, dual-core ... - buy at BerryBase]]
