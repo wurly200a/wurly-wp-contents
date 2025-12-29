@@ -1,0 +1,35 @@
+#+BLOG: wurly-blog
+#+POSTID: 2004
+#+ORG2BLOG:
+#+DATE: [2025-12-29 Mon 15:43]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 24.04(WSL) に kubectl をインストール・アップデート (2025年12月時点)
+
+* 概要
+
+Ubuntu 22.04から24.04に移行したWSL環境に、 kubectlをインストールします。
+特に何か変わったことをしようとしているというわけではないのですが、推奨手順が変更されていることがあるので、公式ページを見て確認します。
+
+* 公式ページ
+
+- [[https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/][Install and Set Up kubectl on Linux | Kubernetes]]
+
+* 手順
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg # allow unprivileged APT programs to read this keyring
+#+end_src
+
+#+begin_src bash
+# This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list   # helps tools such as command-not-found to work correctly
+#+end_src
+
+#+begin_src bash
+sudo apt install kubectl
+#+end_src
