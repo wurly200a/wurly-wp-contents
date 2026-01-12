@@ -1,0 +1,10 @@
+#+BLOG: wurly-blog
+#+POSTID: 2029
+#+ORG2BLOG:
+#+DATE: [2026-01-12 Mon 11:15]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: eat
+
