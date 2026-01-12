@@ -1,0 +1,58 @@
+#+BLOG: wurly-blog
+#+POSTID: 2026
+#+ORG2BLOG:
+#+DATE: [2026-01-12 Mon 11:03]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ghostty
+
+* 概要
+
+t-wada(和田卓人)さんが下記でコメントしていたので興味を持ちました。
+
+https://x.com/t_wada/status/2006284918528372797?s=20
+
+そうしたところ、kazuph(本間和弘)さんも推している！熱いですね。
+
+https://x.com/kazuph/status/2001477339121893675?s=20
+
+* Install Chostty to Ubuntu 24.04
+
+#+begin_src bash
+$ sudo snap install ghostty --classic
+ghostty v1.2.3 from Ken VanDine✪ installed
+#+end_src
+
+* 特徴(from ChatGPT)
+
+Ghostty のすごいところ（体験として分かりやすい順）
+
+ 1. GPUアクセラレーションで描画が軽い（Linux は OpenGL、macOS は Metal）
+  - スクロールや大量ログ表示がヌルッとします。
+
+ 2. ネイティブUI + タブ/スプリットが標準装備（ウィンドウ、タブ、分割）
+  - 「端末で作業する人が欲しいやつ」が最初からあります。
+
+ 3. テーマが大量に同梱＆切り替えが簡単（しかもプレビューあり）
+ 4. Unicode/絵文字が強い（grapheme clustering：旗や肌色つき絵文字が崩れにくい）
+ 5. Kitty graphics protocol 対応（端末内に画像を出せる系のアプリが動く
+
+* 設定ファイル
+
+~~/.config/ghostty/config~ に保存されるようです。
+
+(これまで意識していませんでしたが、多くのアプリケーションが .config 以下に設定ファイルを置いているんですね。)
+
+* First Impression
+
+確かに、使い勝手は良さそうです。
+ただ、私の場合、Emacs上のVtermでEmacsに統合した形でシェルを使っており、今の所それほどメリットは無いように見えています。
+上記特徴の 1. は、数値で比較しているわけではないですが、Vtermはかなり早いですし、
+2 の タブ/スプリットに相当する部分は、Emacs側の機能で実現しているため、Emacsをメインで使用している私にとってはVtermの方が便利です。
+
+まずは、Ubuntu上では標準の Terminal の代わりに使用してみることにします。
+
+* 参考ページ
+- [[https://zenn.dev/kun432/scraps/ce9a8cfa907613][「Ghostty」を試す]]
