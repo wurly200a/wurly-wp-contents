@@ -6,7 +6,7 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: Replace my motherboard
+#+TITLE: (Draft)Replace my motherboard
 
 * Competition
 

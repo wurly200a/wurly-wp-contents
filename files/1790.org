@@ -6,7 +6,7 @@
 #+CATEGORY: 
 #+TAGS: 
 #+DESCRIPTION:
-#+TITLE: KinD ingress public
+#+TITLE: (Draft)KinD ingress public
 
 
 * 手順
