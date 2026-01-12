@@ -1,0 +1,162 @@
+#+BLOG: wurly-blog
+#+POSTID: 2024
+#+ORG2BLOG:
+#+DATE: [2026-01-12 Mon 09:39]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Zig
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Zig Programming Language
+
+* 概要
+
+Ghostty をインストールしようとしたところ、Zigというプログラミング言語／ツールチェーンで書かれていることがわかり、興味を持ちました。
+
+ - [[https://ziglang.org/][Home ⚡ Zig Programming Language]]
+
+* 感想
+この分野ではRustが主流になってきていると思っていたところで、このような言語があるのはシンプルに驚きました。Wikipediaによると2015年に登場したようです。
+2026年現在では、Rustに対して、学習コストの低さや過去のC資産の親和性という点はメリットがあると思われるものの、生成AI時代にはメリットは薄れる印象です。
+ただ、C言語の感覚でコードが記述でき、ツールチェーンも便利なので、C言語の経験が長い私としては、書いてみたいな、と思える言語です。
+
+下記は調査した内容や、実際に試した内容です。
+
+* Zigの概要・特徴 (from ChatGPT)
+
+** Zigの概要
+
+zig は Zig（ジグ）というプログラミング言語／ツールチェーンのことです。C/C++ と同じ “システムプログラミング”寄りで、速い・小さい・クロスコンパイルしやすいを強みにしています。
+
+** Zig の「何がいいの？」（実務で効くところ）
+
+*** 1) クロスコンパイルが強い
+
+Zig は「クロスコンパイルを最初から前提にしてる」ツールチェーンです。
+別OS/別アーキ向けのビルドを、比較的シンプルにできます（C/C++ のクロス環境構築の面倒さを減らしたい方向性）。
+
+*** 2) ビルドシステムが標準で付いてくる（zig build）
+
+C/C++ だと CMake/Make/Bazel…と外部ビルドシステムが増えがちですが、Zig は 言語に統合された build systemを持っていて、プロジェクトを build.zig で管理します。
+
+*** 3) “コンパイル時にコードを実行”できる（comptime）
+
+マクロやコード生成を、別言語やプリプロセッサ無しでやる方向。
+（テンプレ・ジェネリクス、設定の埋め込み、テーブル生成などがやりやすい設計）
+
+*** 4) C と相性がいい（現実路線）
+
+Zig は “C置き換え志向”が強く、Cの資産やライブラリを活かしやすい方向の思想です（手動メモリ管理で、低レイヤに降りやすい）。
+
+** どういう人に向く？
+
+ - 「C/C++ の辛さ（ビルド地獄・クロス地獄）を減らしたい」
+ - 「Rust ほどの厳密さは要らないが、安全寄りの書き味は欲しい」
+ - 「配布物を単体バイナリに寄せたい」
+
+あたりの動機で採用されがちです。
+
+* Rustとの棲み分けは？(from ChatGPT)
+
+Rust：いまの“トレンド感”が強いのは事実で、理由はだいたい **メモリ安全性をコンパイル時に強制できる（所有権/借用）** ところにあります。
+Zig：立ち位置は「Rustの対抗」というより、公式に **“Cに依存するのではなく、Cと競合する（置き換え候補になりうる）”** と明言しているタイプです。
+
+ただし Zig は「C/C++をターゲットにした“だけ”」ではなく、Zig 自体がシステムプログラミング言語です。その上で、Zig が最近よく語られるのは 言語の良さ + ツールチェーンの良さがセットだからです。
+
+** Zigは「C/C++をターゲット」にしてるの？
+
+*** 1) 言語としては「Cの代替を狙う」寄り
+
+Zig は公式ドキュメントで「Zig competes with C…」を掲げていて、libc に 依存 せず 統合 する、という思想です。
+また「隠れたヒープ確保をしない（no hidden allocations）」みたいに、Cっぽい“見通しの良さ”を強く推しています。
+
+*** 2) でも現場では「C/C++のビルド道具」として使われることが多い
+
+Zig のトップページ自体が **“ゼロ依存の drop-in C/C++ compiler（zig cc/zig c++）として使える”** を強めに打ち出してます。
+だから「Zig言語は書かないけど、zig cc は使う」みたいな入り方が普通にあります（クロスコンパイルが楽になるのが主目的）。
+
+** Rust と Zig の“狙ってる価値”の違い（ざっくり）
+
+ - Rust：安全性（未定義動作やデータ競合）を“型とコンパイラ”で潰す。結果として大規模開発やライブラリ公開で強い。
+ - Zig：安全性を「言語で強制」するより、挙動が見える／隠し事が少ない／ビルドと配布が現実的を優先しがち（隠れアロケーション無し、Cとの接続、zig build など）。
+
+なので一言で言うと：
+
+ - “安全性の強制”が武器 → Rust
+ - “C資産と現実的に混ざりつつ、ツールチェーンで勝つ” → Zig
+
+** どっちを選ぶ目安
+ - 既存C/C++が多い・クロスビルド/配布がつらい・ビルドを統一したい → Zig（特に zig cc）
+ - 新規で安全性を最優先・チームで長期運用・ライブラリとして配る → Rust
+ - ハイブリッドもあり：主要ロジックはRust、C依存物のクロスビルドに zig cc みたいな運用は現実的です（特にWindows絡み）。
+
+* Install Zig to Ubuntu 24.04
+
+~sudo snap install zig --classic --beta~ でインストールできました。
+
+#+begin_src bash
+$ sudo snap install zig
+error: snap "zig" is not available on stable but is available to install on the following channels:
+
+       beta       snap install --beta zig
+       edge       snap install --edge zig
+
+       Please be mindful pre-release channels may include features not completely tested or
+       implemented. Get more information with 'snap info zig'.
+#+end_src
+
+#+begin_src bash
+$ sudo snap install zig --beta
+error: This revision of snap "zig" was published using classic confinement and thus may perform
+       arbitrary system changes outside of the security sandbox that snaps are usually confined to,
+       which may put your system at risk.
+
+       If you understand and want to proceed repeat the command including --classic.
+#+end_src
+
+#+begin_src bash
+$ sudo snap install zig --classic --beta
+zig (beta) 0.15.2 from Jay Petacat (jayschwa) installed
+#+end_src
+
+* お試しコード
+
+ - https://github.com/wurly200a/zig-example
+
+* lsp-mode
+
+ - https://github.com/zigtools/zls
+
+~origin/0.15.x~ を checkout
+
+#+begin_src bash
+zig build -Doptimize=ReleaseSafe
+#+end_src
+
+#+begin_src bash
+cp zig-out/bin/zls ~/bin/
+#+end_src
+
+下記の設定で使用できました。
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :ensure t
+  :demand t
+  :hook
+; .
+; .
+; .
+  (zig-mode . lsp-deferred)
+  :custom
+; .
+; .
+; .
+  (lsp-zig-zls-executable "zls")
+#+end_src
+
+動作例
+
+file:images/2024_01.png
+
+
+# images/2024_01.png https://blog.wurlyhub.com/wp-content/uploads/2026/01/2024_01.png
