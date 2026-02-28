@@ -1,0 +1,276 @@
+#+BLOG: wurly-blog
+#+POSTID: 2048
+#+ORG2BLOG:
+#+DATE: [2026-02-28 Sat 10:47]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ciliumのアップグレード(1.16 to 1.17)
+
+* 概要
+
+アップグレード前は、Helm 管理の Cilium 1.16.5 なので、uninstall→install は不要。helm upgrade で 1.17 系に上げられるとのこと。
+
+Cilium公式の Upgrade Guide では
+
+- 「まず現行マイナー(1.16)の最新パッチへ上げてから、次マイナー(1.17)へ」を推奨
+- 「helm upgrade 時に --reuse-values は使わず、helm get values で退避して -f で渡す」を推奨
+- datapath disruption を抑えるため upgradeCompatibility を “最初に入れたCiliumのマイナー” にセットすることを推奨
+
+となっています。
+
+* 0) 事前退避
+
+clientにて
+
+#+begin_src bash
+# いまのHelm valuesを退避（--reuse-valuesの代わりにこれを使う）
+helm get values cilium -n kube-system -o yaml > cilium-old-values.yaml
+
+# 念のため manifest も保存（戻す時に便利）
+helm get manifest cilium -n kube-system > cilium-old-manifest.yaml
+
+ctrl1にて
+
+# 現状確認
+cilium status
+kubectl -n kube-system get pods -l k8s-app=cilium -o wide
+#+end_src
+
+実行結果
+
+#+begin_src bash
+wurly@k8s-ctrl1:~/work$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium             Running: 6
+                       cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+Cluster Pods:          36/36 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.16.5@sha256:758ca0793f5995bb938a2fa219dcce63dc0b3fa7fc4ce5cc851125281fb7361d: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.16.5@sha256:f7884848483bbcd7b1e0ccfd34ba4546f258b460cb4b7e2f06a1bcc96ef88039: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.30.8-1733837904-eaae5aca0fb988583e5617170a65ac5aa51c0aa8@sha256:709c08ade3d17d52da4ca2af33f431360ec26268d288d9a6cd1d98acc9a1dced: 6
+wurly@k8s-ctrl1:~/work$ kubectl -n kube-system get pods -l k8s-app=cilium -o wide
+NAME           READY   STATUS    RESTARTS       AGE    IP              NODE          NOMINATED NODE   READINESS GATES
+cilium-8nzzf   1/1     Running   9 (121m ago)   426d   192.168.10.12   k8s-ctrl2     <none>           <none>
+cilium-bhhph   1/1     Running   9 (121m ago)   426d   192.168.10.22   k8s-worker2   <none>           <none>
+cilium-cgrpp   1/1     Running   9 (121m ago)   426d   192.168.10.21   k8s-worker1   <none>           <none>
+cilium-hgrmk   1/1     Running   9              426d   192.168.10.13   k8s-ctrl3     <none>           <none>
+cilium-nhnrg   1/1     Running   9 (121m ago)   426d   192.168.10.11   k8s-ctrl1     <none>           <none>
+cilium-rh7dx   1/1     Running   8 (121m ago)   426d   192.168.10.23   k8s-worker3   <none>           <none>
+#+end_src
+
+* 1) Chart の更新と「ターゲット版」の決め方
+
+#+begin_src 
+helm repo add cilium https://helm.cilium.io/
+helm repo update
+helm search repo cilium/cilium | head
+#+end_src
+
+#+begin_src bash
+helm search repo cilium/cilium --versions | head -n 30
+helm search repo cilium/cilium --versions | grep '^cilium/cilium' | grep ' 1\.17\.' | head
+helm search repo cilium/cilium --versions | grep '^cilium/cilium' | grep ' 1\.17\.' | tail
+#+end_src
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ helm search repo cilium/cilium --versions | head -n 30
+NAME            CHART VERSION   APP VERSION     DESCRIPTION                                       
+cilium/cilium   1.19.1          1.19.1          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.19.0          1.19.0          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.7          1.18.7          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.6          1.18.6          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.5          1.18.5          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.4          1.18.4          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.3          1.18.3          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.2          1.18.2          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.1          1.18.1          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.0          1.18.0          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.13         1.17.13         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.12         1.17.12         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.11         1.17.11         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.10         1.17.10         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.9          1.17.9          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.8          1.17.8          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.7          1.17.7          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.6          1.17.6          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.5          1.17.5          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.4          1.17.4          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.3          1.17.3          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.2          1.17.2          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.1          1.17.1          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.17.0          1.17.0          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.16.19         1.16.19         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.16.18         1.16.18         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.16.17         1.16.17         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.16.16         1.16.16         eBPF-based Networking, Security, and Observability
+cilium/cilium   1.16.15         1.16.15         eBPF-based Networking, Security, and Observability
+#+end_src
+
+まずは1.16.19へ。その後、1.17.13へ。
+
+* 2) （推奨）Pre-flight check（Cilium公式が “Required” としている）
+
+まず preflight を入れて READY を確認 → 消す、の流れです。
+
+#+begin_src bash
+# preflight install（まずはそのまま）
+helm install cilium-preflight cilium/cilium --version 1.17.13 \
+  --namespace kube-system \
+  --set preflight.enabled=true \
+  --set agent=false \
+  --set operator.enabled=false
+#+end_src
+
+READY 確認：
+
+#+begin_src bash
+kubectl -n kube-system get ds | sed -n '1p;/cilium/p'
+kubectl -n kube-system get deploy cilium-pre-flight-check -w
+#+end_src
+
+まだ
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system get deploy cilium-pre-flight-check -w
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-pre-flight-check   0/1     1            0           75s
+#+end_src
+
+OK
+
+#+begin_src bash
+$ kubectl -n kube-system get deploy cilium-pre-flight-check -w
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-pre-flight-check   1/1     1            1           3m5s
+#+end_src
+
+
+終わったら削除：
+
+#+begin_src bash
+helm delete cilium-preflight -n kube-system
+#+end_src
+
+* 3) Step1: まず 1.16 系の最新パッチへ（推奨）
+
+#+begin_src bash
+helm upgrade cilium cilium/cilium --version 1.16.19 \
+  -n kube-system \
+  -f cilium-old-values.yaml \
+  --set upgradeCompatibility=1.16
+#+end_src
+
+upgradeCompatibility=1.16 は「このクラスタに最初に入れたCiliumのマイナー(=1.16)」に合わせる、という意図です。
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ helm upgrade cilium cilium/cilium --version 1.16.19 \
+  -n kube-system \
+  -f cilium-old-values.yaml \
+  --set upgradeCompatibility=1.16
+Release "cilium" has been upgraded. Happy Helming!
+NAME: cilium
+LAST DEPLOYED: Sat Feb 28 11:24:29 2026
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+You have successfully installed Cilium with Hubble.
+
+Your release version is 1.16.19.
+
+For any further help, visit https://docs.cilium.io/en/v1.16/gettinghelp
+#+end_src
+
+ロールアウト確認：
+
+#+begin_src 
+kubectl -n kube-system rollout status ds/cilium
+kubectl -n kube-system rollout status deploy/cilium-operator
+cilium status
+#+end_src
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system rollout status ds/cilium
+daemon set "cilium" successfully rolled out
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system rollout status deploy/cilium-operator
+deployment "cilium-operator" successfully rolled out
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~/work$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium             Running: 6
+                       cilium-envoy       Running: 6
+                       cilium-operator    Running: 2
+Cluster Pods:          36/36 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.16.19@sha256:f0c260e30ef97ce3e45e833e702ab47efbbb1dadd0a394969c0a65553e98fefb: 6
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.34.12-1767177245-7935d4d711cb6f8020385a50c996b90896e16a71@sha256:377175048c79d12c129d29e7a56268e1edaad37c96e649e892465c01bf2b4f8f: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.16.19@sha256:8879e792c5566f6349b5f2865e07c0dd690eb32638afc4417b51b0ec574fa5f0: 2
+#+end_src
+
+* 4) Step2: 1.17 系の最新パッチへ
+
+#+begin_src bash
+helm upgrade cilium cilium/cilium --version 1.17.13 \
+  -n kube-system \
+  -f cilium-old-values.yaml \
+  --set upgradeCompatibility=1.16
+#+end_src
+
+確認：
+
+#+begin_src bash
+kubectl -n kube-system rollout status ds/cilium
+kubectl -n kube-system rollout status ds/cilium-envoy || true
+kubectl -n kube-system rollout status deploy/cilium-operator
+cilium status
+kubectl get nodes
+kubectl get pod -A -o wide | head
+#+end_src
+
+成功
+
+#+begin_src bash
+wurly@k8s-ctrl1:~/work$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium             Running: 6
+                       cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+Cluster Pods:          36/36 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.17.13@sha256:1e3907ba8815e2e474ea8da25876911af2da0ae07c04eaa87a326ba4343aa539: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.17.13@sha256:c2582d9eaeec598de9cd8815a3ed20caade17c26858eea672cff3240b0970983: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de@sha256:da85124deeb42c8e56e55e9e6e155740f5df00e1064759a244bc246c3addb45d: 6
+#+end_src
