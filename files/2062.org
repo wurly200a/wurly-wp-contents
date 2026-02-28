@@ -1,0 +1,197 @@
+#+BLOG: wurly-blog
+#+POSTID: 2062
+#+ORG2BLOG:
+#+DATE: [2026-02-28 Sat 21:17]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ciliumのアップグレード(1.17 to 1.18)
+
+* 概要
+
+アップグレード前は、Helm 管理された Cilium 1.17.13 なので、helm upgrade で 1.18 系に上げることができます。
+
+* 0) 事前退避
+
+clientにて
+
+#+begin_src bash
+# いまのHelm valuesを退避（--reuse-valuesの代わりにこれを使う）
+helm get values cilium -n kube-system -o yaml > cilium-old-values.yaml
+
+# 念のため manifest も保存（戻す時に便利）
+helm get manifest cilium -n kube-system > cilium-old-manifest.yaml
+
+ctrl1にて
+
+# 現状確認
+cilium status
+kubectl -n kube-system get pods -l k8s-app=cilium -o wide
+#+end_src
+
+実行結果
+
+#+begin_src bash
+#+end_src
+
+* 1) Chart の更新と「ターゲット版」の決め方
+
+#+begin_src 
+helm repo add cilium https://helm.cilium.io/
+helm repo update
+helm search repo cilium/cilium | head
+#+end_src
+
+#+begin_src bash
+helm search repo cilium/cilium --versions | grep '^cilium/cilium' | grep '1\.18\.' | head
+#+end_src
+
+#+begin_src bash
+$ helm search repo cilium/cilium --versions | grep '^cilium/cilium' | grep '1\.18\.' | head
+cilium/cilium   1.18.7          1.18.7          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.6          1.18.6          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.5          1.18.5          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.4          1.18.4          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.3          1.18.3          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.2          1.18.2          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.1          1.18.1          eBPF-based Networking, Security, and Observability
+cilium/cilium   1.18.0          1.18.0          eBPF-based Networking, Security, and Observability
+#+end_src
+
+1.18.7 が最新です。https://docs.cilium.io/en/stable/network/kubernetes/compatibility/ の情報とも一致しています。
+
+* 2) Pre-flight check
+
+まず preflight を入れて READY を確認 → 消す、の流れです。
+
+#+begin_src bash
+# preflight install
+helm install cilium-preflight cilium/cilium --version 1.18.7 \
+  --namespace kube-system \
+  --set preflight.enabled=true \
+  --set agent=false \
+  --set operator.enabled=false
+#+end_src
+
+READY 確認：
+
+#+begin_src bash
+kubectl -n kube-system get ds | sed -n '1p;/cilium/p'
+kubectl -n kube-system get deploy cilium-pre-flight-check -w
+#+end_src
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system get ds | sed -n '1p;/cilium/p'
+NAME                      DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+cilium                    6         6         6       6            6           kubernetes.io/os=linux   427d
+cilium-envoy              6         6         6       6            6           kubernetes.io/os=linux   427d
+cilium-pre-flight-check   6         6         0       6            0           kubernetes.io/os=linux   15s
+#+end_src
+
+まだ
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system get deploy cilium-pre-flight-check -w
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-pre-flight-check   0/1     1            0           36s
+#+end_src
+
+OK
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system get deploy cilium-pre-flight-check -w
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-pre-flight-check   1/1     1            1           3m15s
+#+end_src
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ k get pod -n kube-system | grep cilium
+cilium-28pzh                               1/1     Running   1 (93m ago)     11h
+cilium-9l99w                               1/1     Running   1 (115m ago)    11h
+cilium-envoy-8cc6p                         1/1     Running   1 (99m ago)     11h
+cilium-envoy-h5599                         1/1     Running   1 (93m ago)     11h
+cilium-envoy-l2vcx                         1/1     Running   1 (107m ago)    11h
+cilium-envoy-nxckx                         1/1     Running   1 (95m ago)     11h
+cilium-envoy-s2qpb                         1/1     Running   1 (115m ago)    11h
+cilium-envoy-wh2kr                         1/1     Running   1 (91m ago)     11h
+cilium-hhdvz                               1/1     Running   1 (95m ago)     11h
+cilium-lsz29                               1/1     Running   1 (99m ago)     11h
+cilium-operator-5bd7b88cd5-7snvb           1/1     Running   2 (2m54s ago)   11h
+cilium-operator-5bd7b88cd5-wqqhr           1/1     Running   5 (99m ago)     11h
+cilium-pre-flight-check-6f8b5f5dfd-8rh9b   1/1     Running   0               4m15s
+cilium-pre-flight-check-fv9z4              2/2     Running   0               4m15s
+cilium-pre-flight-check-j9mrl              2/2     Running   0               4m15s
+cilium-pre-flight-check-rwzdg              2/2     Running   0               4m15s
+cilium-pre-flight-check-t8vqg              2/2     Running   0               4m15s
+cilium-pre-flight-check-wbl67              2/2     Running   0               4m15s
+cilium-pre-flight-check-zhzjr              2/2     Running   0               4m15s
+cilium-xbmmw                               1/1     Running   1 (91m ago)     11h
+cilium-z4zlg                               1/1     Running   1 (107m ago)    11h
+#+end_src
+
+終わったら削除：
+
+#+begin_src bash
+helm delete cilium-preflight -n kube-system
+#+end_src
+
+* 3) Upgrade本番
+
+#+begin_src bash
+helm upgrade cilium cilium/cilium --version 1.18.7 \
+  -n kube-system \
+  -f cilium-old-values.yaml \
+  --set upgradeCompatibility=1.16
+#+end_src
+
+* 4) 確認
+
+確認：
+
+#+begin_src bash
+kubectl -n kube-system rollout status ds/cilium
+kubectl -n kube-system rollout status ds/cilium-envoy || true
+kubectl -n kube-system rollout status deploy/cilium-operator
+#+end_src
+
+(結果)
+
+#+begin_src bash
+$ kubectl -n kube-system rollout status ds/cilium
+daemon set "cilium" successfully rolled out
+$ kubectl -n kube-system rollout status ds/cilium-envoy || true
+daemon set "cilium-envoy" successfully rolled out
+$ kubectl -n kube-system rollout status deploy/cilium-operator
+deployment "cilium-operator" successfully rolled out
+#+end_src
+
+確認：
+
+#+begin_src bash
+cilium status
+#+end_src
+
+成功
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+Containers:            cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+                       cilium             Running: 6
+Cluster Pods:          27/27 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.18.7@sha256:99b029a0a7c2224dac8c1cc3b6b3ba52af00e2ff981d927e84260ee781e9753c: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.18.7@sha256:244306c5e7c6b73dc7193424f46ed8a0530767b03f03baac80dd717a3a3f0ad7: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de@sha256:da85124deeb42c8e56e55e9e6e155740f5df00e1064759a244bc246c3addb45d: 6
+#+end_src
