@@ -1,0 +1,29 @@
+#+BLOG: wurly-blog
+#+POSTID: 2042
+#+ORG2BLOG:
+#+DATE: [2026-02-28 Sat 09:13]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: おうちKubernetes に metrics-server をインストール(公式版)
+
+* 公式 metrics-server Helm chart を入れる
+
+#+begin_src bash
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+helm repo update
+
+helm -n metrics-server upgrade metrics-server metrics-server/metrics-server \
+  --set "args[0]=--kubelet-insecure-tls" \
+  --set "args[1]=--kubelet-preferred-address-types=InternalIP"
+#+end_src
+
+* 入ったか確認
+
+#+begin_src bash
+kubectl -n metrics-server get pods
+kubectl top nodes
+kubectl top pods -A | head
+#+end_src
+
