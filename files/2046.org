@@ -1,0 +1,293 @@
+#+BLOG: wurly-blog
+#+POSTID: 2046
+#+ORG2BLOG:
+#+DATE: [2026-02-28 Sat 10:15]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Kubernetesクラスターのアップグレード (v1.29.6 -> v1.29.15)
+
+* 事前作業
+
+** バージョン整理、依存関係確認
+
+#+begin_src 
+kubectl version --output=yaml
+kubeadm version
+crictl info | head -n 50   # runtime(containerd等)確認
+# Cilium
+cilium version
+kubectl -n kube-system get ds cilium -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+
+# Rook
+kubectl -n rook-ceph get deploy rook-ceph-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph -v  # toolsがあれば
+
+# MetalLB
+kubectl -n metallb-system get deploy metallb-controller -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+
+# ingress-nginx
+kubectl -n ingress-system get deploy ingress-nginx-controller -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+#+end_src
+
+結果
+
+#+begin_src bash
+K8s: v1.29.6（arm64、kubeadmあり）
+Cilium: running 1.16.5
+Rook: 1.14.8
+MetalLB: 0.14.9
+ingress-nginx: 1.11.3（= k8s 1.30 対応）
+#+end_src
+
+Ciliumは、2048.org の通り、1.17.13 にアップグレードしました。
+
+#+begin_src bash
+K8s: v1.29.6（arm64、kubeadmあり）
+Cilium: running 1.17.13
+Rook: 1.14.8
+MetalLB: 0.14.9
+ingress-nginx: 1.11.3（= k8s 1.30 対応）
+#+end_src
+
+** kubeadm upgrade plan
+
+#+begin_src bash
+wurly@k8s-ctrl1:~/work$ sudo kubeadm upgrade plan
+[upgrade/config] Making sure the configuration is correct:
+[upgrade/config] Reading configuration from the cluster...
+[upgrade/config] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks.
+[upgrade] Running cluster health checks
+[upgrade] Fetching available versions to upgrade to
+[upgrade/versions] Cluster version: v1.29.6
+[upgrade/versions] kubeadm version: v1.29.6
+I0228 11:44:49.937418   91953 version.go:256] remote version is much newer: v1.35.2; falling back to: stable-1.29
+[upgrade/versions] Target version: v1.29.15
+[upgrade/versions] Latest version in the v1.29 series: v1.29.15
+
+Components that must be upgraded manually after you have upgraded the control plane with 'kubeadm upgrade apply':
+COMPONENT   CURRENT       TARGET
+kubelet     6 x v1.29.6   v1.29.15
+
+Upgrade to the latest version in the v1.29 series:
+
+COMPONENT                 CURRENT    TARGET
+kube-apiserver            v1.29.6    v1.29.15
+kube-controller-manager   v1.29.6    v1.29.15
+kube-scheduler            v1.29.6    v1.29.15
+kube-proxy                v1.29.6    v1.29.15
+CoreDNS                   v1.11.1    v1.11.1
+etcd                      3.5.12-0   3.5.12-0
+
+You can now apply the upgrade by executing the following command:
+
+        kubeadm upgrade apply v1.29.15
+
+Note: Before you can perform this upgrade, you have to update kubeadm to v1.29.15.
+
+_____________________________________________________________________
+
+
+The table below shows the current state of component configs as understood by this version of kubeadm.
+Configs that have a "yes" mark in the "MANUAL UPGRADE REQUIRED" column require manual config upgrade or
+resetting to kubeadm defaults before a successful upgrade can be performed. The version to manually
+upgrade to is denoted in the "PREFERRED VERSION" column.
+
+API GROUP                 CURRENT VERSION   PREFERRED VERSION   MANUAL UPGRADE REQUIRED
+kubeproxy.config.k8s.io   v1alpha1          v1alpha1            no
+kubelet.config.k8s.io     v1beta1           v1beta1             no
+_____________________________________________________________________
+
+#+end_src
+
+
+#+begin_src bash
+$ apt-cache policy kubeadm kubelet kubectl | sed -n '1,120p'
+kubeadm:
+  Installed: 1.29.6-1.1
+  Candidate: 1.29.15-1.1
+  Version table:
+     1.29.15-1.1 500
+        500 https://pkgs.k8s.io/core:/stable:/v1.29/deb  Packages
+(中略)
+kubelet:
+  Installed: 1.29.6-1.1
+  Candidate: 1.29.15-1.1
+  Version table:
+     1.29.15-1.1 500
+        500 https://pkgs.k8s.io/core:/stable:/v1.29/deb  Packages
+(中略)
+
+kubectl:
+  Installed: 1.29.6-1.1
+  Candidate: 1.29.15-1.1
+  Version table:
+     1.29.15-1.1 500
+        500 https://pkgs.k8s.io/core:/stable:/v1.29/deb  Packages
+(中略)
+#+end_src
+
+* v1.29.6 → v1.29.15（kubeadm / apt）
+
+** 事前（ctrl1で一度だけ）
+
+*** 0-1. etcd snapshot（強推奨）
+
+#+begin_src bash
+sudo -i
+ETCDCTL_API=3 etcdctl snapshot save /root/etcd-$(date +%F-%H%M).db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+exit
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~/work$ sudo -i
+root@k8s-ctrl1:~# ETCDCTL_API=3 etcdctl snapshot save /root/etcd-$(date +%F-%H%M).db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+2026-02-28 11:56:08.944099 I | clientv3: opened snapshot stream; downloading
+2026-02-28 11:56:10.795399 I | clientv3: completed snapshot read; closing
+Snapshot saved at /root/etcd-2026-02-28-1156.db
+root@k8s-ctrl1:~# exit
+logout
+#+end_src
+
+*** 0-2. Ceph の最低限確認（任意だが安心）
+
+#+begin_src bash
+kubectl -n rook-ceph get cephcluster -o wide
+kubectl -n rook-ceph get pods -o wide
+#+end_src
+
+** 1) Control-plane（ctrl1 → ctrl2 → ctrl3）
+
+*** 1-1) ctrl1
+
+#+begin_src bash
+sudo apt-mark unhold kubeadm kubelet kubectl
+#+end_src
+
+#+begin_src bash
+# kubeadmを先に上げる（kubeadm upgrade plan が要求している）
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.29.15-1.1
+
+# 事前に image を pull
+sudo kubeadm config images pull
+
+# control-plane をアップグレード
+sudo kubeadm upgrade apply v1.29.15
+
+# kubelet/kubectl を上げる
+sudo apt-get install -y kubelet=1.29.15-1.1 kubectl=1.29.15-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+# 確認（リモートから）
+kubectl get nodes
+kubectl -n kube-system get pods -o wide | egrep 'kube-apiserver|kube-controller|kube-scheduler|etcd' || true
+#+end_src
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp$ kubectl get nodes
+NAME          STATUS   ROLES           AGE    VERSION
+k8s-ctrl1     Ready    control-plane   616d   v1.29.15
+k8s-ctrl2     Ready    control-plane   615d   v1.29.6
+k8s-ctrl3     Ready    control-plane   615d   v1.29.6
+k8s-worker1   Ready    <none>          614d   v1.29.6
+k8s-worker2   Ready    <none>          606d   v1.29.6
+k8s-worker3   Ready    <none>          606d   v1.29.6
+wurly@rockers-ubuntu:~/temp$ kubectl -n kube-system get pods -o wide | egrep 'kube-apiserver|kube-controller|kube-scheduler|etcd' || true
+etcd-k8s-ctrl1                      1/1     Running   0                3m44s   192.168.10.11   k8s-ctrl1     <none>           <none>
+etcd-k8s-ctrl2                      1/1     Running   47 (3h19m ago)   615d    192.168.10.12   k8s-ctrl2     <none>           <none>
+etcd-k8s-ctrl3                      1/1     Running   48 (3h19m ago)   615d    192.168.10.13   k8s-ctrl3     <none>           <none>
+kube-apiserver-k8s-ctrl1            1/1     Running   0                3m17s   192.168.10.11   k8s-ctrl1     <none>           <none>
+kube-apiserver-k8s-ctrl2            1/1     Running   66 (3h19m ago)   615d    192.168.10.12   k8s-ctrl2     <none>           <none>
+kube-apiserver-k8s-ctrl3            1/1     Running   63 (3h19m ago)   615d    192.168.10.13   k8s-ctrl3     <none>           <none>
+kube-controller-manager-k8s-ctrl1   1/1     Running   0                3m3s    192.168.10.11   k8s-ctrl1     <none>           <none>
+kube-controller-manager-k8s-ctrl2   1/1     Running   36 (3h19m ago)   615d    192.168.10.12   k8s-ctrl2     <none>           <none>
+kube-controller-manager-k8s-ctrl3   1/1     Running   36 (47m ago)     615d    192.168.10.13   k8s-ctrl3     <none>           <none>
+kube-scheduler-k8s-ctrl1            1/1     Running   0                2m47s   192.168.10.11   k8s-ctrl1     <none>           <none>
+kube-scheduler-k8s-ctrl2            1/1     Running   37 (40m ago)     615d    192.168.10.12   k8s-ctrl2     <none>           <none>
+kube-scheduler-k8s-ctrl3            1/1     Running   36 (47m ago)     615d    192.168.10.13   k8s-ctrl3     <none>           <none>
+#+end_src
+
+*** 1-2) ctrl2（同様に）
+
+#+begin_src bash
+sudo apt-mark unhold kubeadm kubelet kubectl
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.29.15-1.1
+sudo kubeadm upgrade node
+sudo apt-get install -y kubelet=1.29.15-1.1 kubectl=1.29.15-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#+end_src
+
+*** 1-3) ctrl3（同様に）
+
+#+begin_src bash
+sudo apt-mark unhold kubeadm kubelet kubectl
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.29.15-1.1
+sudo kubeadm upgrade node
+sudo apt-get install -y kubelet=1.29.15-1.1 kubectl=1.29.15-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#+end_src
+
+hold（apt-mark hold）は今はまだやらないのがおすすめです。
+次に 1.30 に上げる時に邪魔になるので、1.30 まで終わってからまとめて hold でOK。
+
+** 2) Worker（worker1 → worker2 → worker3）※必ず1台ずつ
+
+*** 2-1) 管理端末で drain
+
+#+begin_src bash
+kubectl drain k8s-worker1 --ignore-daemonsets --delete-emptydir-data
+#+end_src
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key \
+  | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+#+end_src
+
+*** 2-2) worker1 でアップグレード
+
+#+begin_src bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key   | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+#+end_src
+
+#+begin_src bash
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.29.15-1.1
+sudo kubeadm upgrade node
+sudo apt-get install -y kubelet=1.29.15-1.1 kubectl=1.29.15-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#+end_src
+
+*** 2-3) 管理端末で uncordon
+
+#+begin_src bash
+kubectl uncordon k8s-worker1
+kubectl get nodes
+#+end_src
+
+worker2/3 も同じ流れで。
+
+** 完了したかの判定
+
+最後にこれが全部 v1.29.15 になってればOK：
+
+#+begin_src bash
+kubectl get nodes -o wide
+kubectl version --output=yaml | egrep 'gitVersion|serverVersion' -n
+#+end_src
