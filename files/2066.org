@@ -1,0 +1,309 @@
+#+BLOG: wurly-blog
+#+POSTID: 2066
+#+ORG2BLOG:
+#+DATE: [2026-03-01 Sun 11:46]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Kubernetesクラスターのアップグレード (v1.31.14 -> v1.32.13)
+
+* 概要
+
+2057.org からの続きで、おうちKubernetesクラスターを v1.30.14 から v1.32.13 にアップグレードします。
+
+
+* 事前作業
+
+** バージョン整理、依存関係確認
+
+#+begin_src bash
+$ kubectl version --output=yaml
+clientVersion:
+  buildDate: "2026-02-26T20:23:08Z"
+  compiler: gc
+  gitCommit: 6172d7357c6287643350a4fc7e048f24098f2a1b
+  gitTreeState: clean
+  gitVersion: v1.32.13
+  goVersion: go1.24.13
+  major: "1"
+  minor: "32"
+  platform: linux/amd64
+kustomizeVersion: v5.5.0
+serverVersion:
+  buildDate: "2025-11-11T20:18:11Z"
+  compiler: gc
+  gitCommit: 5e00b99bac504844579ec74886b6cc5c9611ca19
+  gitTreeState: clean
+  gitVersion: v1.31.14
+  goVersion: go1.24.9
+  major: "1"
+  minor: "31"
+  platform: linux/arm64
+#+end_src
+
+#+begin_src 
+wurly@k8s-ctrl1:~$ kubeadm version
+cilium version
+kubectl -n kube-system get ds cilium -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n rook-ceph get deploy rook-ceph-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n metallb-system get deploy metallb-controller -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n ingress-system get deploy ingress-nginx-controller -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubeadm version: &version.Info{Major:"1", Minor:"31", GitVersion:"v1.31.14", GitCommit:"5e00b99bac504844579ec74886b6cc5c9611ca19", GitTreeState:"clean", BuildDate:"2025-11-11T20:23:36Z", GoVersion:"go1.24.9", Compiler:"gc", Platform:"linux/arm64"}
+cilium-cli: v0.16.10 compiled with go1.22.4 on linux/arm64
+cilium image (default): v1.15.5
+cilium image (stable): v1.19.1
+cilium image (running): 1.18.7
+quay.io/cilium/cilium:v1.18.7@sha256:99b029a0a7c2224dac8c1cc3b6b3ba52af00e2ff981d927e84260ee781e9753c
+rook/ceph:v1.14.8
+quay.io/metallb/controller:v0.14.9
+registry.k8s.io/ingress-nginx/controller:v1.14.3@sha256:82917be97c0939f6ada1717bb39aa7e66c229d6cfb10dcfc8f1bd42f9efe0f81
+#+end_src
+
+* apt repoのアップデート
+
+全ノードで実行します。
+
+#+begin_src bash
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" \
+  | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+#+end_src
+
+* upgrade plan
+
+ ctrl1にて実行します。
+
+#+begin_src bash
+sudo apt-get install -y kubeadm
+kubeadm version
+sudo kubeadm upgrade plan
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ sudo kubeadm upgrade plan
+[preflight] Running pre-flight checks.
+[upgrade/config] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[upgrade/config] Use 'kubeadm init phase upload-config --config your-config.yaml' to re-upload it.
+[upgrade] Running cluster health checks
+[upgrade] Fetching available versions to upgrade to
+[upgrade/versions] Cluster version: 1.31.14
+[upgrade/versions] kubeadm version: v1.32.13
+I0301 14:52:11.979383   59630 version.go:261] remote version is much newer: v1.35.2; falling back to: stable-1.32
+[upgrade/versions] Target version: v1.32.13
+[upgrade/versions] Latest version in the v1.31 series: v1.31.14
+
+Components that must be upgraded manually after you have upgraded the control plane with 'kubeadm upgrade apply':
+COMPONENT   NODE          CURRENT    TARGET
+kubelet     k8s-ctrl1     v1.31.14   v1.32.13
+kubelet     k8s-ctrl2     v1.31.14   v1.32.13
+kubelet     k8s-ctrl3     v1.31.14   v1.32.13
+kubelet     k8s-worker1   v1.31.14   v1.32.13
+kubelet     k8s-worker2   v1.31.14   v1.32.13
+kubelet     k8s-worker3   v1.31.14   v1.32.13
+
+Upgrade to the latest stable version:
+
+COMPONENT                 NODE        CURRENT    TARGET
+kube-apiserver            k8s-ctrl1   v1.31.14   v1.32.13
+kube-apiserver            k8s-ctrl2   v1.31.14   v1.32.13
+kube-apiserver            k8s-ctrl3   v1.31.14   v1.32.13
+kube-controller-manager   k8s-ctrl1   v1.31.14   v1.32.13
+kube-controller-manager   k8s-ctrl2   v1.31.14   v1.32.13
+kube-controller-manager   k8s-ctrl3   v1.31.14   v1.32.13
+kube-scheduler            k8s-ctrl1   v1.31.14   v1.32.13
+kube-scheduler            k8s-ctrl2   v1.31.14   v1.32.13
+kube-scheduler            k8s-ctrl3   v1.31.14   v1.32.13
+kube-proxy                            1.31.14    v1.32.13
+CoreDNS                               v1.11.3    v1.11.3
+etcd                      k8s-ctrl1   3.5.24-0   3.5.24-0
+etcd                      k8s-ctrl2   3.5.24-0   3.5.24-0
+etcd                      k8s-ctrl3   3.5.24-0   3.5.24-0
+
+You can now apply the upgrade by executing the following command:
+
+        kubeadm upgrade apply v1.32.13
+
+_____________________________________________________________________
+
+
+The table below shows the current state of component configs as understood by this version of kubeadm.
+Configs that have a "yes" mark in the "MANUAL UPGRADE REQUIRED" column require manual config upgrade or
+resetting to kubeadm defaults before a successful upgrade can be performed. The version to manually
+upgrade to is denoted in the "PREFERRED VERSION" column.
+
+API GROUP                 CURRENT VERSION   PREFERRED VERSION   MANUAL UPGRADE REQUIRED
+kubeproxy.config.k8s.io   v1alpha1          v1alpha1            no
+kubelet.config.k8s.io     v1beta1           v1beta1             no
+_____________________________________________________________________
+
+#+end_src
+
+* アップグレード from v1.30.14 to v1.32.13
+
+** 0) まず ctrl1 で etcd snapshot
+
+#+begin_src bash
+sudo -i
+ETCDCTL_API=3 etcdctl snapshot save /root/etcd-$(date +%F-%H%M)-pre132.db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+exit
+#+end_src
+
+** 0) 途中監視(Ceph)
+
+別ターミナル：
+
+#+begin_src 
+watch -n 2 'kubectl get nodes; echo; kubectl -n rook-ceph get pods -o wide | egrep "mon|mgr|osd|mds|rgw|operator"'
+#+end_src
+
+** 1) ctrl1（最初の1台だけ “apply”）
+
+#+begin_src bash
+# kubeadm が 1.32.13 になっていることを確認
+kubeadm version
+
+# イメージpull
+sudo kubeadm config images pull
+
+# アップグレード本体
+sudo kubeadm upgrade apply v1.32.13
+
+# バージョン文字列確認
+apt-cache madison kubelet | grep 1.32.13
+apt-cache madison kubectl | grep 1.32.13
+
+# kubelet/kubectl を 1.32.13 に
+sudo apt-get update
+sudo apt-get install -y kubelet=1.32.13-1.1 kubectl=1.32.13-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#+end_src
+
+リモートで確認
+
+#+begin_src bash
+kubectl get nodes
+kubectl -n kube-system get pods -o wide | egrep 'kube-apiserver|kube-controller|kube-scheduler|etcd|coredns|kube-proxy'
+#+end_src
+
+ctrl1から確認
+
+#+begin_src bash
+cilium status
+#+end_src
+
+#+begin_src bash
+$ kubectl get nodes
+NAME          STATUS   ROLES           AGE    VERSION
+k8s-ctrl1     Ready    control-plane   617d   v1.32.13
+k8s-ctrl2     Ready    control-plane   617d   v1.31.14
+k8s-ctrl3     Ready    control-plane   617d   v1.31.14
+k8s-worker1   Ready    <none>          615d   v1.31.14
+k8s-worker2   Ready    <none>          607d   v1.31.14
+k8s-worker3   Ready    <none>          607d   v1.31.14
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium             Running: 6
+                       cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+Cluster Pods:          27/27 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.18.7@sha256:99b029a0a7c2224dac8c1cc3b6b3ba52af00e2ff981d927e84260ee781e9753c: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.18.7@sha256:244306c5e7c6b73dc7193424f46ed8a0530767b03f03baac80dd717a3a3f0ad7: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de@sha256:da85124deeb42c8e56e55e9e6e155740f5df00e1064759a244bc246c3addb45d: 6
+#+end_src
+
+** 2) ctrl2 / ctrl3（各ノード、順番に）
+
+※ここは apply じゃなくて upgrade node
+
+#+begin_src bash
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.32.13-1.1
+sudo kubeadm config images pull
+
+sudo kubeadm upgrade node
+sudo apt-get install -y kubelet=1.32.13-1.1 kubectl=1.32.13-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+#+end_src
+
+(各 ctrl の後に kubectl get nodes で上がってくるのを確認)
+
+** 3) worker（必ず1台ずつ）
+
+例：worker1
+
+#+begin_src bash
+# 管理端末（rockers-ubuntu）で
+
+kubectl drain k8s-worker1 --ignore-daemonsets --delete-emptydir-data
+
+# worker1 で
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.32.13-1.1
+sudo kubeadm upgrade node
+sudo apt-get install -y kubelet=1.32.13-1.1 kubectl=1.32.13-1.1
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+# 管理端末で
+kubectl uncordon k8s-worker1
+kubectl get nodes
+#+end_src
+
+worker2/3 も同様。
+
+* 確認
+
+#+begin_src bash
+$ kubectl get nodes
+NAME          STATUS   ROLES           AGE    VERSION
+k8s-ctrl1     Ready    control-plane   617d   v1.32.13
+k8s-ctrl2     Ready    control-plane   617d   v1.32.13
+k8s-ctrl3     Ready    control-plane   617d   v1.32.13
+k8s-worker1   Ready    <none>          616d   v1.32.13
+k8s-worker2   Ready    <none>          607d   v1.32.13
+k8s-worker3   Ready    <none>          607d   v1.32.13
+yushi@LT1:~$ 
+#+end_src
+
+#+begin_src bash
+wurly@k8s-ctrl1:~$ cilium status
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
+
+Deployment             cilium-operator    Desired: 2, Ready: 2/2, Available: 2/2
+DaemonSet              cilium             Desired: 6, Ready: 6/6, Available: 6/6
+DaemonSet              cilium-envoy       Desired: 6, Ready: 6/6, Available: 6/6
+Containers:            cilium             Running: 6
+                       cilium-operator    Running: 2
+                       cilium-envoy       Running: 6
+Cluster Pods:          27/27 managed by Cilium
+Helm chart version:    
+Image versions         cilium             quay.io/cilium/cilium:v1.18.7@sha256:99b029a0a7c2224dac8c1cc3b6b3ba52af00e2ff981d927e84260ee781e9753c: 6
+                       cilium-operator    quay.io/cilium/operator-generic:v1.18.7@sha256:244306c5e7c6b73dc7193424f46ed8a0530767b03f03baac80dd717a3a3f0ad7: 2
+                       cilium-envoy       quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de@sha256:da85124deeb42c8e56e55e9e6e155740f5df00e1064759a244bc246c3addb45d: 6
+#+end_src
+
