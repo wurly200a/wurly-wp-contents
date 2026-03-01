@@ -1,0 +1,21 @@
+#+BLOG: wurly-blog
+#+POSTID: 2001
+#+ORG2BLOG:
+#+DATE: [2025-11-22 Sat 15:14]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: C/C++ で Emacs lsp-mode (clangd)
+
+* 概要
+
+https://blog.wurlyhub.com/2024/11/16/post-1675/ でcclsを使っていたが、関数定義への移動や関数の参照の表示など、想定通りに動かないことが多かった。
+.ccls ファイルをメンテナンスすればそれなりに動くのだが、メンテナンスしていてもだめなパータンもあり、またそもそものメンテナンスが大変であった。
+
+よって、再度 lsp-mode + clangd で検討。
+
+Linux上のcmakeプロジェクトとして、
+
+https://github.com/wurly200a/cpp-starter
+
