@@ -1,0 +1,201 @@
+#+BLOG: wurly-blog
+#+POSTID: 2082
+#+ORG2BLOG:
+#+DATE: [2026-03-07 Sat 18:24]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ceph,Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Rook/Ceph v1.15 から v1.16 さらに v1.17 へのアップグレード手順（Helm版）
+
+* 基本
+
+** helmでデプロイされたバージョンの確認
+
+#+begin_src bash
+helm list -n rook-ceph
+#+end_src
+
+** クラスター HEALTH の確認
+
+#+begin_src bash
+kubectl -n rook-ceph get cephcluster
+#+end_src
+
+** rook-ceph-operator podの確認
+
+#+begin_src bash
+kubectl -n rook-ceph get pods -l app=rook-ceph-operator
+#+end_src
+
+** Deploymentのバージョン確認(単発)
+
+#+begin_src bash
+kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+#+end_src
+
+** Deploymentのバージョン確認(watch)
+
+#+begin_src shell
+watch --exec kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+#+end_src
+
+** Deploy(Upgrade)
+
+#+begin_src bash
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  --version v1.x.y
+#+end_src
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.x.y
+#+end_src
+
+** cluster-values.yaml
+
+#+begin_src yaml
+cephClusterSpec:
+  storage:
+    nodes:
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker1
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker2
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker3
+    useAllDevices: false
+    useAllNodes: false
+#+end_src
+
+* Helm repo の更新
+
+#+begin_src shell
+helm repo update
+#+end_src
+
+利用可能な v1.x チャートのバージョンを確認します。
+
+#+begin_src shell
+curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.x"
+#+end_src
+
+最新の v1.x.y をデプロイします。
+
+* Rook/Ceph v1.15 to v1.16
+
+- https://rook.io/docs/rook/v1.16/Upgrade/rook-upgrade/
+
+#+begin_src bash
+# 事前確認
+kubectl -n rook-ceph get cephcluster
+kubectl -n rook-ceph get pods | grep holder  # 何も出ないこと
+#+end_src
+
+#+begin_src bash
+# バージョン確認
+helm repo update
+curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.16"
+#+end_src
+
+#+begin_src bash
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  --reset-values \
+  --version v1.16.9
+#+end_src
+
+"Deploymentのバージョン確認(watch)"で全てバージョンが上がったことを確認して次に進む
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.16.9
+#+end_src
+
+#+begin_src bash
+$ helm list -n rook-ceph
+NAME                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                           APP VERSION
+rook-ceph               rook-ceph       7               2026-03-07 18:38:29.120698231 +0900 JST deployed        rook-ceph-v1.16.9               v1.16.9    
+rook-ceph-cluster       rook-ceph       5               2026-03-07 18:46:51.587038792 +0900 JST deployed        rook-ceph-cluster-v1.16.9       v1.16.9    
+$ kubectl -n rook-ceph get cephcluster
+NAME        DATADIRHOSTPATH   MONCOUNT   AGE    PHASE   MESSAGE                        HEALTH      EXTERNAL   FSID
+rook-ceph   /var/lib/rook     3          608d   Ready   Cluster created successfully   HEALTH_OK              18be74a6-d73c-4f2f-b5c6-267d7e2b43c9
+$ kubectl -n rook-ceph get pods -l app=rook-ceph-operator
+NAME                                  READY   STATUS    RESTARTS   AGE
+rook-ceph-operator-8545c779d8-xg52s   1/1     Running   0          14m
+$ kubectl -n rook-ceph get deployments   -l rook_cluster=rook-ceph   -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+rook-ceph-crashcollector-k8s-worker1  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-crashcollector-k8s-worker2  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-crashcollector-k8s-worker3  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-exporter-k8s-worker1  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-exporter-k8s-worker2  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-exporter-k8s-worker3  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mds-ceph-filesystem-a  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mds-ceph-filesystem-b  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mgr-a  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mgr-b  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mon-a  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mon-b  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-mon-c  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-osd-0  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-osd-1  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-osd-2  req/upd/avl: 1/1/1  rook-version=v1.16.9
+rook-ceph-rgw-ceph-objectstore-a  req/upd/avl: 1/1/1  rook-version=v1.16.9
+#+end_src
+
+* Rook/Ceph v1.16 to v1.17
+
+- https://rook.io/docs/rook/v1.17/Upgrade/rook-upgrade/
+
+
+K8Sはv1.27以上であること → OK
+
+#+begin_src bash
+$ kubectl version
+Client Version: v1.33.9
+Kustomize Version: v5.6.0
+Server Version: v1.33.9
+#+end_src
+
+#+begin_src bash
+# 事前確認
+kubectl -n rook-ceph get cephcluster
+kubectl -n rook-ceph get pods | grep holder  # 何も出ないこと
+#+end_src
+
+#+begin_src bash
+# バージョン確認
+helm repo update
+curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.17"
+#+end_src
+
+#+begin_src bash
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  --reset-values \
+  --version v1.17.9
+#+end_src
+
+"Deploymentのバージョン確認(watch)"で全てバージョンが上がったことを確認して次に進む
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.17.9
+#+end_src
