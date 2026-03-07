@@ -3,7 +3,7 @@
 #+ORG2BLOG:
 #+DATE: [2026-03-07 Sat 14:05]
 #+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
-#+CATEGORY: 
+#+CATEGORY: Ceph, Kubernetes
 #+TAGS: 
 #+DESCRIPTION:
 #+TITLE: Rook/Ceph v1.14 → v1.15 アップグレード手順（Helm版）
@@ -218,29 +218,6 @@ Dashboard でも確認する場合:
 kubectl port-forward -n rook-ceph svc/rook-ceph-mgr-dashboard 8443:8443
 #+end_src
 
-** Step 7: Holder Pods の無効化（v1.16 に備えて）
-
-=csi-*plugin-holder-*= Pod が存在する場合、将来の v1.16 アップグレード前に無効化が必要です。
-
-#+begin_src shell
-kubectl -n rook-ceph get pods | grep holder
-#+end_src
-
-存在する場合は values.yaml を更新して Helm upgrade を実行します。
-
-#+begin_src yaml
-# operator-values.yaml
-csi:
-  disableHolderPods: true
-#+end_src
-
-#+begin_src shell
-helm upgrade rook-ceph rook-release/rook-ceph \
-  --namespace rook-ceph \
-  -f operator-values.yaml \
-  --version v1.15.9
-#+end_src
-
 * 手順サマリ
 
 | ステップ | 内容                                          | 備考                        |
@@ -253,33 +230,6 @@ helm upgrade rook-ceph rook-release/rook-ceph \
 | Step 4   | =helm upgrade rook-ceph-cluster=                | storage 設定を維持          |
 | Step 5   | 全 deployment の rook-version 統一を待機      | =watch= コマンドで監視       |
 | Step 6   | =HEALTH_OK= 確認                                |                             |
-| Step 7   | holder pods 無効化                            | v1.16 アップグレード前に必須 |
-
-* トラブルシューティング
-
-** Pod が起動しない場合
-
-#+begin_src shell
-kubectl -n rook-ceph describe pod <pod-name>
-kubectl -n rook-ceph logs <pod-name>
-#+end_src
-
-** Ceph クラスタが HEALTH_WARN / HEALTH_ERR の場合
-
-Toolbox を使って Ceph の状態を直接確認します。
-
-#+begin_src shell
-kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph status
-kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph health detail
-#+end_src
-
-** アップグレードがスタックした場合
-
-Operator のログを確認します。
-
-#+begin_src shell
-kubectl -n rook-ceph logs -l app=rook-ceph-operator --tail=100
-#+end_src
 
 * 作業結果
 
