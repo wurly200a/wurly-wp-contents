@@ -1,0 +1,448 @@
+#+BLOG: wurly-blog
+#+POSTID: 2077
+#+ORG2BLOG:
+#+DATE: [2026-03-07 Sat 14:05]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Rook/Ceph v1.14 → v1.15 アップグレード手順（Helm版）
+
+* 概要
+
+Helmでデプロイした Rook/Ceph を v1.14.x から v1.15.x にアップグレードする手順。
+
+対象環境:
+- Helm でデプロイ（=rook-ceph= Operator + =rook-ceph-cluster=）
+- Namespace: =rook-ceph=
+- ワーカー3台 (k8s-worker1/2/3)、Raw partition =/dev/nvme0n1p3= を使用
+
+参考:
+- [[https://rook.io/docs/rook/v1.15/Upgrade/rook-upgrade/][Rook v1.15 Upgrade Guide]]
+
+* 事前確認
+
+** Kubernetes バージョン確認
+
+v1.15 からの破壊的変更として、Kubernetes の最低サポートバージョンが *v1.26* になっています。
+
+#+begin_src shell
+kubectl version
+#+end_src
+
+v1.26 未満の場合は先に Kubernetes をアップグレードしてください。
+
+** クラスタの健全性確認
+
+アップグレード前に =HEALTH_OK= であることを確認します。
+
+#+begin_src shell
+kubectl -n rook-ceph get cephcluster
+#+end_src
+
+#+begin_src shell
+kubectl -n rook-ceph get pods
+# 全 pod が Running または Completed であること
+#+end_src
+
+* v1.15 の破壊的変更 (Breaking Changes)
+
+アップグレード前に以下を確認・対処してください。
+
+** CSI Holder Pods の Deprecation
+
+=csi-*plugin-holder-*= という名前の Pod が存在するか確認します。
+
+#+begin_src shell
+kubectl -n rook-ceph get pods | grep holder
+#+end_src
+
+存在する場合、アップグレード前に values.yaml に以下を追加する必要があります。
+（v1.16 へのアップグレード前には完全な無効化が必要）
+
+#+begin_src yaml
+csi:
+  disableHolderPods: false
+#+end_src
+
+** Ceph COSI Driver の変更
+
+COSI driver のイメージが更新されており、既存の BucketClaims / BucketAccesses に影響があります。
+COSI を使用している場合は [[https://github.com/rook/rook/discussions/14297][こちら]] を参照してください。
+
+** CephObjectStore のエンドポイント挙動変更
+
+=spec.hosting= を設定している CephObjectStore がある場合、エンドポイントの挙動が変わります。
+=spec.hosting.advertiseEndpoint= で明示的に設定してください。
+
+* アップグレード手順
+
+** Step 1: Helm repo の更新
+
+#+begin_src shell
+helm repo update
+#+end_src
+
+利用可能な v1.15 チャートのバージョンを確認します。
+
+#+begin_src shell
+curl -s https://charts.rook.io/release/index.yaml | yq '.entries[] | .[] | {name, version}' | grep v1.15
+#+end_src
+
+以降の手順では =v1.15.x= を実際の最新パッチバージョン (例: =v1.15.9=) に置き換えてください。
+
+** Step 2: rook-ceph (Operator) のアップグレード
+
+=rook-ceph-cluster= より先に =rook-ceph= をアップグレードします。
+
+*** 現在の values を保存
+
+#+begin_src shell
+helm get values rook-ceph -n rook-ceph > operator-values-current.yaml
+#+end_src
+
+*** values.yaml を準備
+
+holder pods が存在する場合は =csi.disableHolderPods: false= を追記します。
+存在しない場合は現在の values をそのまま使用できます。
+
+#+begin_src bash
+cp operator-values-current.yaml operator-values.yaml
+#+end_src
+
+#+begin_src yaml
+# operator-values.yaml
+csi:
+  disableHolderPods: false  # holder pods が存在する場合のみ追記
+#+end_src
+
+*** アップグレード実行
+
+#+begin_src shell
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  -f operator-values.yaml \
+  --version v1.15.9
+#+end_src
+
+** Step 3: Operator の更新完了を確認
+
+#+begin_src shell
+kubectl -n rook-ceph get pods -l app=rook-ceph-operator
+# rook-ceph-operator pod が新バージョンで Running になること
+#+end_src
+
+** Step 4: rook-ceph-cluster のアップグレード
+
+=rook-ceph= (Operator) の更新完了後に実施します。
+
+*** 現在の values を保存
+
+#+begin_src shell
+helm get values rook-ceph-cluster -n rook-ceph > cluster-values-current.yaml
+#+end_src
+
+*** values.yaml を確認・準備
+
+ブログの構成（特定ノード・デバイス指定）を維持します。
+
+#+begin_src bash
+cp cluster-values-current.yaml cluster-values.yaml
+#+end_src
+
+#+begin_src yaml
+# cluster-values.yaml の storage セクション（変更しない）
+storage:
+  useAllNodes: false
+  useAllDevices: false
+  nodes:
+    - name: "k8s-worker1"
+      devices:
+        - name: "/dev/nvme0n1p3"
+    - name: "k8s-worker2"
+      devices:
+        - name: "/dev/nvme0n1p3"
+    - name: "k8s-worker3"
+      devices:
+        - name: "/dev/nvme0n1p3"
+#+end_src
+
+*** アップグレード実行
+
+#+begin_src shell
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.15.9
+#+end_src
+
+** Step 5: アップグレード完了を監視
+
+mon, mgr, OSD, MDS などのデーモンが順次再起動されます。
+mon 更新中はクラスタが一時的に応答しない場合がありますが、正常な動作です。
+
+#+begin_src shell
+watch --exec kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+#+end_src
+
+全 deployment の =rook-version= が =v1.15.9= に統一されたら完了です。
+
+バージョンが統一されたか確認する簡易コマンド:
+
+#+begin_src shell
+kubectl -n rook-ceph get deployment \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{"rook-version="}{.metadata.labels.rook-version}{"\n"}{end}' \
+  | sort | uniq
+# v1.15.9 の1種類だけになること
+#+end_src
+
+** Step 6: 最終確認
+
+#+begin_src shell
+kubectl -n rook-ceph get cephcluster
+# PHASE: Ready、HEALTH: HEALTH_OK であること
+#+end_src
+
+#+begin_src shell
+kubectl -n rook-ceph get pods
+# 全 pod が Running または Completed であること
+#+end_src
+
+Dashboard でも確認する場合:
+
+#+begin_src shell
+kubectl port-forward -n rook-ceph svc/rook-ceph-mgr-dashboard 8443:8443
+#+end_src
+
+** Step 7: Holder Pods の無効化（v1.16 に備えて）
+
+=csi-*plugin-holder-*= Pod が存在する場合、将来の v1.16 アップグレード前に無効化が必要です。
+
+#+begin_src shell
+kubectl -n rook-ceph get pods | grep holder
+#+end_src
+
+存在する場合は values.yaml を更新して Helm upgrade を実行します。
+
+#+begin_src yaml
+# operator-values.yaml
+csi:
+  disableHolderPods: true
+#+end_src
+
+#+begin_src shell
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  -f operator-values.yaml \
+  --version v1.15.9
+#+end_src
+
+* 手順サマリ
+
+| ステップ | 内容                                          | 備考                        |
+|----------+-----------------------------------------------+-----------------------------|
+| 事前確認 | K8s >= v1.26、HEALTH_OK                       | 必須                        |
+| 変更点確認 | holder pods, COSI, ObjectStore endpoint      | 該当する場合のみ対応         |
+| Step 1   | =helm repo update=                              |                             |
+| Step 2   | =helm upgrade rook-ceph= (Operator 先行)        | cluster より先に実施        |
+| Step 3   | Operator pod の Running 確認                  |                             |
+| Step 4   | =helm upgrade rook-ceph-cluster=                | storage 設定を維持          |
+| Step 5   | 全 deployment の rook-version 統一を待機      | =watch= コマンドで監視       |
+| Step 6   | =HEALTH_OK= 確認                                |                             |
+| Step 7   | holder pods 無効化                            | v1.16 アップグレード前に必須 |
+
+* トラブルシューティング
+
+** Pod が起動しない場合
+
+#+begin_src shell
+kubectl -n rook-ceph describe pod <pod-name>
+kubectl -n rook-ceph logs <pod-name>
+#+end_src
+
+** Ceph クラスタが HEALTH_WARN / HEALTH_ERR の場合
+
+Toolbox を使って Ceph の状態を直接確認します。
+
+#+begin_src shell
+kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph status
+kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph health detail
+#+end_src
+
+** アップグレードがスタックした場合
+
+Operator のログを確認します。
+
+#+begin_src shell
+kubectl -n rook-ceph logs -l app=rook-ceph-operator --tail=100
+#+end_src
+
+* 作業結果
+
+** クラスタの健全性確認
+
+#+begin_src bash
+$ kubectl -n rook-ceph get cephcluster
+NAME        DATADIRHOSTPATH   MONCOUNT   AGE    PHASE   MESSAGE                        HEALTH        EXTERNAL   FSID
+rook-ceph   /var/lib/rook     3          607d   Ready   Cluster created successfully   HEALTH_WARN              18be74a6-d73c-4f2f-b5c6-267d7e2b43c9
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph get svc | grep mon
+rook-ceph-mon-a                  ClusterIP   10.106.50.102    <none>        6789/TCP,3300/TCP   607d
+rook-ceph-mon-b                  ClusterIP   10.101.18.234    <none>        6789/TCP,3300/TCP   607d
+rook-ceph-mon-c                  ClusterIP   10.96.158.161    <none>        6789/TCP,3300/TCP   607d
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph exec -it rook-ceph-mon-a-785fb58fc5-6svnd -c mon -- \
+  ceph --mon-host rook-ceph-mon-a:6789 \
+       --keyring /etc/ceph/keyring-store/keyring \
+       --name client.admin \
+       crash archive-all
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph exec -it rook-ceph-mon-a-785fb58fc5-6svnd -c mon -- \
+  ceph --mon-host "rook-ceph-mon-a:6789,rook-ceph-mon-b:6789,rook-ceph-mon-c:6789" \
+       --keyring /etc/ceph/keyring-store/keyring \
+       --name client.admin \
+       crash archive-all
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph get cephcluster
+NAME        DATADIRHOSTPATH   MONCOUNT   AGE    PHASE   MESSAGE                        HEALTH      EXTERNAL   FSID
+rook-ceph   /var/lib/rook     3          607d   Ready   Cluster created successfully   HEALTH_OK              18be74a6-d73c-4f2f-b5c6-267d7e2b43c9
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph get pods
+NAME                                                    READY   STATUS      RESTARTS          AGE
+csi-cephfsplugin-6dnmp                                  2/2     Running     96 (7h12m ago)    607d
+csi-cephfsplugin-ldf7c                                  2/2     Running     100 (7h12m ago)   607d
+csi-cephfsplugin-lwjk2                                  2/2     Running     92 (7h12m ago)    607d
+csi-cephfsplugin-provisioner-55d789d7bd-f8hfc           5/5     Running     0                 4h
+csi-cephfsplugin-provisioner-55d789d7bd-gx64b           5/5     Running     0                 4h12m
+csi-rbdplugin-kb2x2                                     2/2     Running     94 (7h12m ago)    607d
+csi-rbdplugin-nkhfc                                     2/2     Running     92 (7h12m ago)    607d
+csi-rbdplugin-provisioner-7c6dcb4dff-6b4mw              5/5     Running     0                 4h12m
+csi-rbdplugin-provisioner-7c6dcb4dff-ltrpq              5/5     Running     0                 4h
+csi-rbdplugin-qxg5k                                     2/2     Running     98 (7h12m ago)    607d
+rook-ceph-crashcollector-k8s-worker1-6cf57cfc65-52fs2   1/1     Running     0                 4h12m
+rook-ceph-crashcollector-k8s-worker2-76c4bb6698-cxnhg   1/1     Running     0                 4h
+rook-ceph-crashcollector-k8s-worker3-bf489d69c-p7fsd    1/1     Running     0                 3h53m
+rook-ceph-exporter-k8s-worker1-86bc5f746c-kmqxt         1/1     Running     0                 4h11m
+rook-ceph-exporter-k8s-worker2-7b487cdfb8-xx5wv         1/1     Running     0                 4h
+rook-ceph-exporter-k8s-worker3-86948f6d9f-6s7nq         1/1     Running     0                 3h53m
+rook-ceph-mds-ceph-filesystem-a-7b4d7b9dc4-d57c2        2/2     Running     2 (3h53m ago)     4h
+rook-ceph-mds-ceph-filesystem-b-6d45c6f856-k28js        2/2     Running     5 (3h54m ago)     4h12m
+rook-ceph-mgr-a-86854b9cc5-shlhg                        3/3     Running     0                 4h12m
+rook-ceph-mgr-b-b9476b944-jbh9d                         3/3     Running     0                 4h
+rook-ceph-mon-a-785fb58fc5-6svnd                        2/2     Running     0                 4h12m
+rook-ceph-mon-b-5d6d79754f-7ffmx                        2/2     Running     0                 4h
+rook-ceph-mon-c-6c448864bb-kwrwg                        2/2     Running     0                 4h16m
+rook-ceph-operator-7b786cb7fd-k7r26                     1/1     Running     0                 4h12m
+rook-ceph-osd-0-6c7f9998ff-wn2zr                        2/2     Running     0                 4h16m
+rook-ceph-osd-1-6ffbb5c9fd-vvxw2                        2/2     Running     0                 4h
+rook-ceph-osd-2-b67867f79-grgzf                         2/2     Running     0                 4h12m
+rook-ceph-osd-prepare-k8s-worker1-wf92n                 0/1     Completed   0                 3h52m
+rook-ceph-osd-prepare-k8s-worker2-dt5d9                 0/1     Completed   0                 3h52m
+rook-ceph-osd-prepare-k8s-worker3-r6ln4                 0/1     Completed   0                 3h52m
+rook-ceph-rgw-ceph-objectstore-a-577b4dbfb9-q2qzk       2/2     Running     0                 4h
+#+end_src
+
+#+begin_src bash
+$ curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.15"
+    version: v1.15.9
+    version: v1.15.8
+    version: v1.15.7
+    version: v1.15.6
+    version: v1.15.5
+    version: v1.15.4
+    version: v1.15.3
+    version: v1.15.2
+    version: v1.15.1
+    version: v1.15.0
+    version: v1.15.0-beta.0
+    version: v1.15.0-alpha.0
+    version: v1.15.9
+    version: v1.15.8
+    version: v1.15.7
+    version: v1.15.6
+    version: v1.15.5
+    version: v1.15.4
+    version: v1.15.3
+    version: v1.15.2
+    version: v1.15.1
+    version: v1.15.0
+    version: v1.15.0-beta.0
+    version: v1.15.0-alpha.0
+#+end_src
+
+#+begin_src bash
+$ helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  -f operator-values.yaml \
+  --version v1.15.9
+Release "rook-ceph" has been upgraded. Happy Helming!
+NAME: rook-ceph
+LAST DEPLOYED: Sat Mar  7 16:08:48 2026
+NAMESPACE: rook-ceph
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+The Rook Operator has been installed. Check its status by running:
+  kubectl --namespace rook-ceph get pods -l "app=rook-ceph-operator"
+
+Visit https://rook.io/docs/rook/latest for instructions on how to create and configure Rook clusters
+
+Important Notes:
+- You must customize the 'CephCluster' resource in the sample manifests for your cluster.
+- Each CephCluster must be deployed to its own namespace, the samples use `rook-ceph` for the namespace.
+- The sample manifests assume you also installed the rook-ceph operator in the `rook-ceph` namespace.
+- The helm chart includes all the RBAC required to create a CephCluster CRD in the same namespace.
+- Any disk devices you add to the cluster in the 'CephCluster' must be empty (no filesystem and no partitions).
+#+end_src
+
+#+begin_src bash
+$ helm list -n rook-ceph
+NAME                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                           APP VERSION
+rook-ceph               rook-ceph       2               2026-03-07 16:08:48.915161506 +0900 JST deployed        rook-ceph-v1.15.9               v1.15.9    
+rook-ceph-cluster       rook-ceph       1               2024-07-07 17:01:51.829417353 +0900 JST deployed        rook-ceph-cluster-v1.14.8       v1.14.8    
+#+end_src
+
+#+begin_src bash
+$ kubectl -n rook-ceph get pods -l app=rook-ceph-operator
+NAME                                  READY   STATUS    RESTARTS   AGE
+rook-ceph-operator-67f4bd7855-qbmcf   1/1     Running   0          90s
+#+end_src
+
+#+begin_src bash
+$ helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.15.9
+Release "rook-ceph-cluster" has been upgraded. Happy Helming!
+NAME: rook-ceph-cluster
+LAST DEPLOYED: Sat Mar  7 16:15:54 2026
+NAMESPACE: rook-ceph
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+The Ceph Cluster has been installed. Check its status by running:
+  kubectl --namespace rook-ceph get cephcluster
+
+Visit https://rook.io/docs/rook/latest/CRDs/ceph-cluster-crd/ for more information about the Ceph CRD.
+
+Important Notes:
+- You can only deploy a single cluster per namespace
+- If you wish to delete this cluster and start fresh, you will also have to wipe the OSD disks using `sfdisk`
+#+end_src
