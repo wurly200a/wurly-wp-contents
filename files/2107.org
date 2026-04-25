@@ -1,0 +1,198 @@
+#+BLOG: wurly-blog
+#+POSTID: 2107
+#+ORG2BLOG:
+#+DATE: [2026-04-25 Sat 13:59]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ubuntu
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 24.04 から 26.04 LTS へのアップグレード
+
+* 概要
+
+Ubuntu 24.04 LTS (Noble Numbat) から Ubuntu 26.04 LTS (Resolute Raccoon) へのアップグレードを行いました。
+
+Ubuntu 26.04 LTS は 2026年4月23日 にリリースされました。
+
+* 事前確認
+
+アップグレード前に以下の3点を確認しました。
+
+** ディスク空き容量
+
+#+begin_src bash
+df -h /
+#+end_src
+
+#+RESULTS:
+: Filesystem      Size  Used Avail Use% Mounted on
+: /dev/nvme0n1p5  458G  296G  139G  69% /
+
+15GB 以上の空きが必要です。
+
+** NVIDIA ドライバーバージョン
+
+#+begin_src bash
+nvidia-smi --query-gpu=driver_version --format=csv,noheader
+#+end_src
+
+#+RESULTS:
+: 560.35.05
+
+470 より新しいバージョンであることを確認します。
+
+** cgroup バージョン
+
+#+begin_src bash
+stat -fc %T /sys/fs/cgroup/
+#+end_src
+
+#+RESULTS:
+: cgroup2fs
+
+=cgroup2fs= と表示されれば cgroup v2 で問題ありません。
+
+* ホームディレクトリのバックアップ
+
+物理マシンのデュアルブート環境のため、アップグレード前にホームディレクトリをバックアップしました。
+
+#+begin_src bash
+# Windowsパーティションをマウント
+sudo mkdir -p /mnt/windows
+sudo mount /dev/nvme0n1p3 /mnt/windows
+
+# ホームディレクトリを tar.gz に圧縮（パーミッション保持）
+sudo tar -czpf /tmp/ubuntu_home_backup.tar.gz /home/wurly/
+
+# Windowsパーティションにコピー
+sudo cp /tmp/ubuntu_home_backup.tar.gz /mnt/windows/
+
+# 後片付け
+sudo rm /tmp/ubuntu_home_backup.tar.gz
+sudo umount /mnt/windows
+#+end_src
+
+* アップグレード実行
+
+通常の =do-release-upgrade= では 26.04 へのアップグレードパスがまだ有効化されていないため（LTSユーザーへの通知は 26.04.1 リリース後から）、 =-d= フラグを使用しました。
+
+#+begin_src bash
+sudo do-release-upgrade -d
+#+end_src
+
+** 途中の対応
+
+アップグレード中に以下の対応を行いました。
+
+- NVIDIA ドライバーが非公式パッケージとして認識される警告 → =y= で続行
+- =/etc/gdm3/custom.conf= の更新確認 → =Y= で新バージョンに置き換え（26.04 では Wayland がデフォルトのため =WaylandEnable=true= の設定は不要になった）
+
+* アップグレード後の修復
+
+アップグレード完了後、いくつかのパッケージでエラーが発生しました。
+
+** xkb-data のエラー
+
+カスタム xkb シンボルファイル =/usr/share/X11/xkb/symbols/jphenk= が原因で =xkb-data= のインストールが失敗しました。
+
+#+begin_src bash
+sudo mv /usr/share/X11/xkb/symbols/jphenk /tmp/jphenk.bak
+sudo apt --fix-broken install
+#+end_src
+
+** postfix のエラー
+
+設定ファイルが存在しないためエラーが発生しました。
+
+#+begin_src bash
+sudo mkdir -p /etc/postfix
+sudo bash -c 'echo "myhostname = localhost
+mydestination = localhost
+inet_interfaces = loopback-only
+inet_protocols = all" > /etc/postfix/main.cf'
+sudo apt --fix-broken install
+#+end_src
+
+** その他のパッケージ
+
+#+begin_src bash
+sudo apt --fix-broken install
+sudo apt upgrade
+sudo apt autoremove
+#+end_src
+
+** 保留パッケージの強制インストール
+
+=apt full-upgrade= でも保留になるパッケージが残ったため、個別に =apt install= しました。
+
+#+begin_src bash
+sudo apt install colord fcitx5-config-qt fprintd graphviz \
+  gstreamer1.0-packagekit libcanberra-pulse libcolorhug2 \
+  libegl-mesa0 libfprint-2-2 libfprint-2-tod1 libgbm1 \
+  libgbm1:i386 libgexiv2-2 libgl1-mesa-dri libglx-mesa0 \
+  libpam-fprintd libqt6core5compat6 libqt6core6t64 \
+  libqt6multimedia6 libqt6svg6 libsane-common libsane1 \
+  libselinux1 mesa-libgallium mesa-libgallium:i386 packagekit \
+  sane-utils simple-scan wireshark wireshark-common
+#+end_src
+
+* 外部リポジトリの整理
+
+アップグレードにより =/etc/apt/sources.list.d/= に =.migrate= ファイルが生成されていたため削除しました。
+
+#+begin_src bash
+sudo rm /etc/apt/sources.list.d/google-chrome.list.migrate
+sudo rm /etc/apt/sources.list.d/kubernetes.list.migrate
+#+end_src
+
+* カスタムキーバインドの再設定
+
+[[https://blog.wurlyhub.com/2023/09/17/post-658/][変換・無変換キーをCtrlキーに割り当てる設定]] が =xkb-data= の更新でリセットされたため、再設定しました。
+
+** jphenk シンボルファイルの再作成
+
+#+begin_src bash
+sudo bash -c 'cat > /usr/share/X11/xkb/symbols/jphenk << '"'"'EOF'"'"'
+partial modifier_keys
+    xkb_symbols "rcontrol" {
+    replace key <HENK> { [ Control_R, Control_R ] };
+    modifier_map Control { <HENK> };
+};
+
+partial modifier_keys
+    xkb_symbols "lcontrol" {
+    replace key <HENK> { [ Control_L, Control_L ] };
+    modifier_map Control { <MUHE> };
+};
+EOF'
+#+end_src
+
+** evdev への追記
+
+#+begin_src bash
+# 追記位置を確認
+grep -n "parens:swap_brackets" /usr/share/X11/xkb/rules/evdev
+
+# 該当行（736行目）の後に追記
+sudo sed -i '736a\  jphenk:rcontrol  = +jphenk(rcontrol)\n  jphenk:lcontrol  = +jphenk(lcontrol)' /usr/share/X11/xkb/rules/evdev
+#+end_src
+
+** dconf の設定を再適用
+
+#+begin_src bash
+gsettings set org.gnome.desktop.input-sources xkb-options "['jphenk:rcontrol', 'jphenk:lcontrol']"
+#+end_src
+
+* 結果確認
+
+#+begin_src bash
+cat /etc/lsb-release
+#+end_src
+
+#+RESULTS:
+: DISTRIB_ID=Ubuntu
+: DISTRIB_RELEASE=26.04
+: DISTRIB_CODENAME=resolute
+: DISTRIB_DESCRIPTION="Ubuntu 26.04 LTS"
+
+無事に Ubuntu 26.04 LTS へのアップグレードが完了しました。
