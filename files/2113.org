@@ -1,0 +1,230 @@
+#+BLOG: wurly-blog
+#+POSTID: 2113
+#+ORG2BLOG:
+#+DATE: [2026-04-25 Sat 14:36]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Ubuntu 26.04 に Emacs 30.2 (with pgtk,xwidgets) をインストール
+
+* はじめに
+
+Ubuntu 26.04 に Emacs 30.2 をインストールしました。
+
+インストール環境は下記です。
+直近の数バージョンで、バージョンアップがある毎にNative/WSL両方の環境でもビルドしていますので、Native/WSLどちらでも同じ手順で実行できるかと思います。
+
+ - ハードウェア : Intel Core i7-10700F, 16GB Memory, NVMe SSD
+ - OS : Ubuntu26.04(WSL)
+
+# - ハードウェア : Core i5-1235U, 32GB Memory, NVMe SSD
+# - OS : Windows11 / Ubuntu26.04(WSL)
+
+下記のコンフィギュレーションとなります。
+
+ - pgtk(Pure GTK)
+ - native-compilation
+ - XWidgets 有効
+
+* 手順
+
+** ソースコードの取得
+
+#+begin_src bash
+$ git clone --depth 1 --branch emacs-30.2 git://git.sv.gnu.org/emacs.git emacs-30.2
+#+end_src
+
+** ビルドに必要なツールとライブラリの取得
+
+libgccjit は 14 を使用します。
+
+#+begin_src bash
+$ sudo apt update
+$ sudo apt install autoconf make texinfo gnutls-bin libgccjit-14-dev gcc
+$ sudo apt install zlib1g-dev \
+                   libncurses-dev \
+                   libgtk-3-dev \
+                   xorg-dev \
+                   libjpeg-dev \
+                   libgif-dev \
+                   libtiff-dev \
+                   libgnutls28-dev \
+                   librsvg2-dev \
+                   libcairo-5c-dev \
+                   liblcms2-dev \
+                   libgpm-dev \
+                   libacl1-dev \
+                   libxml2-dev \
+                   libotf-dev \
+                   libsystemd-dev \
+                   libjansson-dev \
+                   libsqlite3-dev \
+                   imagemagick \
+                   libmagickwand-dev \
+                   libmagickcore-dev \
+                   libtree-sitter-dev \
+                   libjansson-dev \
+                   libwebkit2gtk-4.1-dev
+#+end_src
+
+** autogen.sh
+
+configure を生成します。
+
+#+begin_src bash
+cd emacs-30.2
+./autogen.sh
+#+end_src
+
+** configureの修正 (xwidgetsを有効にする場合)
+
+configureにて --with-xwidgets を使用する場合、下記のメッセージが表示されるため、configureを書き換えて対応します。
+
+libwebkit2gtk-4.1-dev では、想定しているバージョン(2.41.92)に対して、新しすぎる(2.50.4)ことでエラーになっていますのでこの部分を回避するためです。
+
+#+begin_src bash
+checking for webkit2gtk-4.1 >= 2.12 webkit2gtk-4.1 < 2.41.92... no
+checking for webkit2gtk-4.0 >= 2.12 webkit2gtk-4.0 < 2.41.92... no
+configure: error: xwidgets requested but WebKitGTK+ or WebKit framework not found.
+#+end_src
+
+#+begin_src bash
+grep -n "2.41.92" configure
+22074:    WEBKIT_BROKEN=2.41.92
+#+end_src
+
+#+begin_src bash
+$ sudo apt list --installed | grep webkit
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+gir1.2-webkit2-4.0/now 2.48.3-0ubuntu0.22.04.1 amd64 [installed,local]
+gir1.2-webkit2-4.1/resolute,now 2.52.0-1 amd64 [installed,automatic]
+libwebkit2gtk-4.0-37/now 2.48.3-0ubuntu0.22.04.1 amd64 [installed,local]
+libwebkit2gtk-4.1-0/resolute,now 2.52.0-1 amd64 [installed,automatic]
+libwebkit2gtk-4.1-dev/resolute,now 2.52.0-1 amd64 [installed]
+libwebkitgtk-6.0-4/resolute,now 2.52.0-1 amd64 [installed,automatic]
+#+end_src
+
+#+begin_src bash
+sed -i 's/WEBKIT_BROKEN=2.41.92/WEBKIT_BROKEN=3.0.0/' configure
+#+end_src
+
+** configureの実行
+
+#+begin_src bash
+CFLAGS='-I/usr/lib/gcc/x86_64-linux-gnu/14/include -L/usr/lib/gcc/x86_64-linux-gnu/14' ./configure --with-pgtk --with-native-compilation --without-pop --with-mailutils --with-imagemagick --with-tree-sitter --with-xwidgets
+#+end_src
+
+
+** (参考)configure実行時のwarningについて
+
+*** gtkのチェック
+
+こちらの警告は無視します。
+
+#+begin_src bash
+checking for gtk+-3.0 >= 3.22.23 glib-2.0 >= 2.37.5... yes
+checking whether GTK compiles... yes
+configure: WARNING: Your version of Gtk+ will have problems with
+       closing open displays.  This is no problem if you just use
+       one display, but if you use more than one and close one of them
+       Emacs may crash.
+       See https://gitlab.gnome.org/GNOME/gtk/issues/221
+#+end_src
+
+以前、試しに、gtk3-dev でなく gtk4-dev をインストールして試した際には下記のエラーが出ていました。
+
+#+begin_src bash
+checking for gtk+-3.0 >= 3.22.23 glib-2.0 >= 2.37.5... no
+configure: error: Package 'gtk+-3.0', required by 'virtual:world', not found
+#+end_src
+
+ですが、そもそも、今回は pgtkビルド（Wayland）を使っているのでほぼ無関係(実害がない)と思われます。
+
+** configure結果
+
+#+begin_src bash
+Configured for 'x86_64-pc-linux-gnu'.
+
+  Where should the build process find the source code?    .
+  What compiler should emacs be built with?               gcc -I/usr/lib/gcc/x86_64-linux-gnu/14/include -L/usr/lib/gcc/x86_64-linux-gnu/14 -O
+  Should Emacs use the GNU version of malloc?             no
+    (The GNU allocators don't work with this system configuration.)
+  Should Emacs use a relocating allocator for buffers?    no
+  Should Emacs use mmap(2) for buffer allocation?         no
+  What window system should Emacs use?                    pgtk
+  What toolkit should Emacs use?                          GTK3
+  Where do we find X Windows header files?                Standard dirs
+  Where do we find X Windows libraries?                   Standard dirs
+  Does Emacs use -lXaw3d?                                 no
+  Is Emacs being built for Android?                       no 
+  Does Emacs use the X Double Buffer Extension?           no
+  Does Emacs use -lXpm?                                   no
+  Does Emacs use -ljpeg?                                  yes
+  Does Emacs use -ltiff?                                  yes
+  Does Emacs use a gif library?                           yes -lgif
+  Does Emacs use a png library?                           yes -lpng16
+  Does Emacs use -lrsvg-2?                                yes
+  Does Emacs use -lwebp?                                  yes
+  Does Emacs use -lsqlite3?                               yes
+  Does Emacs use cairo?                                   yes
+  Does Emacs use -llcms2?                                 yes
+  Does Emacs use imagemagick?                             yes
+  Does Emacs use native APIs for images?                  no
+  Does Emacs support sound?                               yes
+  Does Emacs use -lgpm?                                   yes
+  Does Emacs use -ldbus?                                  yes
+  Does Emacs use -lgconf?                                 no
+  Does Emacs use GSettings?                               yes
+  Does Emacs use a file notification library?             yes (inotify)
+  Does Emacs use access control lists?                    yes -lacl -lattr
+  Does Emacs use -lselinux?                               yes
+  Does Emacs use -lgnutls?                                yes
+  Does Emacs use -lxml2?                                  yes
+  Does Emacs use -lfreetype?                              yes
+  Does Emacs use HarfBuzz?                                yes
+  Does Emacs use -lm17n-flt?                              
+  Does Emacs use -lotf?                                   yes
+  Does Emacs use -lxft?                                   
+  Does Emacs use -lsystemd?                               yes
+  Does Emacs use -ltree-sitter?                           yes
+  Does Emacs use the GMP library?                         yes
+  Does Emacs directly use zlib?                           yes
+  Does Emacs have dynamic modules support?                yes
+  Does Emacs use toolkit scroll bars?                     yes
+  Does Emacs support Xwidgets?                            yes
+  Does Emacs have threading support in lisp?              yes
+  Does Emacs support the portable dumper?                 yes
+  Does Emacs support legacy unexec dumping?               no
+  Which dumping strategy does Emacs use?                  pdumper
+  Does Emacs have native lisp compiler?                   yes
+  Does Emacs use version 2 of the X Input Extension?      no
+  Does Emacs generate a smaller-size Japanese dictionary? no
+#+end_src
+
+** make
+
+#+begin_src bash
+make -j$(nproc)
+#+end_src
+
+# Available configurations
+# Core i5-1235U, 32GB Memory, NVMe SSD, Windows11, WSL
+# Core i7-10700F, 16GB Memory, NVMe SSD (14:43-14:46)
+
+** make install
+
+#+begin_src bash
+sudo make install
+#+end_src
+
+* その他の設定
+
+必要に応じて post-1300 の設定を行います。
+
+* おわりに
+
+Ubuntu 26.04 で Emacs 30.2 のビルドおよび起動が確認できました。
+
