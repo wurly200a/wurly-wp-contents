@@ -1,0 +1,297 @@
+#+BLOG: wurly-blog
+#+POSTID: 2088
+#+ORG2BLOG:
+#+DATE: [2026-03-14 Sat 09:56]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Ceph,Kubernetes
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Rook/Ceph v1.17 から v1.18 へのアップグレード手順（Helm版）
+
+* 基本手順
+
+下記の手順で実行します。
+今回対象のバージョンに対応して実行した内容は後述します。
+
+** helmでデプロイされたバージョンの確認
+
+#+begin_src bash
+helm list -n rook-ceph
+#+end_src
+
+** バージョン確認
+
+#+begin_src bash
+kubectl -n rook-ceph get CephCluster rook-ceph -o jsonpath='{.status.ceph.versions}' | jq .
+#+end_src
+
+** クラスター HEALTH の確認
+
+#+begin_src bash
+kubectl -n rook-ceph get cephcluster
+#+end_src
+
+** rook-ceph-operator podの確認
+
+#+begin_src bash
+kubectl -n rook-ceph get pods -l app=rook-ceph-operator
+#+end_src
+
+** Deploymentのバージョン確認(単発)
+
+#+begin_src bash
+kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+#+end_src
+
+** Deploymentのバージョン確認(watch)
+
+#+begin_src shell
+watch --exec kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+#+end_src
+
+** Deploy(Upgrade)
+
+#+begin_src bash
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  --version v1.x.y
+#+end_src
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  -f cluster-values.yaml \
+  --version v1.x.y
+#+end_src
+
+または (valuesを再利用する場合)
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  --reuse-values
+  --version v1.x.y
+#+end_src
+
+** cluster-values.yaml
+
+#+begin_src yaml
+cephClusterSpec:
+  storage:
+    nodes:
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker1
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker2
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker3
+    useAllDevices: false
+    useAllNodes: false
+#+end_src
+
+** Helm repo の更新
+
+#+begin_src shell
+helm repo update
+#+end_src
+
+** チャートのバージョンを確認
+
+利用可能な v1.x チャートのバージョンを確認します。
+
+#+begin_src shell
+curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.x"
+#+end_src
+
+最新の v1.x.y をデプロイします。
+
+* Rook/Ceph v1.18 to v1.19
+
+** 対象バージョン
+
+今回対象のバージョンに対応して実行した内容となります。
+
+- https://rook.io/docs/rook/v1.18/Upgrade/rook-upgrade/
+
+
+** バージョン確認
+
+K8Sはv1.29以上であること → OK
+
+#+begin_src bash
+$ kubectl version
+Client Version: v1.33.9
+Kustomize Version: v5.6.0
+Server Version: v1.33.9
+#+end_src
+
+** 現在のhelm values確認
+
+#+begin_src bash
+wurly@rockers-ubuntu:~$ helm get values -n rook-ceph rook-ceph
+USER-SUPPLIED VALUES:
+null
+#+end_src
+
+#+begin_src 
+wurly@rockers-ubuntu:~$ helm get values -n rook-ceph rook-ceph-cluster
+USER-SUPPLIED VALUES:
+cephClusterSpec:
+  storage:
+    nodes:
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker1
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker2
+    - devices:
+      - name: /dev/nvme0n1p3
+      name: k8s-worker3
+    useAllDevices: false
+    useAllNodes: false
+operatorNamespace: rook-ceph
+#+end_src
+
+** クラスター状況の確認
+
+#+begin_src bash
+# 事前確認
+kubectl -n rook-ceph get cephcluster
+kubectl -n rook-ceph get pods | grep holder  # 何も出ないこと
+#+end_src
+
+** 対象の helm chart バージョンの確認
+
+#+begin_src bash
+# バージョン確認
+helm repo update
+curl -s https://charts.rook.io/release/index.yaml | grep "version: v1.18"
+#+end_src
+
+** rook-ceph のアップグレード
+
+(補足)下記のコメントがあるので、CRDの手動アップデートは不要。
+
+#+begin_quote
+Common resources and CRDs are automatically updated when using Helm charts.
+#+end_quote
+
+#+begin_src bash
+helm upgrade rook-ceph rook-release/rook-ceph \
+  --namespace rook-ceph \
+  --version v1.18.9
+#+end_src
+
+"Deploymentのバージョン確認(watch)"で全てバージョンが上がったことを確認して次に進む
+
+#+begin_src bash
+$ kubectl -n rook-ceph get deployments \
+  -l rook_cluster=rook-ceph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  req/upd/avl: "}{.spec.replicas}{"/"}{.status.updatedReplicas}{"/"}{.status.readyReplicas}{"  rook-version="}{.metadata.labels.rook-version}{"\n"}{end}'
+rook-ceph-crashcollector-k8s-worker1  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-crashcollector-k8s-worker2  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-crashcollector-k8s-worker3  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-exporter-k8s-worker1  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-exporter-k8s-worker2  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-exporter-k8s-worker3  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mds-ceph-filesystem-a  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mds-ceph-filesystem-b  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mgr-a  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mgr-b  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mon-a  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mon-b  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-mon-c  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-osd-0  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-osd-1  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-osd-2  req/upd/avl: 1/1/1  rook-version=v1.18.9
+rook-ceph-rgw-ceph-objectstore-a  req/upd/avl: 1/1/1  rook-version=v1.18.9
+
+** rook-ceph-cluster のアップグレード
+
+#+begin_src bash
+helm upgrade rook-ceph-cluster rook-release/rook-ceph-cluster \
+  --namespace rook-ceph \
+  --set operatorNamespace=rook-ceph \
+  --version v1.18.9 \
+  --reuse-values
+#+end_src
+
+** cephのバージョン
+
+#+begin_src bash
+$ kubectl -n rook-ceph get CephCluster rook-ceph -o jsonpath='{.status.ceph.versions}' | jq .
+{
+  "mds": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 2
+  },
+  "mgr": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 2
+  },
+  "mon": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 3
+  },
+  "osd": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 3
+  },
+  "overall": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 11
+  },
+  "rgw": {
+    "ceph version 19.2.3 (c92aebb279828e9c3c1f5d24613efca272649e62) squid (stable)": 1
+  }
+}
+#+end_src
+
+** helm chartに含まれるcephのバージョン
+helm chart v1.17.9 -> v1.18.9 で変更なし
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp/rook-ceph$ helm show values rook-release/rook-ceph-cluster --version v1.17.9 | grep -A7 cephVersion
+  cephVersion:
+    # The container image used to launch the Ceph daemon pods (mon, mgr, osd, mds, rgw).
+    # v18 is Reef, v19 is Squid
+    # RECOMMENDATION: In production, use a specific version tag instead of the general v18 flag, which pulls the latest release and could result in different
+    # versions running within the cluster. See tags available at https://hub.docker.com/r/ceph/ceph/tags/.
+    # If you want to be more precise, you can always use a timestamp tag such as quay.io/ceph/ceph:v19.2.3-20250717
+    # This tag might not contain a new Ceph version, just security fixes from the underlying operating system, which will reduce vulnerabilities
+    image: quay.io/ceph/ceph:v19.2.3
+wurly@rockers-ubuntu:~/temp/rook-ceph$ helm show values rook-release/rook-ceph-cluster --version v1.18.9 | grep -A7 cephVersion
+  cephVersion:
+    # The container image used to launch the Ceph daemon pods (mon, mgr, osd, mds, rgw).
+    # v18 is Reef, v19 is Squid
+    # RECOMMENDATION: In production, use a specific version tag instead of the general v18 flag, which pulls the latest release and could result in different
+    # versions running within the cluster. See tags available at https://hub.docker.com/r/ceph/ceph/tags/.
+    # If you want to be more precise, you can always use a timestamp tag such as quay.io/ceph/ceph:v19.2.3-20250717
+    # This tag might not contain a new Ceph version, just security fixes from the underlying operating system, which will reduce vulnerabilities
+    image: quay.io/ceph/ceph:v19.2.3
+#+end_src
+
+** HEALTH_WARN
+
+#+begin_src bash
+wurly@rockers-ubuntu:~/temp/rook-ceph$ kubectl -n rook-ceph get CephCluster rook-ceph -o jsonpath='{.status.ceph.details}' | jq .
+{
+  "MON_CLOCK_SKEW": {
+    "message": "clock skew detected on mon.b",
+    "severity": "HEALTH_WARN"
+  },
+  "RECENT_MGR_MODULE_CRASH": {
+    "message": "1 mgr modules have recently crashed",
+    "severity": "HEALTH_WARN"
+  },
+  "TOO_MANY_PGS": {
+    "message": "too many PGs per OSD (265 > max 250)",
+    "severity": "HEALTH_WARN"
+  }
+}
+#+end_src
