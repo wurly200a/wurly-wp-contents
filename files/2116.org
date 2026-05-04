@@ -1,0 +1,50 @@
+#+BLOG: wurly-blog
+#+POSTID: 2116
+#+ORG2BLOG:
+#+DATE: [2026-05-04 Mon 13:31]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: 
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Chocolatey
+
+* 概要
+
+Chocolatey の概要、インストール方法について。
+
+* Chocolatey とは
+
+Node.js をインストールしようとしたところ、知りました。
+
+ - [[https://qiita.com/Soysoy11110000/items/925391c57d01a3e3ffd8][Windowsのパッケージ管理システム「Chocolatey」について #Windows - Qiita]]
+https://qiita.com/Soysoy11110000/items/925391c57d01a3e3ffd8
+
+#+begin_quote
+ChocolateyはWindowsで使えるパッケージ管理システムで、コマンドプロンプトやPowerShellからソフトウェアをインストール・アンインストール・アップデートすることができます。
+#+end_quote
+
+とのこと。
+
+* インストール
+
+インストーラーを実行すると、"このシステムではスクリプトの実行が無効になっているため、ファイル ... を読み込むことができません。"というメッセージが出るので、先に下記を実行します。
+(もし、これを行わず実行してしまった場合は、"C:\ProgramData\chocolatey" を手動で削除してから再度実行します。)
+
+#+begin_src 
+PS> Set-ExecutionPolicy Bypass -Scope CurrentUser -Force
+#+end_src
+
+インストーラーを実行します。
+
+こちらは、管理者権限で開いたPowerShellでの実行が必要です。
+
+#+begin_src
+PS> powershell -c "irm https://community.chocolatey.org/install.ps1|iex"
+#+end_src
+
+インストール後の確認
+
+#+begin_src 
+>choco --version
+2.7.1
+#+end_src
