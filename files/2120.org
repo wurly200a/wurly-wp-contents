@@ -1,0 +1,55 @@
+#+BLOG: wurly-blog
+#+POSTID: 2120
+#+ORG2BLOG:
+#+DATE: [2026-05-05 Tue 00:01]
+#+OPTIONS: toc:nil num:nil todo:nil pri:nil tags:nil ^:nil
+#+CATEGORY: Node.js
+#+TAGS: 
+#+DESCRIPTION:
+#+TITLE: Windows11 への Node.js 24 のインストール
+
+* インストール方法
+
+管理者モードで立ち上げたPowerShellから、
+
+#+begin_src 
+choco install nodejs --version="24.15.0"
+#+end_src
+
+でインストール
+
+#+begin_src 
+PS > choco install nodejs --version="24.15.0"
+Chocolatey v2.7.1
+Installing the following packages:
+nodejs
+By installing, you accept licenses for the packages.
+Downloading package from source 'https://community.chocolatey.org/api/v2/'
+Progress: Downloading nodejs.install 24.15.0... 100%
+
+nodejs.install v24.15.0 [Approved]
+nodejs.install package files install completed. Performing other installation steps.
+The package nodejs.install wants to run 'chocolateyInstall.ps1'.
+Note: If you don't run this script, the installation will fail.
+Note: To confirm automatically next time, use '-y' or consider:
+choco feature enable -n allowGlobalConfirmation
+Do you want to run the script?([Y]es/[A]ll scripts/[N]o/[P]rint): a
+
+Installing 64-bit nodejs.install...
+nodejs.install has been installed.
+  nodejs.install may be able to be automatically uninstalled.
+Environment Vars (like PATH) have changed. Close/reopen your shell to
+ see the changes (or in powershell/cmd.exe just type `refreshenv`).
+ The install of nodejs.install was successful.
+  Software installed as 'msi', install location is likely default.
+Downloading package from source 'https://community.chocolatey.org/api/v2/'
+Progress: Downloading nodejs 24.15.0... 100%
+
+nodejs v24.15.0 [Approved]
+nodejs package files install completed. Performing other installation steps.
+ The install of nodejs was successful.
+  Deployed to 'C:\ProgramData\chocolatey\lib\nodejs'
+
+Chocolatey installed 2/2 packages.
+ See the log for details (C:\ProgramData\chocolatey\logs\chocolatey.log).
+#+end_src
